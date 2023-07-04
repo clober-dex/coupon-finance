@@ -33,6 +33,8 @@ interface ILendingPool {
     }
 
     // View Functions //
+    function yieldFarmer() external view returns (address);
+
     function getReserve(address asset) external view returns (Reserve memory);
 
     function getVault(address asset, address user) external view returns (Vault memory);
