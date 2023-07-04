@@ -4,10 +4,10 @@ import "forge-std/Test.sol";
 
 contract ForkTestSetUp is Test {
     function fork(uint256 blockNumber) public {
-        uint256 fork = vm.createFork(vm.envString("FORK_TEST_NODE_URL"));
-        vm.selectFork(fork);
+        uint256 newFork = vm.createFork(vm.envString("FORK_TEST_NODE_URL"));
+        vm.selectFork(newFork);
         vm.rollFork(blockNumber);
-        assertEq(vm.activeFork(), fork);
+        assertEq(vm.activeFork(), newFork);
         assertEq(block.number, blockNumber);
     }
 }
