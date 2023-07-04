@@ -87,3 +87,5 @@ jobs:
         run: forge install
       - name: Foundry Forge test
         run: npm run test:forge
+        env:
+          FORK_TEST_NODE_URL: ${{ secrets.FORK_TEST_NODE_URL }}
