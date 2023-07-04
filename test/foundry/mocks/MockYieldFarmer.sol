@@ -9,7 +9,7 @@ import "../../../contracts/interfaces/IYieldFarmer.sol";
 contract MockYieldFarmer is IYieldFarmer {
     mapping(address => uint256) public override assetBalance;
 
-    function withdrawableBalance(address asset) external view returns (uint256) {
+    function withdrawable(address asset) external view returns (uint256) {
         return assetBalance[asset];
     }
 

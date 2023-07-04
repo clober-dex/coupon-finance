@@ -39,6 +39,8 @@ interface ILendingPool {
 
     function getVault(address asset, address user) external view returns (Vault memory);
 
+    function withdrawable(address asset) external view returns (uint256);
+
     // User Functions //
     function deposit(address asset, address recipient, uint256 amount) external;
 
