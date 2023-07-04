@@ -7,7 +7,7 @@ interface ILendingPoolEvents {
     event Withdraw(address indexed asset, address indexed user, address indexed to, uint256 amount);
 }
 
-interface ILendingPool is ILendingPoolEvents {
+interface ILendingPoolTypes {
     struct CouponKey {
         address asset;
         uint256 maturity;
@@ -36,7 +36,9 @@ interface ILendingPool is ILendingPoolEvents {
         uint256 amount;
         uint256 maturity;
     }
+}
 
+interface ILendingPool is ILendingPoolEvents, ILendingPoolTypes {
     // View Functions //
     function yieldFarmer() external view returns (address);
 
