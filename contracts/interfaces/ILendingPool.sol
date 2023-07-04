@@ -42,21 +42,22 @@ interface ILendingPool {
     function withdrawable(address asset) external view returns (uint256);
 
     // User Functions //
-    function deposit(address asset, address recipient, uint256 amount) external;
+    function deposit(address asset, uint256 amount, address recipient) external;
 
-    function withdraw(address asset, address recipient, uint256 amount) external;
+    // @dev If the amount exceeds the withdrawable balance, it will withdraw the maximum amount.
+    function withdraw(address asset, uint256 amount, address recipient) external returns (uint256);
 
-    function mintCoupon(CouponKey calldata couponKey, address recipient, uint256 amount) external;
+    function mintCoupon(CouponKey calldata couponKey, uint256 amount, address recipient) external;
 
-    function burnCoupon(CouponKey calldata couponKey, address recipient, uint256 amount) external;
+    function burnCoupon(CouponKey calldata couponKey, uint256 amount, address recipient) external;
 
-    function addCollateral(address asset, address recipient, uint256 amount) external;
+    function addCollateral(address asset, uint256 amount, address recipient) external;
 
-    function borrow(CouponKey calldata couponKey, address collateral, address recipient, uint256 amount) external;
+    function borrow(CouponKey calldata couponKey, address collateral, uint256 amount, address recipient) external;
 
-    function repay(address recipient, uint256 amount) external;
+    function repay(address asset, uint256 amount, address recipient) external;
 
-    function liquidate(address user, address debt, address collateral) external;
+    function liquidate(address collateral, address debt, address user) external;
 
     // Admin Functions //
     function setLiquidator(address newLiquidator) external;
