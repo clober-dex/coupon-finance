@@ -2,4 +2,8 @@
 
 pragma solidity ^0.8.0;
 
-interface ILiquidator {}
+interface ILiquidator {
+    function onLiquidate() external;
+
+    function take() external;
+}
