@@ -2,7 +2,12 @@
 
 pragma solidity ^0.8.0;
 
-interface ILendingPool {
+interface ILendingPoolEvents {
+    event Deposit(address indexed asset, address indexed sender, address indexed user, uint256 amount);
+    event Withdraw(address indexed asset, address indexed user, address indexed to, uint256 amount);
+}
+
+interface ILendingPool is ILendingPoolEvents {
     struct CouponKey {
         address asset;
         uint256 maturity;
