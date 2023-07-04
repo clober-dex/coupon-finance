@@ -47,7 +47,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         ILendingPool.Vault memory beforeVault = _lendingPool.getVault(_USER, address(_usdc));
         uint256 beforeThisBalance = _usdc.balanceOf(address(this));
         uint256 beforePoolBalance = _usdc.balanceOf(address(_lendingPool));
-        uint256 beforeYieldFarmerBalance = _yieldFarmer.assetBalance(address(_usdc));
+        uint256 beforeYieldFarmerBalance = _yieldFarmer.totalReservedAmount(address(_usdc));
 
         uint256 amount = _usdc.amount(100);
         vm.expectEmit(true, true, true, true);
@@ -59,7 +59,11 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
 
         assertEq(_usdc.balanceOf(address(this)) + amount, beforeThisBalance, "THIS_BALANCE");
         assertEq(_usdc.balanceOf(address(_lendingPool)), beforePoolBalance, "POOL_BALANCE");
-        assertEq(_yieldFarmer.assetBalance(address(_usdc)), beforeYieldFarmerBalance + amount, "YIELD_FARMER_BALANCE");
+        assertEq(
+            _yieldFarmer.totalReservedAmount(address(_usdc)),
+            beforeYieldFarmerBalance + amount,
+            "YIELD_FARMER_BALANCE"
+        );
         assertEq(beforeReserve.amount + amount, afterReserve.amount, "RESERVE_AMOUNT");
         assertEq(beforeVault.amount + amount, afterVault.amount, "VAULT_AMOUNT");
     }
@@ -72,7 +76,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         ILendingPool.Vault memory beforeVault = _lendingPool.getVault(address(this), address(_usdc));
         uint256 beforeRecipientBalance = _usdc.balanceOf(_USER);
         uint256 beforePoolBalance = _usdc.balanceOf(address(_lendingPool));
-        uint256 beforeYieldFarmerBalance = _yieldFarmer.assetBalance(address(_usdc));
+        uint256 beforeYieldFarmerBalance = _yieldFarmer.totalReservedAmount(address(_usdc));
 
         vm.expectEmit(true, true, true, true);
         emit Withdraw(address(_usdc), address(this), _USER, amount);
@@ -84,7 +88,11 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
 
         assertEq(_usdc.balanceOf(_USER), beforeRecipientBalance + amount, "THIS_BALANCE");
         assertEq(_usdc.balanceOf(address(_lendingPool)), beforePoolBalance, "POOL_BALANCE");
-        assertEq(_yieldFarmer.assetBalance(address(_usdc)) + amount, beforeYieldFarmerBalance, "YIELD_FARMER_BALANCE");
+        assertEq(
+            _yieldFarmer.totalReservedAmount(address(_usdc)) + amount,
+            beforeYieldFarmerBalance,
+            "YIELD_FARMER_BALANCE"
+        );
         assertEq(beforeReserve.amount, afterReserve.amount + amount, "RESERVE_AMOUNT");
         assertEq(beforeVault.amount, afterVault.amount + amount, "VAULT_AMOUNT");
     }
@@ -100,7 +108,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         ILendingPool.Vault memory beforeVault = _lendingPool.getVault(address(this), address(_usdc));
         uint256 beforeRecipientBalance = _usdc.balanceOf(_USER);
         uint256 beforePoolBalance = _usdc.balanceOf(address(_lendingPool));
-        uint256 beforeYieldFarmerBalance = _yieldFarmer.assetBalance(address(_usdc));
+        uint256 beforeYieldFarmerBalance = _yieldFarmer.totalReservedAmount(address(_usdc));
 
         vm.expectEmit(true, true, true, true);
         emit Withdraw(address(_usdc), address(this), _USER, amount / 2);
@@ -113,7 +121,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         assertEq(_usdc.balanceOf(_USER), beforeRecipientBalance + amount / 2, "THIS_BALANCE");
         assertEq(_usdc.balanceOf(address(_lendingPool)), beforePoolBalance, "POOL_BALANCE");
         assertEq(
-            _yieldFarmer.assetBalance(address(_usdc)) + amount / 2,
+            _yieldFarmer.totalReservedAmount(address(_usdc)) + amount / 2,
             beforeYieldFarmerBalance,
             "YIELD_FARMER_BALANCE"
         );
@@ -129,7 +137,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         ILendingPool.Vault memory beforeVault = _lendingPool.getVault(address(this), address(_usdc));
         uint256 beforeRecipientBalance = _usdc.balanceOf(_USER);
         uint256 beforePoolBalance = _usdc.balanceOf(address(_lendingPool));
-        uint256 beforeYieldFarmerBalance = _yieldFarmer.assetBalance(address(_usdc));
+        uint256 beforeYieldFarmerBalance = _yieldFarmer.totalReservedAmount(address(_usdc));
 
         vm.expectEmit(true, true, true, true);
         emit Withdraw(address(_usdc), address(this), _USER, amount);
@@ -141,7 +149,11 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
 
         assertEq(_usdc.balanceOf(_USER), beforeRecipientBalance + amount, "THIS_BALANCE");
         assertEq(_usdc.balanceOf(address(_lendingPool)), beforePoolBalance, "POOL_BALANCE");
-        assertEq(_yieldFarmer.assetBalance(address(_usdc)) + amount, beforeYieldFarmerBalance, "YIELD_FARMER_BALANCE");
+        assertEq(
+            _yieldFarmer.totalReservedAmount(address(_usdc)) + amount,
+            beforeYieldFarmerBalance,
+            "YIELD_FARMER_BALANCE"
+        );
         assertEq(beforeReserve.amount, afterReserve.amount + amount, "RESERVE_AMOUNT");
         assertEq(beforeVault.amount, afterVault.amount + amount, "VAULT_AMOUNT");
     }
