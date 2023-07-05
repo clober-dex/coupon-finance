@@ -160,4 +160,59 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
         assertEq(beforeReserve.amount, afterReserve.amount + amount, "RESERVE_AMOUNT");
         assertEq(beforeVault.amount, afterVault.amount + amount, "VAULT_AMOUNT");
     }
+
+    function testMintCoupon() public {
+        uint256 amount = _usdc.amount(100);
+        _lendingPool.deposit(address(_usdc), amount, address(this));
+        amount /= 2;
+
+        CouponKey memory couponKey = CouponKey({asset: address(_usdc), epoch: 1});
+        uint256 couponId = couponKey.toId();
+
+        Reserve memory beforeReserve = _lendingPool.getReserve(address(_usdc));
+        Vault memory beforeVault = _lendingPool.getVault(address(this), address(_usdc));
+        uint256 beforeCouponBalance = _lendingPool.balanceOf(_USER, couponId);
+        uint256 beforeCouponTotalSupply = _lendingPool.totalSupply(couponId);
+
+        _lendingPool.mintCoupon(couponKey, amount, _USER);
+
+        Reserve memory afterReserve = _lendingPool.getReserve(address(_usdc));
+        Vault memory afterVault = _lendingPool.getVault(address(this), address(_usdc));
+        uint256 afterCouponBalance = _lendingPool.balanceOf(_USER, couponId);
+        uint256 afterCouponTotalSupply = _lendingPool.totalSupply(couponId);
+
+        assertEq(beforeReserve.locked + amount, afterReserve.locked, "RESERVE_LOCKED");
+        assertEq(beforeReserve.amount, afterReserve.amount + amount, "RESERVE_AMOUNT");
+        assertEq(beforeVault.locked + amount, afterVault.locked, "VAULT_LOCKED");
+        assertEq(beforeVault.amount, afterVault.amount + amount, "VAULT_AMOUNT");
+        assertEq(beforeCouponBalance + amount, afterCouponBalance, "COUPON_BALANCE");
+        assertEq(beforeCouponTotalSupply + amount, afterCouponTotalSupply, "COUPON_TOTAL_SUPPLY");
+    }
+
+    function testMintCouponWhenAmountExceedsDepositedAmount() public {
+        uint256 amount = _usdc.amount(100);
+        _lendingPool.deposit(address(_usdc), amount, address(this));
+
+        CouponKey memory couponKey = CouponKey({asset: address(_usdc), epoch: 1});
+        uint256 couponId = couponKey.toId();
+
+        Reserve memory beforeReserve = _lendingPool.getReserve(address(_usdc));
+        Vault memory beforeVault = _lendingPool.getVault(address(this), address(_usdc));
+        uint256 beforeCouponBalance = _lendingPool.balanceOf(_USER, couponId);
+        uint256 beforeCouponTotalSupply = _lendingPool.totalSupply(couponId);
+
+        _lendingPool.mintCoupon(couponKey, amount * 2, _USER);
+
+        Reserve memory afterReserve = _lendingPool.getReserve(address(_usdc));
+        Vault memory afterVault = _lendingPool.getVault(address(this), address(_usdc));
+        uint256 afterCouponBalance = _lendingPool.balanceOf(_USER, couponId);
+        uint256 afterCouponTotalSupply = _lendingPool.totalSupply(couponId);
+
+        assertEq(beforeReserve.locked + amount, afterReserve.locked, "RESERVE_LOCKED");
+        assertEq(beforeReserve.amount, afterReserve.amount + amount, "RESERVE_AMOUNT");
+        assertEq(beforeVault.locked + amount, afterVault.locked, "VAULT_LOCKED");
+        assertEq(beforeVault.amount, afterVault.amount + amount, "VAULT_AMOUNT");
+        assertEq(beforeCouponBalance + amount, afterCouponBalance, "COUPON_BALANCE");
+        assertEq(beforeCouponTotalSupply + amount, afterCouponTotalSupply, "COUPON_TOTAL_SUPPLY");
+    }
 }
