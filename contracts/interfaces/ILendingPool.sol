@@ -2,6 +2,8 @@
 
 pragma solidity ^0.8.0;
 
+import "./ICoupon.sol";
+
 interface ILendingPoolEvents {
     event Deposit(address indexed asset, address indexed sender, address indexed user, uint256 amount);
     event Withdraw(address indexed asset, address indexed user, address indexed to, uint256 amount);
@@ -38,7 +40,7 @@ interface ILendingPoolTypes {
     }
 }
 
-interface ILendingPool is ILendingPoolEvents, ILendingPoolTypes {
+interface ILendingPool is ILendingPoolEvents, ILendingPoolTypes, ICouponPool {
     // View Functions //
     function yieldFarmer() external view returns (address);
 
