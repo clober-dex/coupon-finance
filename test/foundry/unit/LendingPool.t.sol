@@ -73,6 +73,33 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
         assertEq(beforeVault.amount + amount, afterVault.amount, "VAULT_AMOUNT");
     }
 
+    function testDepositNative() public {
+        Reserve memory beforeReserve = _lendingPool.getReserve(address(_weth));
+        Vault memory beforeVault = _lendingPool.getVault(_USER1, address(_weth));
+        uint256 beforeThisNativeBalance = address(this).balance;
+        uint256 beforeThisBalance = _weth.balanceOf(address(this));
+        uint256 beforeYieldFarmerBalance = _yieldFarmer.totalReservedAmount(address(_weth));
+
+        uint256 amount1 = 100 ether;
+        uint256 amount2 = 50 ether;
+        vm.expectEmit(true, true, true, true);
+        emit Deposit(address(_weth), address(this), _USER1, amount1 + amount2);
+        _lendingPool.deposit{value: amount1}(address(_weth), amount2, _USER1);
+
+        Reserve memory afterReserve = _lendingPool.getReserve(address(_weth));
+        Vault memory afterVault = _lendingPool.getVault(_USER1, address(_weth));
+
+        assertEq(address(this).balance + amount1, beforeThisNativeBalance, "THIS_NATIVE_BALANCE");
+        assertEq(_weth.balanceOf(address(this)) + amount2, beforeThisBalance, "THIS_BALANCE");
+        assertEq(
+            _yieldFarmer.totalReservedAmount(address(_weth)),
+            beforeYieldFarmerBalance + amount1 + amount2,
+            "YIELD_FARMER_BALANCE"
+        );
+        assertEq(beforeReserve.amount + amount1 + amount2, afterReserve.amount, "RESERVE_AMOUNT");
+        assertEq(beforeVault.amount + amount1 + amount2, afterVault.amount, "VAULT_AMOUNT");
+    }
+
     function testWithdraw() public {
         uint256 amount = _usdc.amount(100);
         _lendingPool.deposit(address(_usdc), amount, address(this));
@@ -95,6 +122,33 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
         assertEq(_usdc.balanceOf(address(_lendingPool)), beforePoolBalance, "POOL_BALANCE");
         assertEq(
             _yieldFarmer.totalReservedAmount(address(_usdc)) + amount,
+            beforeYieldFarmerBalance,
+            "YIELD_FARMER_BALANCE"
+        );
+        assertEq(beforeReserve.amount, afterReserve.amount + amount, "RESERVE_AMOUNT");
+        assertEq(beforeVault.amount, afterVault.amount + amount, "VAULT_AMOUNT");
+    }
+
+    function testWithdrawNative() public {
+        uint256 amount = 100 ether;
+        _lendingPool.deposit(address(_weth), amount, address(this));
+
+        Reserve memory beforeReserve = _lendingPool.getReserve(address(_weth));
+        Vault memory beforeVault = _lendingPool.getVault(address(this), address(_weth));
+        uint256 beforeRecipientNativeBalance = _USER1.balance;
+        uint256 beforeYieldFarmerBalance = _yieldFarmer.totalReservedAmount(address(_weth));
+
+        vm.expectEmit(true, true, true, true);
+        emit Withdraw(address(_weth), address(this), _USER1, amount);
+        uint256 returnValue = _lendingPool.withdraw(address(0), amount, _USER1);
+        assertEq(returnValue, amount, "RETURN_VALUE");
+
+        Reserve memory afterReserve = _lendingPool.getReserve(address(_weth));
+        Vault memory afterVault = _lendingPool.getVault(address(this), address(_weth));
+
+        assertEq(_USER1.balance, beforeRecipientNativeBalance + amount, "THIS_NATIVE_BALANCE");
+        assertEq(
+            _yieldFarmer.totalReservedAmount(address(_weth)) + amount,
             beforeYieldFarmerBalance,
             "YIELD_FARMER_BALANCE"
         );
