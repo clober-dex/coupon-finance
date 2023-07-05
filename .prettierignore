@@ -1,4 +1,5 @@
 node_modules
+contracts/external/
 artifacts
 cache
 coverage*
