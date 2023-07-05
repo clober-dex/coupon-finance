@@ -7,6 +7,7 @@ import "./ICoupon.sol";
 interface ILendingPoolEvents {
     event Deposit(address indexed asset, address indexed sender, address indexed user, uint256 amount);
     event Withdraw(address indexed asset, address indexed user, address indexed to, uint256 amount);
+    event ConvertToCollateral(uint256 indexed loanId, address indexed sender, address indexed user, uint256 amount);
 }
 
 interface ILendingPoolTypes {
@@ -65,7 +66,8 @@ interface ILendingPool is ILendingPoolEvents, ILendingPoolTypes, ICouponPool {
 
     function burnCoupon(CouponKey calldata couponKey, uint256 amount, address recipient) external;
 
-    function addCollateral(address asset, uint256 amount, address recipient) external;
+    // @dev Pull tokens if the deposited amount is less than the amount specified.
+    function convertToCollateral(LoanKey calldata loanKey, uint256 amount) external payable;
 
     function borrow(CouponKey calldata couponKey, address collateral, uint256 amount, address recipient) external;
 
