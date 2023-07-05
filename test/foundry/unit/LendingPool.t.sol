@@ -69,8 +69,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
             beforeYieldFarmerBalance + amount,
             "YIELD_FARMER_BALANCE"
         );
-        assertEq(beforeReserve.spendableAmount + amount, afterReserve.spendableAmount, "RESERVE_AMOUNT");
-        assertEq(beforeVault.spendableAmount + amount, afterVault.spendableAmount, "VAULT_AMOUNT");
+        assertEq(beforeReserve.spendableAmount + amount, afterReserve.spendableAmount, "RESERVE_SPENDABLE");
+        assertEq(beforeVault.spendableAmount + amount, afterVault.spendableAmount, "VAULT_SPENDABLE");
     }
 
     function testDepositNative() public {
@@ -96,8 +96,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
             beforeYieldFarmerBalance + amount1 + amount2,
             "YIELD_FARMER_BALANCE"
         );
-        assertEq(beforeReserve.spendableAmount + amount1 + amount2, afterReserve.spendableAmount, "RESERVE_AMOUNT");
-        assertEq(beforeVault.spendableAmount + amount1 + amount2, afterVault.spendableAmount, "VAULT_AMOUNT");
+        assertEq(beforeReserve.spendableAmount + amount1 + amount2, afterReserve.spendableAmount, "RESERVE_SPENDABLE");
+        assertEq(beforeVault.spendableAmount + amount1 + amount2, afterVault.spendableAmount, "VAULT_SPENDABLE");
     }
 
     function testWithdraw() public {
@@ -125,8 +125,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
             beforeYieldFarmerBalance,
             "YIELD_FARMER_BALANCE"
         );
-        assertEq(beforeReserve.spendableAmount, afterReserve.spendableAmount + amount, "RESERVE_AMOUNT");
-        assertEq(beforeVault.spendableAmount, afterVault.spendableAmount + amount, "VAULT_AMOUNT");
+        assertEq(beforeReserve.spendableAmount, afterReserve.spendableAmount + amount, "RESERVE_SPENDABLE");
+        assertEq(beforeVault.spendableAmount, afterVault.spendableAmount + amount, "VAULT_SPENDABLE");
     }
 
     function testWithdrawNative() public {
@@ -152,8 +152,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
             beforeYieldFarmerBalance,
             "YIELD_FARMER_BALANCE"
         );
-        assertEq(beforeReserve.spendableAmount, afterReserve.spendableAmount + amount, "RESERVE_AMOUNT");
-        assertEq(beforeVault.spendableAmount, afterVault.spendableAmount + amount, "VAULT_AMOUNT");
+        assertEq(beforeReserve.spendableAmount, afterReserve.spendableAmount + amount, "RESERVE_SPENDABLE");
+        assertEq(beforeVault.spendableAmount, afterVault.spendableAmount + amount, "VAULT_SPENDABLE");
     }
 
     function testWithdrawWhenWithdrawalLimitExists() public {
@@ -184,8 +184,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
             beforeYieldFarmerBalance,
             "YIELD_FARMER_BALANCE"
         );
-        assertEq(beforeReserve.spendableAmount, afterReserve.spendableAmount + amount / 2, "RESERVE_AMOUNT");
-        assertEq(beforeVault.spendableAmount, afterVault.spendableAmount + amount / 2, "VAULT_AMOUNT");
+        assertEq(beforeReserve.spendableAmount, afterReserve.spendableAmount + amount / 2, "RESERVE_SPENDABLE");
+        assertEq(beforeVault.spendableAmount, afterVault.spendableAmount + amount / 2, "VAULT_SPENDABLE");
     }
 
     function testWithdrawWhenAmountExceedsDepositedAmount() public {
@@ -213,8 +213,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
             beforeYieldFarmerBalance,
             "YIELD_FARMER_BALANCE"
         );
-        assertEq(beforeReserve.spendableAmount, afterReserve.spendableAmount + amount, "RESERVE_AMOUNT");
-        assertEq(beforeVault.spendableAmount, afterVault.spendableAmount + amount, "VAULT_AMOUNT");
+        assertEq(beforeReserve.spendableAmount, afterReserve.spendableAmount + amount, "RESERVE_SPENDABLE");
+        assertEq(beforeVault.spendableAmount, afterVault.spendableAmount + amount, "VAULT_SPENDABLE");
     }
 
     function testMintCoupon() public {
@@ -238,9 +238,9 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
         uint256 afterCouponTotalSupply = _lendingPool.totalSupply(couponId);
 
         assertEq(beforeReserve.lockedAmount + amount, afterReserve.lockedAmount, "RESERVE_LOCKED");
-        assertEq(beforeReserve.spendableAmount, afterReserve.spendableAmount + amount, "RESERVE_AMOUNT");
+        assertEq(beforeReserve.spendableAmount, afterReserve.spendableAmount + amount, "RESERVE_SPENDABLE");
         assertEq(beforeVault.lockedAmount + amount, afterVault.lockedAmount, "VAULT_LOCKED");
-        assertEq(beforeVault.spendableAmount, afterVault.spendableAmount + amount, "VAULT_AMOUNT");
+        assertEq(beforeVault.spendableAmount, afterVault.spendableAmount + amount, "VAULT_SPENDABLE");
         assertEq(beforeCouponBalance + amount, afterCouponBalance, "COUPON_BALANCE");
         assertEq(beforeCouponTotalSupply + amount, afterCouponTotalSupply, "COUPON_TOTAL_SUPPLY");
     }
@@ -265,10 +265,205 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
         uint256 afterCouponTotalSupply = _lendingPool.totalSupply(couponId);
 
         assertEq(beforeReserve.lockedAmount + amount, afterReserve.lockedAmount, "RESERVE_LOCKED");
-        assertEq(beforeReserve.spendableAmount, afterReserve.spendableAmount + amount, "RESERVE_AMOUNT");
+        assertEq(beforeReserve.spendableAmount, afterReserve.spendableAmount + amount, "RESERVE_SPENDABLE");
         assertEq(beforeVault.lockedAmount + amount, afterVault.lockedAmount, "VAULT_LOCKED");
-        assertEq(beforeVault.spendableAmount, afterVault.spendableAmount + amount, "VAULT_AMOUNT");
+        assertEq(beforeVault.spendableAmount, afterVault.spendableAmount + amount, "VAULT_SPENDABLE");
         assertEq(beforeCouponBalance + amount, afterCouponBalance, "COUPON_BALANCE");
         assertEq(beforeCouponTotalSupply + amount, afterCouponTotalSupply, "COUPON_TOTAL_SUPPLY");
+    }
+
+    function testConvertToCollateral() public {
+        uint256 amount = _usdc.amount(100);
+        _lendingPool.deposit(address(_usdc), amount, address(this));
+
+        uint256 additionalAmount = amount / 2;
+
+        Reserve memory beforeReserve = _lendingPool.getReserve(address(_usdc));
+        Vault memory beforeSenderVault = _lendingPool.getVault(address(_usdc), address(this));
+        Vault memory beforeUserVault = _lendingPool.getVault(address(_usdc), _USER1);
+        uint256 beforeSenderBalance = _usdc.balanceOf(address(this));
+
+        LoanKey memory loanKey = LoanKey({user: _USER1, collateral: address(_usdc), asset: address(_weth)});
+        uint256 loanId = loanKey.toId();
+        uint256 snapshotId = vm.snapshot();
+        // check Deposit event
+        vm.expectEmit(true, true, true, true);
+        emit Deposit(address(_usdc), address(this), _USER1, additionalAmount);
+        _lendingPool.convertToCollateral(loanKey, amount + additionalAmount);
+        // check ConvertToCollateral event
+        vm.revertTo(snapshotId);
+        vm.expectEmit(true, true, true, true);
+        emit ConvertToCollateral(loanId, address(this), _USER1, amount + additionalAmount);
+        _lendingPool.convertToCollateral(loanKey, amount + additionalAmount);
+
+        Reserve memory afterReserve = _lendingPool.getReserve(address(_usdc));
+        Vault memory afterSenderVault = _lendingPool.getVault(address(_usdc), address(this));
+        Vault memory afterUserVault = _lendingPool.getVault(address(_usdc), _USER1);
+        uint256 afterSenderBalance = _usdc.balanceOf(address(this));
+
+        assertEq(
+            beforeReserve.collateralAmount + amount + additionalAmount,
+            afterReserve.collateralAmount,
+            "RESERVE_COLLATERAL"
+        );
+        assertEq(beforeReserve.spendableAmount, afterReserve.spendableAmount + amount, "RESERVE_SPENDABLE");
+        assertEq(
+            beforeSenderVault.spendableAmount,
+            afterSenderVault.spendableAmount + amount,
+            "SENDER_VAULT_SPENDABLE"
+        );
+        assertEq(
+            beforeUserVault.collateralAmount + amount + additionalAmount,
+            afterUserVault.collateralAmount,
+            "USER_VAULT_COLLATERAL"
+        );
+        assertEq(beforeUserVault.spendableAmount, afterUserVault.spendableAmount, "USER_VAULT_SPENDABLE");
+        assertEq(beforeSenderBalance, afterSenderBalance + additionalAmount, "BALANCE");
+    }
+
+    function testConvertToCollateralWithExtraNativeToken() public {
+        uint256 amount = 100 ether;
+        _lendingPool.deposit(address(_weth), amount, address(this));
+
+        uint256 additionalAmount = amount / 2;
+        uint256 nativeAmount = amount / 3;
+
+        Reserve memory beforeReserve = _lendingPool.getReserve(address(_weth));
+        Vault memory beforeUserVault = _lendingPool.getVault(address(_weth), _USER1);
+        uint256 beforeSenderBalance = _weth.balanceOf(address(this));
+        uint256 beforeSenderNativeBalance = address(this).balance;
+
+        {
+            // stack too deep
+
+            LoanKey memory loanKey = LoanKey({user: _USER1, collateral: address(_weth), asset: address(_weth)});
+            uint256 loanId = loanKey.toId();
+            uint256 snapshotId = vm.snapshot();
+            // check Deposit event
+            vm.expectEmit(true, true, true, true);
+            emit Deposit(address(_weth), address(this), _USER1, additionalAmount + nativeAmount);
+            _lendingPool.convertToCollateral{value: nativeAmount}(loanKey, amount + additionalAmount + nativeAmount);
+            // check ConvertToCollateral event
+            vm.revertTo(snapshotId);
+            vm.expectEmit(true, true, true, true);
+            emit ConvertToCollateral(loanId, address(this), _USER1, amount + additionalAmount + nativeAmount);
+            _lendingPool.convertToCollateral{value: nativeAmount}(loanKey, amount + additionalAmount + nativeAmount);
+        }
+
+        Reserve memory afterReserve = _lendingPool.getReserve(address(_weth));
+        Vault memory afterSenderVault = _lendingPool.getVault(address(_weth), address(this));
+        Vault memory afterUserVault = _lendingPool.getVault(address(_weth), _USER1);
+        uint256 afterSenderBalance = _weth.balanceOf(address(this));
+        uint256 afterSenderNativeBalance = address(this).balance;
+
+        assertEq(
+            beforeReserve.collateralAmount + amount + additionalAmount + nativeAmount,
+            afterReserve.collateralAmount,
+            "RESERVE_COLLATERAL"
+        );
+        assertEq(beforeReserve.spendableAmount, afterReserve.spendableAmount + amount, "RESERVE_SPENDABLE");
+        assertEq(afterSenderVault.spendableAmount, 0, "SENDER_VAULT_SPENDABLE");
+        assertEq(
+            beforeUserVault.collateralAmount + amount + additionalAmount + nativeAmount,
+            afterUserVault.collateralAmount,
+            "USER_VAULT_COLLATERAL"
+        );
+        assertEq(beforeSenderBalance, afterSenderBalance + additionalAmount, "BALANCE");
+        assertEq(beforeSenderNativeBalance, afterSenderNativeBalance + nativeAmount, "NATIVE_BALANCE");
+    }
+
+    function testConvertToCollateralShouldUseNativeTokenFirst() public {
+        uint256 amount = 100 ether;
+        _lendingPool.deposit(address(_weth), amount, address(this));
+
+        uint256 nativeAmount = 50 ether;
+
+        Reserve memory beforeReserve = _lendingPool.getReserve(address(_weth));
+        Vault memory beforeSenderVault = _lendingPool.getVault(address(_weth), address(this));
+        Vault memory beforeUserVault = _lendingPool.getVault(address(_weth), _USER1);
+        uint256 beforeSenderBalance = _weth.balanceOf(address(this));
+        uint256 beforeSenderNativeBalance = address(this).balance;
+
+        LoanKey memory loanKey = LoanKey({user: _USER1, collateral: address(_weth), asset: address(_weth)});
+        uint256 loanId = loanKey.toId();
+        uint256 snapshotId = vm.snapshot();
+        // check Deposit event
+        vm.expectEmit(true, true, true, true);
+        emit Deposit(address(_weth), address(this), _USER1, nativeAmount);
+        _lendingPool.convertToCollateral{value: nativeAmount}(loanKey, nativeAmount);
+        // check ConvertToCollateral event
+        vm.revertTo(snapshotId);
+        vm.expectEmit(true, true, true, true);
+        emit ConvertToCollateral(loanId, address(this), _USER1, nativeAmount);
+        _lendingPool.convertToCollateral{value: nativeAmount}(loanKey, nativeAmount);
+
+        Reserve memory afterReserve = _lendingPool.getReserve(address(_weth));
+        Vault memory afterSenderVault = _lendingPool.getVault(address(_weth), address(this));
+        Vault memory afterUserVault = _lendingPool.getVault(address(_weth), _USER1);
+        uint256 afterSenderBalance = _weth.balanceOf(address(this));
+        uint256 afterSenderNativeBalance = address(this).balance;
+
+        assertEq(beforeReserve.collateralAmount + nativeAmount, afterReserve.collateralAmount, "RESERVE_COLLATERAL");
+        assertEq(beforeReserve.spendableAmount, afterReserve.spendableAmount, "RESERVE_SPENDABLE");
+        assertEq(beforeSenderVault.spendableAmount, afterSenderVault.spendableAmount, "SENDER_VAULT_SPENDABLE");
+        assertEq(
+            beforeUserVault.collateralAmount + nativeAmount,
+            afterUserVault.collateralAmount,
+            "USER_VAULT_COLLATERAL"
+        );
+        assertEq(beforeSenderBalance, afterSenderBalance, "BALANCE");
+        assertEq(beforeSenderNativeBalance, afterSenderNativeBalance + nativeAmount, "NATIVE_BALANCE");
+    }
+
+    function testConvertToCollateralShouldReturnExceededNativeToken() public {
+        uint256 amount = 100 ether;
+        _lendingPool.deposit(address(_weth), amount, address(this));
+
+        uint256 nativeAmount = 50 ether;
+
+        Reserve memory beforeReserve = _lendingPool.getReserve(address(_weth));
+        Vault memory beforeSenderVault = _lendingPool.getVault(address(_weth), address(this));
+        Vault memory beforeUserVault = _lendingPool.getVault(address(_weth), _USER1);
+        uint256 beforeSenderBalance = _weth.balanceOf(address(this));
+        uint256 beforeSenderNativeBalance = address(this).balance;
+        uint256 beforePoolNativeBalance = address(_lendingPool).balance;
+        {
+            // stack too deep
+            LoanKey memory loanKey = LoanKey({user: _USER1, collateral: address(_weth), asset: address(_weth)});
+            uint256 loanId = loanKey.toId();
+            uint256 snapshotId = vm.snapshot();
+            // check Deposit event
+            vm.expectEmit(true, true, true, true);
+            emit Deposit(address(_weth), address(this), _USER1, nativeAmount / 2);
+            _lendingPool.convertToCollateral{value: nativeAmount}(loanKey, nativeAmount / 2);
+            // check ConvertToCollateral event
+            vm.revertTo(snapshotId);
+            vm.expectEmit(true, true, true, true);
+            emit ConvertToCollateral(loanId, address(this), _USER1, nativeAmount / 2);
+            _lendingPool.convertToCollateral{value: nativeAmount}(loanKey, nativeAmount / 2);
+        }
+
+        Reserve memory afterReserve = _lendingPool.getReserve(address(_weth));
+        Vault memory afterSenderVault = _lendingPool.getVault(address(_weth), address(this));
+        Vault memory afterUserVault = _lendingPool.getVault(address(_weth), _USER1);
+        uint256 afterSenderBalance = _weth.balanceOf(address(this));
+        uint256 afterSenderNativeBalance = address(this).balance;
+        uint256 afterPoolNativeBalance = address(_lendingPool).balance;
+
+        assertEq(
+            beforeReserve.collateralAmount + nativeAmount / 2,
+            afterReserve.collateralAmount,
+            "RESERVE_COLLATERAL"
+        );
+        assertEq(beforeReserve.spendableAmount, afterReserve.spendableAmount, "RESERVE_SPENDABLE");
+        assertEq(beforeSenderVault.spendableAmount, afterSenderVault.spendableAmount, "SENDER_VAULT_SPENDABLE");
+        assertEq(
+            beforeUserVault.collateralAmount + nativeAmount / 2,
+            afterUserVault.collateralAmount,
+            "USER_VAULT_COLLATERAL"
+        );
+        assertEq(beforeSenderBalance, afterSenderBalance, "BALANCE");
+        assertEq(beforeSenderNativeBalance, afterSenderNativeBalance + nativeAmount / 2, "NATIVE_BALANCE");
+        assertEq(beforePoolNativeBalance, afterPoolNativeBalance, "POOL_NATIVE_BALANCE");
     }
 }
