@@ -6,16 +6,19 @@ import "forge-std/Test.sol";
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import {ILendingPoolEvents, ILendingPool} from "../../../contracts/interfaces/ILendingPool.sol";
+import {ILendingPoolEvents, ILendingPool, ILendingPoolTypes} from "../../../contracts/interfaces/ILendingPool.sol";
 import {IWETH9} from "../../../contracts/interfaces/external/IWETH9.sol";
 import {IYieldFarmer} from "../../../contracts/interfaces/IYieldFarmer.sol";
 import {LendingPool} from "../../../contracts/LendingPool.sol";
-import {ERC20Utils} from "../Utils.sol";
-import {ForkTestSetUp} from "../ForkTestSetUp.sol";
+import {CouponKeyLibrary, LoanKeyLibrary} from "../../../contracts/libraries/Keys.sol";
 import {MockYieldFarmer} from "../mocks/MockYieldFarmer.sol";
+import {ForkTestSetUp} from "../ForkTestSetUp.sol";
+import {ERC20Utils} from "../Utils.sol";
 
-contract LendingPoolUnitTest is Test, ILendingPoolEvents {
+contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
     using ERC20Utils for IERC20;
+    using CouponKeyLibrary for CouponKey;
+    using LoanKeyLibrary for LoanKey;
 
     address private constant _USDC_WHALE = 0xcEe284F754E854890e311e3280b767F80797180d;
     address private constant _USER = address(0x1);
@@ -43,8 +46,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
     }
 
     function testDeposit() public {
-        ILendingPool.Reserve memory beforeReserve = _lendingPool.getReserve(address(_usdc));
-        ILendingPool.Vault memory beforeVault = _lendingPool.getVault(_USER, address(_usdc));
+        Reserve memory beforeReserve = _lendingPool.getReserve(address(_usdc));
+        Vault memory beforeVault = _lendingPool.getVault(_USER, address(_usdc));
         uint256 beforeThisBalance = _usdc.balanceOf(address(this));
         uint256 beforePoolBalance = _usdc.balanceOf(address(_lendingPool));
         uint256 beforeYieldFarmerBalance = _yieldFarmer.totalReservedAmount(address(_usdc));
@@ -54,8 +57,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         emit Deposit(address(_usdc), address(this), _USER, amount);
         _lendingPool.deposit(address(_usdc), amount, _USER);
 
-        ILendingPool.Reserve memory afterReserve = _lendingPool.getReserve(address(_usdc));
-        ILendingPool.Vault memory afterVault = _lendingPool.getVault(_USER, address(_usdc));
+        Reserve memory afterReserve = _lendingPool.getReserve(address(_usdc));
+        Vault memory afterVault = _lendingPool.getVault(_USER, address(_usdc));
 
         assertEq(_usdc.balanceOf(address(this)) + amount, beforeThisBalance, "THIS_BALANCE");
         assertEq(_usdc.balanceOf(address(_lendingPool)), beforePoolBalance, "POOL_BALANCE");
@@ -72,8 +75,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         uint256 amount = _usdc.amount(100);
         _lendingPool.deposit(address(_usdc), amount, address(this));
 
-        ILendingPool.Reserve memory beforeReserve = _lendingPool.getReserve(address(_usdc));
-        ILendingPool.Vault memory beforeVault = _lendingPool.getVault(address(this), address(_usdc));
+        Reserve memory beforeReserve = _lendingPool.getReserve(address(_usdc));
+        Vault memory beforeVault = _lendingPool.getVault(address(this), address(_usdc));
         uint256 beforeRecipientBalance = _usdc.balanceOf(_USER);
         uint256 beforePoolBalance = _usdc.balanceOf(address(_lendingPool));
         uint256 beforeYieldFarmerBalance = _yieldFarmer.totalReservedAmount(address(_usdc));
@@ -83,8 +86,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         uint256 returnValue = _lendingPool.withdraw(address(_usdc), amount, _USER);
         assertEq(returnValue, amount, "RETURN_VALUE");
 
-        ILendingPool.Reserve memory afterReserve = _lendingPool.getReserve(address(_usdc));
-        ILendingPool.Vault memory afterVault = _lendingPool.getVault(address(this), address(_usdc));
+        Reserve memory afterReserve = _lendingPool.getReserve(address(_usdc));
+        Vault memory afterVault = _lendingPool.getVault(address(this), address(_usdc));
 
         assertEq(_usdc.balanceOf(_USER), beforeRecipientBalance + amount, "THIS_BALANCE");
         assertEq(_usdc.balanceOf(address(_lendingPool)), beforePoolBalance, "POOL_BALANCE");
@@ -104,8 +107,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         _yieldFarmer.setWithdrawLimit(address(_usdc), amount / 2);
         assertEq(_lendingPool.withdrawable(address(_usdc)), amount / 2, "WITHDRAWABLE");
 
-        ILendingPool.Reserve memory beforeReserve = _lendingPool.getReserve(address(_usdc));
-        ILendingPool.Vault memory beforeVault = _lendingPool.getVault(address(this), address(_usdc));
+        Reserve memory beforeReserve = _lendingPool.getReserve(address(_usdc));
+        Vault memory beforeVault = _lendingPool.getVault(address(this), address(_usdc));
         uint256 beforeRecipientBalance = _usdc.balanceOf(_USER);
         uint256 beforePoolBalance = _usdc.balanceOf(address(_lendingPool));
         uint256 beforeYieldFarmerBalance = _yieldFarmer.totalReservedAmount(address(_usdc));
@@ -115,8 +118,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         uint256 returnValue = _lendingPool.withdraw(address(_usdc), amount, _USER);
         assertEq(returnValue, amount / 2, "RETURN_VALUE");
 
-        ILendingPool.Reserve memory afterReserve = _lendingPool.getReserve(address(_usdc));
-        ILendingPool.Vault memory afterVault = _lendingPool.getVault(address(this), address(_usdc));
+        Reserve memory afterReserve = _lendingPool.getReserve(address(_usdc));
+        Vault memory afterVault = _lendingPool.getVault(address(this), address(_usdc));
 
         assertEq(_usdc.balanceOf(_USER), beforeRecipientBalance + amount / 2, "THIS_BALANCE");
         assertEq(_usdc.balanceOf(address(_lendingPool)), beforePoolBalance, "POOL_BALANCE");
@@ -133,8 +136,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         uint256 amount = _usdc.amount(100);
         _lendingPool.deposit(address(_usdc), amount, address(this));
 
-        ILendingPool.Reserve memory beforeReserve = _lendingPool.getReserve(address(_usdc));
-        ILendingPool.Vault memory beforeVault = _lendingPool.getVault(address(this), address(_usdc));
+        Reserve memory beforeReserve = _lendingPool.getReserve(address(_usdc));
+        Vault memory beforeVault = _lendingPool.getVault(address(this), address(_usdc));
         uint256 beforeRecipientBalance = _usdc.balanceOf(_USER);
         uint256 beforePoolBalance = _usdc.balanceOf(address(_lendingPool));
         uint256 beforeYieldFarmerBalance = _yieldFarmer.totalReservedAmount(address(_usdc));
@@ -144,8 +147,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         uint256 returnValue = _lendingPool.withdraw(address(_usdc), amount * 2, _USER);
         assertEq(returnValue, amount, "RETURN_VALUE");
 
-        ILendingPool.Reserve memory afterReserve = _lendingPool.getReserve(address(_usdc));
-        ILendingPool.Vault memory afterVault = _lendingPool.getVault(address(this), address(_usdc));
+        Reserve memory afterReserve = _lendingPool.getReserve(address(_usdc));
+        Vault memory afterVault = _lendingPool.getVault(address(this), address(_usdc));
 
         assertEq(_usdc.balanceOf(_USER), beforeRecipientBalance + amount, "THIS_BALANCE");
         assertEq(_usdc.balanceOf(address(_lendingPool)), beforePoolBalance, "POOL_BALANCE");
