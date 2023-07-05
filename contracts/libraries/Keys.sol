@@ -6,8 +6,8 @@ pragma solidity ^0.8.0;
 import "../interfaces/ILendingPool.sol";
 
 library CouponKeyLibrary {
-    function toId(ILendingPool.CouponKey memory key) internal pure returns (bytes32) {
-        return bytes32(keccak256(abi.encode(key)));
+    function toId(ILendingPool.CouponKey memory key) internal pure returns (uint256) {
+        return uint256(bytes32(keccak256(abi.encode(key))));
     }
 }
 
