@@ -77,7 +77,7 @@ interface ILendingPool is ILendingPoolEvents, ILendingPoolTypes, ICouponPool {
 
     function repay(address asset, uint256 amount, address recipient) external;
 
-    function liquidate(address collateral, address debt, address user) external;
+    function liquidate(address collateral, address debt, address user, uint256 maxRepayAmount) external;
 
     // Admin Functions //
     function openReserve(address asset) external;
