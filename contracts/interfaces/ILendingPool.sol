@@ -44,6 +44,8 @@ interface ILendingPool is ILendingPoolEvents, ILendingPoolTypes, ICouponPool {
     // View Functions //
     function epochDuration() external view returns (uint256);
 
+    function currentEpoch() external view returns (uint256);
+
     function yieldFarmer() external view returns (address);
 
     function getReserve(address asset) external view returns (Reserve memory);
