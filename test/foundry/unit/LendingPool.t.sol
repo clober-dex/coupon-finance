@@ -20,22 +20,35 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
     using CouponKeyLibrary for CouponKey;
     using LoanKeyLibrary for LoanKey;
 
+    struct PermitParams {
+        uint256 nonce;
+        uint8 v;
+        bytes32 r;
+        bytes32 s;
+    }
+
     bytes32 private constant _PERMIT_TYPEHASH =
         keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
     address private constant _USDC_WHALE = 0xcEe284F754E854890e311e3280b767F80797180d;
     address private constant _USER1 = address(0x1);
     address private constant _USER2 = address(0x2);
 
+    address private _unapprovedUser;
     IERC20 private _usdc;
     IWETH9 private _weth;
     ILendingPool private _lendingPool;
     MockYieldFarmer private _yieldFarmer;
+    uint256 private _snapshotId;
+
+    PermitParams private _permitParams;
 
     receive() external payable {}
 
     function setUp() public {
         ForkTestSetUp forkSetUp = new ForkTestSetUp();
         forkSetUp.fork(17617512);
+
+        _unapprovedUser = vm.addr(1);
 
         _weth = IWETH9(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
         _usdc = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
@@ -105,39 +118,52 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
 
     function testDepositWithPermit() public {
         IERC2612 permitToken = IERC2612(address(_usdc));
-        address unapprovedUser = vm.addr(1);
         uint256 amount = _usdc.amount(100);
-        _usdc.transfer(unapprovedUser, amount);
-        vm.startPrank(unapprovedUser);
+        _usdc.transfer(_unapprovedUser, amount);
+        vm.startPrank(_unapprovedUser);
 
         Reserve memory beforeReserve = _lendingPool.getReserve(address(_usdc));
         Vault memory beforeVault = _lendingPool.getVault(VaultKey(address(_usdc), _USER1));
-        uint256 beforeSenderBalance = _usdc.balanceOf(unapprovedUser);
+        uint256 beforeSenderBalance = _usdc.balanceOf(_unapprovedUser);
         uint256 beforeYieldFarmerBalance = _yieldFarmer.totalReservedAmount(address(_usdc));
 
-        uint256 nonce = permitToken.nonces(unapprovedUser);
+        _permitParams.nonce = permitToken.nonces(_unapprovedUser);
         {
-            uint256 deadline = type(uint256).max;
             bytes32 digest = keccak256(
                 abi.encodePacked(
                     "\x19\x01",
                     permitToken.DOMAIN_SEPARATOR(),
                     keccak256(
-                        abi.encode(_PERMIT_TYPEHASH, unapprovedUser, address(_lendingPool), amount, nonce, deadline)
+                        abi.encode(
+                            _PERMIT_TYPEHASH,
+                            _unapprovedUser,
+                            address(_lendingPool),
+                            amount,
+                            _permitParams.nonce,
+                            type(uint256).max
+                        )
                     )
                 )
             );
-            (uint8 v, bytes32 r, bytes32 s) = vm.sign(1, digest);
+            (_permitParams.v, _permitParams.r, _permitParams.s) = vm.sign(1, digest);
 
             vm.expectEmit(true, true, true, true);
-            emit Deposit(address(_usdc), unapprovedUser, _USER1, amount);
-            _lendingPool.depositWithPermit(address(_usdc), amount, _USER1, deadline, v, r, s);
+            emit Deposit(address(_usdc), _unapprovedUser, _USER1, amount);
+            _lendingPool.depositWithPermit(
+                address(_usdc),
+                amount,
+                _USER1,
+                type(uint256).max,
+                _permitParams.v,
+                _permitParams.r,
+                _permitParams.s
+            );
         }
 
         Reserve memory afterReserve = _lendingPool.getReserve(address(_usdc));
         Vault memory afterVault = _lendingPool.getVault(VaultKey(address(_usdc), _USER1));
 
-        assertEq(_usdc.balanceOf(unapprovedUser) + amount, beforeSenderBalance, "SENDER_BALANCE");
+        assertEq(_usdc.balanceOf(_unapprovedUser) + amount, beforeSenderBalance, "SENDER_BALANCE");
         assertEq(
             _yieldFarmer.totalReservedAmount(address(_usdc)),
             beforeYieldFarmerBalance + amount,
@@ -145,7 +171,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
         );
         assertEq(beforeReserve.spendableAmount + amount, afterReserve.spendableAmount, "RESERVE_SPENDABLE");
         assertEq(beforeVault.spendableAmount + amount, afterVault.spendableAmount, "VAULT_SPENDABLE");
-        assertEq(permitToken.nonces(unapprovedUser), nonce + 1, "NONCE");
+        assertEq(permitToken.nonces(_unapprovedUser), _permitParams.nonce + 1, "NONCE");
 
         vm.stopPrank();
     }
@@ -489,13 +515,13 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
         uint256 beforeSenderBalance = _usdc.balanceOf(address(this));
 
         LoanKey memory loanKey = LoanKey({user: _USER1, collateral: address(_usdc), asset: address(_weth)});
-        uint256 snapshotId = vm.snapshot();
+        _snapshotId = vm.snapshot();
         // check Deposit event
         vm.expectEmit(true, true, true, true);
         emit Deposit(address(_usdc), address(this), _USER1, additionalAmount);
         _lendingPool.convertToCollateral(loanKey, amount + additionalAmount);
         // check ConvertToCollateral event
-        vm.revertTo(snapshotId);
+        vm.revertTo(_snapshotId);
         vm.expectEmit(true, true, true, true);
         emit ConvertToCollateral(
             loanKey.collateral,
@@ -547,13 +573,13 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
             // stack too deep
 
             LoanKey memory loanKey = LoanKey({user: _USER1, collateral: address(_weth), asset: address(_weth)});
-            uint256 snapshotId = vm.snapshot();
+            _snapshotId = vm.snapshot();
             // check Deposit event
             vm.expectEmit(true, true, true, true);
             emit Deposit(address(_weth), address(this), _USER1, additionalAmount + nativeAmount);
             _lendingPool.convertToCollateral{value: nativeAmount}(loanKey, amount + additionalAmount + nativeAmount);
             // check ConvertToCollateral event
-            vm.revertTo(snapshotId);
+            vm.revertTo(_snapshotId);
             vm.expectEmit(true, true, true, true);
             emit ConvertToCollateral(
                 loanKey.collateral,
@@ -600,13 +626,13 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
         uint256 beforeSenderNativeBalance = address(this).balance;
 
         LoanKey memory loanKey = LoanKey({user: _USER1, collateral: address(_weth), asset: address(_weth)});
-        uint256 snapshotId = vm.snapshot();
+        _snapshotId = vm.snapshot();
         // check Deposit event
         vm.expectEmit(true, true, true, true);
         emit Deposit(address(_weth), address(this), _USER1, nativeAmount);
         _lendingPool.convertToCollateral{value: nativeAmount}(loanKey, nativeAmount);
         // check ConvertToCollateral event
-        vm.revertTo(snapshotId);
+        vm.revertTo(_snapshotId);
         vm.expectEmit(true, true, true, true);
         emit ConvertToCollateral(loanKey.collateral, loanKey.asset, address(this), loanKey.user, nativeAmount);
         _lendingPool.convertToCollateral{value: nativeAmount}(loanKey, nativeAmount);
@@ -644,13 +670,13 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
         {
             // stack too deep
             LoanKey memory loanKey = LoanKey({user: _USER1, collateral: address(_weth), asset: address(_weth)});
-            uint256 snapshotId = vm.snapshot();
+            _snapshotId = vm.snapshot();
             // check Deposit event
             vm.expectEmit(true, true, true, true);
             emit Deposit(address(_weth), address(this), _USER1, nativeAmount / 2);
             _lendingPool.convertToCollateral{value: nativeAmount}(loanKey, nativeAmount / 2);
             // check ConvertToCollateral event
-            vm.revertTo(snapshotId);
+            vm.revertTo(_snapshotId);
             vm.expectEmit(true, true, true, true);
             emit ConvertToCollateral(loanKey.collateral, loanKey.asset, address(this), loanKey.user, nativeAmount / 2);
             _lendingPool.convertToCollateral{value: nativeAmount}(loanKey, nativeAmount / 2);
@@ -678,5 +704,99 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
         assertEq(beforeSenderBalance, afterSenderBalance, "BALANCE");
         assertEq(beforeSenderNativeBalance, afterSenderNativeBalance + nativeAmount / 2, "NATIVE_BALANCE");
         assertEq(beforePoolNativeBalance, afterPoolNativeBalance, "POOL_NATIVE_BALANCE");
+    }
+
+    function testConvertToCollateralWithPermit() public {
+        uint256 amount = _usdc.amount(100);
+        uint256 additionalAmount = amount / 2;
+
+        _usdc.transfer(_unapprovedUser, amount + additionalAmount);
+        vm.startPrank(_unapprovedUser);
+        _lendingPool.deposit(address(_usdc), amount, _unapprovedUser);
+
+        Reserve memory beforeReserve = _lendingPool.getReserve(address(_usdc));
+        Vault memory beforeSenderVault = _lendingPool.getVault(VaultKey(address(_usdc), _unapprovedUser));
+        Vault memory beforeUserVault = _lendingPool.getVault(VaultKey(address(_usdc), _USER1));
+        uint256 beforeSenderBalance = _usdc.balanceOf(_unapprovedUser);
+
+        _permitParams.nonce = IERC2612(address(_usdc)).nonces(_unapprovedUser);
+        {
+            bytes32 digest = keccak256(
+                abi.encodePacked(
+                    "\x19\x01",
+                    IERC2612(address(_usdc)).DOMAIN_SEPARATOR(),
+                    keccak256(
+                        abi.encode(
+                            _PERMIT_TYPEHASH,
+                            _unapprovedUser,
+                            address(_lendingPool),
+                            additionalAmount,
+                            _permitParams.nonce,
+                            type(uint256).max
+                        )
+                    )
+                )
+            );
+            (_permitParams.v, _permitParams.r, _permitParams.s) = vm.sign(1, digest);
+
+            LoanKey memory loanKey = LoanKey({user: _USER1, collateral: address(_usdc), asset: address(_weth)});
+            _snapshotId = vm.snapshot();
+            // check Deposit event
+            vm.expectEmit(true, true, true, true);
+            emit Deposit(address(_usdc), _unapprovedUser, _USER1, additionalAmount);
+            _lendingPool.convertToCollateralWithPermit(
+                loanKey,
+                amount + additionalAmount,
+                type(uint256).max,
+                _permitParams.v,
+                _permitParams.r,
+                _permitParams.s
+            );
+            // check ConvertToCollateral event
+            vm.revertTo(_snapshotId);
+            vm.expectEmit(true, true, true, true);
+            emit ConvertToCollateral(
+                loanKey.collateral,
+                loanKey.asset,
+                _unapprovedUser,
+                loanKey.user,
+                amount + additionalAmount
+            );
+            _lendingPool.convertToCollateralWithPermit(
+                loanKey,
+                amount + additionalAmount,
+                type(uint256).max,
+                _permitParams.v,
+                _permitParams.r,
+                _permitParams.s
+            );
+        }
+
+        Reserve memory afterReserve = _lendingPool.getReserve(address(_usdc));
+        Vault memory afterSenderVault = _lendingPool.getVault(VaultKey(address(_usdc), _unapprovedUser));
+        Vault memory afterUserVault = _lendingPool.getVault(VaultKey(address(_usdc), _USER1));
+        uint256 afterSenderBalance = _usdc.balanceOf(_unapprovedUser);
+
+        assertEq(
+            beforeReserve.collateralAmount + amount + additionalAmount,
+            afterReserve.collateralAmount,
+            "RESERVE_COLLATERAL"
+        );
+        assertEq(beforeReserve.spendableAmount, afterReserve.spendableAmount + amount, "RESERVE_SPENDABLE");
+        assertEq(
+            beforeSenderVault.spendableAmount,
+            afterSenderVault.spendableAmount + amount,
+            "SENDER_VAULT_SPENDABLE"
+        );
+        assertEq(
+            beforeUserVault.collateralAmount + amount + additionalAmount,
+            afterUserVault.collateralAmount,
+            "USER_VAULT_COLLATERAL"
+        );
+        assertEq(beforeUserVault.spendableAmount, afterUserVault.spendableAmount, "USER_VAULT_SPENDABLE");
+        assertEq(beforeSenderBalance, afterSenderBalance + additionalAmount, "BALANCE");
+        assertEq(IERC2612(address(_usdc)).nonces(_unapprovedUser), _permitParams.nonce + 1, "NONCE");
+
+        vm.stopPrank();
     }
 }

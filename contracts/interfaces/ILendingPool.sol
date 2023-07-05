@@ -98,6 +98,15 @@ interface ILendingPool is ILendingPoolEvents, ILendingPoolTypes, ICouponPool {
     // @dev Pull tokens if the deposited amount is less than the amount specified.
     function convertToCollateral(LoanKey calldata loanKey, uint256 amount) external payable;
 
+    function convertToCollateralWithPermit(
+        LoanKey calldata loanKey,
+        uint256 amount,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external;
+
     function borrow(CouponKey calldata couponKey, address collateral, uint256 amount, address recipient) external;
 
     function repay(address asset, uint256 amount, address recipient) external;
