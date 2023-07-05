@@ -29,6 +29,11 @@ interface ILendingPoolTypes {
         uint256 collateralAmount;
     }
 
+    struct VaultKey {
+        address user;
+        address asset;
+    }
+
     // totalAmount = spendableAmount + lockedAmount + collateralAmount
     struct Vault {
         uint256 spendableAmount;
