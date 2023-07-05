@@ -2,12 +2,18 @@
 
 pragma solidity ^0.8.0;
 
-import "./ICoupon.sol";
+import {ICouponPool} from "./ICoupon.sol";
 
 interface ILendingPoolEvents {
     event Deposit(address indexed asset, address indexed sender, address indexed user, uint256 amount);
     event Withdraw(address indexed asset, address indexed user, address indexed to, uint256 amount);
-    event ConvertToCollateral(uint256 indexed loanId, address indexed sender, address indexed user, uint256 amount);
+    event ConvertToCollateral(
+        address indexed collateral,
+        address indexed loanAsset,
+        address sender,
+        address indexed user,
+        uint256 amount
+    );
 }
 
 interface ILendingPoolTypes {

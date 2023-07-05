@@ -284,7 +284,6 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
         uint256 beforeSenderBalance = _usdc.balanceOf(address(this));
 
         LoanKey memory loanKey = LoanKey({user: _USER1, collateral: address(_usdc), asset: address(_weth)});
-        uint256 loanId = loanKey.toId();
         uint256 snapshotId = vm.snapshot();
         // check Deposit event
         vm.expectEmit(true, true, true, true);
@@ -293,7 +292,13 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
         // check ConvertToCollateral event
         vm.revertTo(snapshotId);
         vm.expectEmit(true, true, true, true);
-        emit ConvertToCollateral(loanId, address(this), _USER1, amount + additionalAmount);
+        emit ConvertToCollateral(
+            loanKey.collateral,
+            loanKey.asset,
+            address(this),
+            loanKey.user,
+            amount + additionalAmount
+        );
         _lendingPool.convertToCollateral(loanKey, amount + additionalAmount);
 
         Reserve memory afterReserve = _lendingPool.getReserve(address(_usdc));
@@ -337,7 +342,6 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
             // stack too deep
 
             LoanKey memory loanKey = LoanKey({user: _USER1, collateral: address(_weth), asset: address(_weth)});
-            uint256 loanId = loanKey.toId();
             uint256 snapshotId = vm.snapshot();
             // check Deposit event
             vm.expectEmit(true, true, true, true);
@@ -346,7 +350,13 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
             // check ConvertToCollateral event
             vm.revertTo(snapshotId);
             vm.expectEmit(true, true, true, true);
-            emit ConvertToCollateral(loanId, address(this), _USER1, amount + additionalAmount + nativeAmount);
+            emit ConvertToCollateral(
+                loanKey.collateral,
+                loanKey.asset,
+                address(this),
+                loanKey.user,
+                amount + additionalAmount + nativeAmount
+            );
             _lendingPool.convertToCollateral{value: nativeAmount}(loanKey, amount + additionalAmount + nativeAmount);
         }
 
@@ -385,7 +395,6 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
         uint256 beforeSenderNativeBalance = address(this).balance;
 
         LoanKey memory loanKey = LoanKey({user: _USER1, collateral: address(_weth), asset: address(_weth)});
-        uint256 loanId = loanKey.toId();
         uint256 snapshotId = vm.snapshot();
         // check Deposit event
         vm.expectEmit(true, true, true, true);
@@ -394,7 +403,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
         // check ConvertToCollateral event
         vm.revertTo(snapshotId);
         vm.expectEmit(true, true, true, true);
-        emit ConvertToCollateral(loanId, address(this), _USER1, nativeAmount);
+        emit ConvertToCollateral(loanKey.collateral, loanKey.asset, address(this), loanKey.user, nativeAmount);
         _lendingPool.convertToCollateral{value: nativeAmount}(loanKey, nativeAmount);
 
         Reserve memory afterReserve = _lendingPool.getReserve(address(_weth));
@@ -430,7 +439,6 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
         {
             // stack too deep
             LoanKey memory loanKey = LoanKey({user: _USER1, collateral: address(_weth), asset: address(_weth)});
-            uint256 loanId = loanKey.toId();
             uint256 snapshotId = vm.snapshot();
             // check Deposit event
             vm.expectEmit(true, true, true, true);
@@ -439,7 +447,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
             // check ConvertToCollateral event
             vm.revertTo(snapshotId);
             vm.expectEmit(true, true, true, true);
-            emit ConvertToCollateral(loanId, address(this), _USER1, nativeAmount / 2);
+            emit ConvertToCollateral(loanKey.collateral, loanKey.asset, address(this), loanKey.user, nativeAmount / 2);
             _lendingPool.convertToCollateral{value: nativeAmount}(loanKey, nativeAmount / 2);
         }
 
