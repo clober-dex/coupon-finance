@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 import "forge-std/Test.sol";
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC2612} from "@openzeppelin/contracts/interfaces/IERC2612.sol";
 
 import {ILendingPoolEvents, ILendingPool, ILendingPoolTypes} from "../../../contracts/interfaces/ILendingPool.sol";
 import {IWETH9} from "../../../contracts/external/weth/IWETH9.sol";
@@ -19,6 +20,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
     using CouponKeyLibrary for CouponKey;
     using LoanKeyLibrary for LoanKey;
 
+    bytes32 private constant _PERMIT_TYPEHASH =
+        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
     address private constant _USDC_WHALE = 0xcEe284F754E854890e311e3280b767F80797180d;
     address private constant _USER1 = address(0x1);
     address private constant _USER2 = address(0x2);
@@ -98,6 +101,53 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
         );
         assertEq(beforeReserve.spendableAmount + amount1 + amount2, afterReserve.spendableAmount, "RESERVE_SPENDABLE");
         assertEq(beforeVault.spendableAmount + amount1 + amount2, afterVault.spendableAmount, "VAULT_SPENDABLE");
+    }
+
+    function testDepositWithPermit() public {
+        IERC2612 permitToken = IERC2612(address(_usdc));
+        address unapprovedUser = vm.addr(1);
+        uint256 amount = _usdc.amount(100);
+        _usdc.transfer(unapprovedUser, amount);
+        vm.startPrank(unapprovedUser);
+
+        Reserve memory beforeReserve = _lendingPool.getReserve(address(_usdc));
+        Vault memory beforeVault = _lendingPool.getVault(VaultKey(address(_usdc), _USER1));
+        uint256 beforeSenderBalance = _usdc.balanceOf(unapprovedUser);
+        uint256 beforeYieldFarmerBalance = _yieldFarmer.totalReservedAmount(address(_usdc));
+
+        uint256 nonce = permitToken.nonces(unapprovedUser);
+        {
+            uint256 deadline = type(uint256).max;
+            bytes32 digest = keccak256(
+                abi.encodePacked(
+                    "\x19\x01",
+                    permitToken.DOMAIN_SEPARATOR(),
+                    keccak256(
+                        abi.encode(_PERMIT_TYPEHASH, unapprovedUser, address(_lendingPool), amount, nonce, deadline)
+                    )
+                )
+            );
+            (uint8 v, bytes32 r, bytes32 s) = vm.sign(1, digest);
+
+            vm.expectEmit(true, true, true, true);
+            emit Deposit(address(_usdc), unapprovedUser, _USER1, amount);
+            _lendingPool.depositWithPermit(address(_usdc), amount, _USER1, deadline, v, r, s);
+        }
+
+        Reserve memory afterReserve = _lendingPool.getReserve(address(_usdc));
+        Vault memory afterVault = _lendingPool.getVault(VaultKey(address(_usdc), _USER1));
+
+        assertEq(_usdc.balanceOf(unapprovedUser) + amount, beforeSenderBalance, "SENDER_BALANCE");
+        assertEq(
+            _yieldFarmer.totalReservedAmount(address(_usdc)),
+            beforeYieldFarmerBalance + amount,
+            "YIELD_FARMER_BALANCE"
+        );
+        assertEq(beforeReserve.spendableAmount + amount, afterReserve.spendableAmount, "RESERVE_SPENDABLE");
+        assertEq(beforeVault.spendableAmount + amount, afterVault.spendableAmount, "VAULT_SPENDABLE");
+        assertEq(permitToken.nonces(unapprovedUser), nonce + 1, "NONCE");
+
+        vm.stopPrank();
     }
 
     function testWithdraw() public {

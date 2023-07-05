@@ -78,6 +78,16 @@ interface ILendingPool is ILendingPoolEvents, ILendingPoolTypes, ICouponPool {
     // User Functions //
     function deposit(address asset, uint256 amount, address recipient) external payable;
 
+    function depositWithPermit(
+        address asset,
+        uint256 amount,
+        address recipient,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external;
+
     // @dev If the amount exceeds the withdrawable balance, it will withdraw the maximum amount.
     function withdraw(address asset, uint256 amount, address recipient) external returns (uint256);
 
