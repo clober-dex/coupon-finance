@@ -12,7 +12,7 @@ interface ILendingPoolEvents {
 interface ILendingPoolTypes {
     struct CouponKey {
         address asset;
-        uint256 maturity;
+        uint256 epoch;
     }
 
     struct Reserve {
@@ -36,12 +36,14 @@ interface ILendingPoolTypes {
         uint256 collateralAmount;
         address asset;
         uint256 amount;
-        uint256 maturity;
+        uint256 epoch;
     }
 }
 
 interface ILendingPool is ILendingPoolEvents, ILendingPoolTypes, ICouponPool {
     // View Functions //
+    function epochDuration() external view returns (uint256);
+
     function yieldFarmer() external view returns (address);
 
     function getReserve(address asset) external view returns (Reserve memory);
