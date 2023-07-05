@@ -63,7 +63,11 @@ interface ILendingPool is ILendingPoolEvents, ILendingPoolTypes, ICouponPool {
 
     function getReserve(address asset) external view returns (Reserve memory);
 
+    function getReserveLockedAmount(address asset, uint256 epoch) external view returns (uint256);
+
     function getVault(VaultKey calldata vaultKey) external view returns (Vault memory);
+
+    function getVaultLockedAmount(VaultKey calldata vaultKey, uint256 epoch) external view returns (uint256);
 
     function getLoan(LoanKey calldata loanKey) external view returns (Loan memory);
 
