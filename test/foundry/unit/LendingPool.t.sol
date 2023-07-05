@@ -70,8 +70,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
             beforeYieldFarmerBalance + amount,
             "YIELD_FARMER_BALANCE"
         );
-        assertEq(beforeReserve.amount + amount, afterReserve.amount, "RESERVE_AMOUNT");
-        assertEq(beforeVault.amount + amount, afterVault.amount, "VAULT_AMOUNT");
+        assertEq(beforeReserve.spendableAmount + amount, afterReserve.spendableAmount, "RESERVE_AMOUNT");
+        assertEq(beforeVault.spendableAmount + amount, afterVault.spendableAmount, "VAULT_AMOUNT");
     }
 
     function testDepositNative() public {
@@ -97,8 +97,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
             beforeYieldFarmerBalance + amount1 + amount2,
             "YIELD_FARMER_BALANCE"
         );
-        assertEq(beforeReserve.amount + amount1 + amount2, afterReserve.amount, "RESERVE_AMOUNT");
-        assertEq(beforeVault.amount + amount1 + amount2, afterVault.amount, "VAULT_AMOUNT");
+        assertEq(beforeReserve.spendableAmount + amount1 + amount2, afterReserve.spendableAmount, "RESERVE_AMOUNT");
+        assertEq(beforeVault.spendableAmount + amount1 + amount2, afterVault.spendableAmount, "VAULT_AMOUNT");
     }
 
     function testWithdraw() public {
@@ -126,8 +126,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
             beforeYieldFarmerBalance,
             "YIELD_FARMER_BALANCE"
         );
-        assertEq(beforeReserve.amount, afterReserve.amount + amount, "RESERVE_AMOUNT");
-        assertEq(beforeVault.amount, afterVault.amount + amount, "VAULT_AMOUNT");
+        assertEq(beforeReserve.spendableAmount, afterReserve.spendableAmount + amount, "RESERVE_AMOUNT");
+        assertEq(beforeVault.spendableAmount, afterVault.spendableAmount + amount, "VAULT_AMOUNT");
     }
 
     function testWithdrawNative() public {
@@ -153,8 +153,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
             beforeYieldFarmerBalance,
             "YIELD_FARMER_BALANCE"
         );
-        assertEq(beforeReserve.amount, afterReserve.amount + amount, "RESERVE_AMOUNT");
-        assertEq(beforeVault.amount, afterVault.amount + amount, "VAULT_AMOUNT");
+        assertEq(beforeReserve.spendableAmount, afterReserve.spendableAmount + amount, "RESERVE_AMOUNT");
+        assertEq(beforeVault.spendableAmount, afterVault.spendableAmount + amount, "VAULT_AMOUNT");
     }
 
     function testWithdrawWhenWithdrawalLimitExists() public {
@@ -185,8 +185,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
             beforeYieldFarmerBalance,
             "YIELD_FARMER_BALANCE"
         );
-        assertEq(beforeReserve.amount, afterReserve.amount + amount / 2, "RESERVE_AMOUNT");
-        assertEq(beforeVault.amount, afterVault.amount + amount / 2, "VAULT_AMOUNT");
+        assertEq(beforeReserve.spendableAmount, afterReserve.spendableAmount + amount / 2, "RESERVE_AMOUNT");
+        assertEq(beforeVault.spendableAmount, afterVault.spendableAmount + amount / 2, "VAULT_AMOUNT");
     }
 
     function testWithdrawWhenAmountExceedsDepositedAmount() public {
@@ -214,8 +214,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
             beforeYieldFarmerBalance,
             "YIELD_FARMER_BALANCE"
         );
-        assertEq(beforeReserve.amount, afterReserve.amount + amount, "RESERVE_AMOUNT");
-        assertEq(beforeVault.amount, afterVault.amount + amount, "VAULT_AMOUNT");
+        assertEq(beforeReserve.spendableAmount, afterReserve.spendableAmount + amount, "RESERVE_AMOUNT");
+        assertEq(beforeVault.spendableAmount, afterVault.spendableAmount + amount, "VAULT_AMOUNT");
     }
 
     function testMintCoupon() public {
@@ -238,10 +238,10 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
         uint256 afterCouponBalance = _lendingPool.balanceOf(_USER1, couponId);
         uint256 afterCouponTotalSupply = _lendingPool.totalSupply(couponId);
 
-        assertEq(beforeReserve.locked + amount, afterReserve.locked, "RESERVE_LOCKED");
-        assertEq(beforeReserve.amount, afterReserve.amount + amount, "RESERVE_AMOUNT");
-        assertEq(beforeVault.locked + amount, afterVault.locked, "VAULT_LOCKED");
-        assertEq(beforeVault.amount, afterVault.amount + amount, "VAULT_AMOUNT");
+        assertEq(beforeReserve.lockedAmount + amount, afterReserve.lockedAmount, "RESERVE_LOCKED");
+        assertEq(beforeReserve.spendableAmount, afterReserve.spendableAmount + amount, "RESERVE_AMOUNT");
+        assertEq(beforeVault.lockedAmount + amount, afterVault.lockedAmount, "VAULT_LOCKED");
+        assertEq(beforeVault.spendableAmount, afterVault.spendableAmount + amount, "VAULT_AMOUNT");
         assertEq(beforeCouponBalance + amount, afterCouponBalance, "COUPON_BALANCE");
         assertEq(beforeCouponTotalSupply + amount, afterCouponTotalSupply, "COUPON_TOTAL_SUPPLY");
     }
@@ -265,10 +265,10 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
         uint256 afterCouponBalance = _lendingPool.balanceOf(_USER1, couponId);
         uint256 afterCouponTotalSupply = _lendingPool.totalSupply(couponId);
 
-        assertEq(beforeReserve.locked + amount, afterReserve.locked, "RESERVE_LOCKED");
-        assertEq(beforeReserve.amount, afterReserve.amount + amount, "RESERVE_AMOUNT");
-        assertEq(beforeVault.locked + amount, afterVault.locked, "VAULT_LOCKED");
-        assertEq(beforeVault.amount, afterVault.amount + amount, "VAULT_AMOUNT");
+        assertEq(beforeReserve.lockedAmount + amount, afterReserve.lockedAmount, "RESERVE_LOCKED");
+        assertEq(beforeReserve.spendableAmount, afterReserve.spendableAmount + amount, "RESERVE_AMOUNT");
+        assertEq(beforeVault.lockedAmount + amount, afterVault.lockedAmount, "VAULT_LOCKED");
+        assertEq(beforeVault.spendableAmount, afterVault.spendableAmount + amount, "VAULT_AMOUNT");
         assertEq(beforeCouponBalance + amount, afterCouponBalance, "COUPON_BALANCE");
         assertEq(beforeCouponTotalSupply + amount, afterCouponTotalSupply, "COUPON_TOTAL_SUPPLY");
     }

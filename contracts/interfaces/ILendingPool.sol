@@ -16,14 +16,18 @@ interface ILendingPoolTypes {
         uint256 epoch;
     }
 
+    // totalAmount = spendableAmount + lockedAmount + collateralAmount
     struct Reserve {
-        uint256 amount;
-        uint256 locked;
+        uint256 spendableAmount;
+        uint256 lockedAmount;
+        uint256 collateralAmount;
     }
 
+    // totalAmount = spendableAmount + lockedAmount + collateralAmount
     struct Vault {
-        uint256 amount;
-        uint256 locked;
+        uint256 spendableAmount;
+        uint256 lockedAmount;
+        uint256 collateralAmount;
     }
 
     struct LoanKey {
