@@ -7,7 +7,7 @@ import "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {ILendingPoolEvents, ILendingPool, ILendingPoolTypes} from "../../../contracts/interfaces/ILendingPool.sol";
-import {IWETH9} from "../../../contracts/interfaces/external/IWETH9.sol";
+import {IWETH9} from "../../../contracts/external/weth/IWETH9.sol";
 import {IYieldFarmer} from "../../../contracts/interfaces/IYieldFarmer.sol";
 import {LendingPool} from "../../../contracts/LendingPool.sol";
 import {CouponKeyLibrary, LoanKeyLibrary} from "../../../contracts/libraries/Keys.sol";
