@@ -12,7 +12,7 @@ library CouponKeyLibrary {
 }
 
 library LoanKeyLibrary {
-    function toId(ILendingPool.LoanKey memory key) internal pure returns (bytes32) {
-        return bytes32(keccak256(abi.encode(key)));
+    function toId(ILendingPool.LoanKey memory key) internal pure returns (uint256) {
+        return uint256(bytes32(keccak256(abi.encode(key))));
     }
 }
