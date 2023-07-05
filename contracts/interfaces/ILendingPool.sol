@@ -30,8 +30,8 @@ interface ILendingPoolTypes {
     }
 
     struct VaultKey {
-        address user;
         address asset;
+        address user;
     }
 
     // totalAmount = spendableAmount + lockedAmount + collateralAmount
@@ -42,9 +42,9 @@ interface ILendingPoolTypes {
     }
 
     struct LoanKey {
-        address user;
         address collateral;
         address asset;
+        address user;
     }
 
     struct Loan {
