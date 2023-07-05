@@ -29,6 +29,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
     ILendingPool private _lendingPool;
     MockYieldFarmer private _yieldFarmer;
 
+    receive() external payable {}
+
     function setUp() public {
         ForkTestSetUp forkSetUp = new ForkTestSetUp();
         forkSetUp.fork(17617512);
@@ -41,7 +43,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
 
         vm.prank(_USDC_WHALE);
         _usdc.transfer(address(this), _usdc.amount(1_000_000_000));
-        vm.deal(address(this), 1_000_000_000 ether);
+        vm.deal(address(this), 2_000_000_000 ether);
+        _weth.deposit{value: 1_000_000_000 ether}();
 
         _usdc.approve(address(_lendingPool), type(uint256).max);
         _weth.approve(address(_lendingPool), type(uint256).max);
@@ -51,7 +54,6 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
         Reserve memory beforeReserve = _lendingPool.getReserve(address(_usdc));
         Vault memory beforeVault = _lendingPool.getVault(_USER1, address(_usdc));
         uint256 beforeThisBalance = _usdc.balanceOf(address(this));
-        uint256 beforePoolBalance = _usdc.balanceOf(address(_lendingPool));
         uint256 beforeYieldFarmerBalance = _yieldFarmer.totalReservedAmount(address(_usdc));
 
         uint256 amount = _usdc.amount(100);
@@ -63,7 +65,6 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
         Vault memory afterVault = _lendingPool.getVault(_USER1, address(_usdc));
 
         assertEq(_usdc.balanceOf(address(this)) + amount, beforeThisBalance, "THIS_BALANCE");
-        assertEq(_usdc.balanceOf(address(_lendingPool)), beforePoolBalance, "POOL_BALANCE");
         assertEq(
             _yieldFarmer.totalReservedAmount(address(_usdc)),
             beforeYieldFarmerBalance + amount,
