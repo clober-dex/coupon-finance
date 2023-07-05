@@ -32,11 +32,8 @@ interface ILendingPoolTypes {
     }
 
     struct Loan {
-        address collateral;
-        uint256 collateralAmount;
-        address asset;
         uint256 amount;
-        uint256 epoch;
+        uint256 collateralAmount;
     }
 }
 
@@ -51,6 +48,10 @@ interface ILendingPool is ILendingPoolEvents, ILendingPoolTypes, ICouponPool {
     function getReserve(address asset) external view returns (Reserve memory);
 
     function getVault(address asset, address user) external view returns (Vault memory);
+
+    function getLoan(bytes32 loanId) external view returns (Loan memory);
+
+    function getLoanLimit(bytes32 loanId, uint256 epoch) external view returns (uint256);
 
     function withdrawable(address asset) external view returns (uint256);
 
