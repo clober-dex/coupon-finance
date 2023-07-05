@@ -109,7 +109,16 @@ interface ILendingPool is ILendingPoolEvents, ILendingPoolTypes, ICouponPool {
 
     function borrow(CouponKey calldata couponKey, address collateral, uint256 amount, address recipient) external;
 
-    function repay(address asset, uint256 amount, address recipient) external;
+    function repay(LoanKey calldata loanKey, uint256 amount) external payable;
+
+    function repayWithPermit(
+        LoanKey calldata loanKey,
+        uint256 amount,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external;
 
     function liquidate(address collateral, address debt, address user, uint256 maxRepayAmount) external;
 
