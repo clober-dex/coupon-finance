@@ -272,6 +272,62 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ILendingPoolTypes {
         assertEq(beforeCouponTotalSupply + amount, afterCouponTotalSupply, "COUPON_TOTAL_SUPPLY");
     }
 
+    function testLockedAmountChanges() public {
+        uint256 amount0 = _usdc.amount(50);
+        uint256 amount1 = _usdc.amount(70);
+        uint256 amount2 = _usdc.amount(100);
+        _lendingPool.deposit(address(_usdc), amount0 + amount1 + amount2, address(this));
+
+        CouponKey memory couponKey1 = CouponKey({asset: address(_usdc), epoch: 1});
+        CouponKey memory couponKey2 = CouponKey({asset: address(_usdc), epoch: 2});
+
+        _lendingPool.mintCoupon(couponKey1, amount1, address(this));
+        _lendingPool.mintCoupon(couponKey2, amount2, address(this));
+
+        // epoch 1
+        Reserve memory reserve = _lendingPool.getReserve(address(_usdc));
+        Vault memory vault = _lendingPool.getVault(VaultKey(address(_usdc), address(this)));
+        assertEq(reserve.lockedAmount, amount1 + amount2, "RESERVE_LOCKED");
+        assertEq(reserve.spendableAmount, amount0, "RESERVE_SPENDABLE");
+        assertEq(vault.lockedAmount, amount1 + amount2, "VAULT_LOCKED");
+        assertEq(vault.spendableAmount, amount0, "VAULT_SPENDABLE");
+
+        vm.warp(block.timestamp + _lendingPool.epochDuration());
+
+        // epoch 2
+        reserve = _lendingPool.getReserve(address(_usdc));
+        vault = _lendingPool.getVault(VaultKey(address(_usdc), address(this)));
+        assertEq(reserve.lockedAmount, amount2, "RESERVE_LOCKED");
+        assertEq(reserve.spendableAmount, amount0 + amount1, "RESERVE_SPENDABLE");
+        assertEq(vault.lockedAmount, amount2, "VAULT_LOCKED");
+        assertEq(vault.spendableAmount, amount0 + amount1, "VAULT_SPENDABLE");
+
+        vm.warp(block.timestamp + _lendingPool.epochDuration());
+
+        // epoch 3
+        reserve = _lendingPool.getReserve(address(_usdc));
+        vault = _lendingPool.getVault(VaultKey(address(_usdc), address(this)));
+        assertEq(reserve.lockedAmount, 0, "RESERVE_LOCKED");
+        assertEq(reserve.spendableAmount, amount0 + amount1 + amount2, "RESERVE_SPENDABLE");
+        assertEq(vault.lockedAmount, 0, "VAULT_LOCKED");
+        assertEq(vault.spendableAmount, amount0 + amount1 + amount2, "VAULT_SPENDABLE");
+
+        assertEq(_lendingPool.getReserveLockedAmount(address(_usdc), 1), amount1 + amount2, "RESERVE_LOCKED_1");
+        assertEq(_lendingPool.getReserveLockedAmount(address(_usdc), 2), amount2, "RESERVE_LOCKED_2");
+        assertEq(_lendingPool.getReserveLockedAmount(address(_usdc), 3), 0, "RESERVE_LOCKED_3");
+        assertEq(
+            _lendingPool.getVaultLockedAmount(VaultKey(address(_usdc), address(this)), 1),
+            amount1 + amount2,
+            "VAULT_LOCKED_1"
+        );
+        assertEq(
+            _lendingPool.getVaultLockedAmount(VaultKey(address(_usdc), address(this)), 2),
+            amount2,
+            "VAULT_LOCKED_2"
+        );
+        assertEq(_lendingPool.getVaultLockedAmount(VaultKey(address(_usdc), address(this)), 3), 0, "VAULT_LOCKED_3");
+    }
+
     function testConvertToCollateral() public {
         uint256 amount = _usdc.amount(100);
         _lendingPool.deposit(address(_usdc), amount, address(this));
