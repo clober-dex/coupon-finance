@@ -307,7 +307,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         uint256 beforeCouponBalance = _lendingPool.balanceOf(_USER1, couponId);
         uint256 beforeCouponTotalSupply = _lendingPool.totalSupply(couponId);
 
-        _lendingPool.mintCoupon(couponKey, amount, _USER1);
+        _lendingPool.mintCoupon(_toArray(Types.Coupon(couponKey, amount)), _USER1);
 
         Types.Reserve memory afterReserve = _lendingPool.getReserve(address(_usdc));
         Types.Vault memory afterVault = _lendingPool.getVault(Types.VaultKey(address(_usdc), address(this)));
@@ -334,7 +334,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         uint256 beforeCouponBalance = _lendingPool.balanceOf(_USER1, couponId);
         uint256 beforeCouponTotalSupply = _lendingPool.totalSupply(couponId);
 
-        _lendingPool.mintCoupon(couponKey, amount * 2, _USER1);
+        _lendingPool.mintCoupon(_toArray(Types.Coupon(couponKey, amount * 2)), _USER1);
 
         Types.Reserve memory afterReserve = _lendingPool.getReserve(address(_usdc));
         Types.Vault memory afterVault = _lendingPool.getVault(Types.VaultKey(address(_usdc), address(this)));
@@ -358,8 +358,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         Types.CouponKey memory couponKey1 = Types.CouponKey({asset: address(_usdc), epoch: 1});
         Types.CouponKey memory couponKey2 = Types.CouponKey({asset: address(_usdc), epoch: 2});
 
-        _lendingPool.mintCoupon(couponKey1, amount1, address(this));
-        _lendingPool.mintCoupon(couponKey2, amount2, address(this));
+        _lendingPool.mintCoupon(_toArray(Types.Coupon(couponKey1, amount1)), address(this));
+        _lendingPool.mintCoupon(_toArray(Types.Coupon(couponKey2, amount2)), address(this));
 
         // epoch 1
         Types.Reserve memory reserve = _lendingPool.getReserve(address(_usdc));
@@ -415,7 +415,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
 
         Types.CouponKey memory couponKey = Types.CouponKey({asset: address(_usdc), epoch: 1});
         uint256 couponId = couponKey.toId();
-        _lendingPool.mintCoupon(couponKey, amount, _USER1);
+        _lendingPool.mintCoupon(_toArray(Types.Coupon(couponKey, amount)), _USER1);
 
         uint256 burnAmount = amount / 3;
         Types.Reserve memory beforeReserve = _lendingPool.getReserve(address(_usdc));
@@ -424,7 +424,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         uint256 beforeCouponTotalSupply = _lendingPool.totalSupply(couponId);
 
         vm.prank(_USER1);
-        _lendingPool.burnCoupon(couponKey, burnAmount, address(this));
+        _lendingPool.burnCoupon(_toArray(Types.Coupon(couponKey, burnAmount)), address(this));
 
         Types.Reserve memory afterReserve = _lendingPool.getReserve(address(_usdc));
         Types.Vault memory afterVault = _lendingPool.getVault(Types.VaultKey(address(_usdc), address(this)));
@@ -445,12 +445,12 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
 
         Types.CouponKey memory couponKey = Types.CouponKey({asset: address(_usdc), epoch: 1});
         uint256 couponId = couponKey.toId();
-        _lendingPool.mintCoupon(couponKey, amount, _USER1);
+        _lendingPool.mintCoupon(_toArray(Types.Coupon(couponKey, amount)), _USER1);
 
         uint256 burnAmount = amount / 3;
         _lendingPool.deposit(address(_usdc), burnAmount - 1, _USER1);
         vm.prank(_USER1);
-        _lendingPool.mintCoupon(couponKey, burnAmount - 1, _USER2);
+        _lendingPool.mintCoupon(_toArray(Types.Coupon(couponKey, burnAmount - 1)), _USER2);
 
         Types.Reserve memory beforeReserve = _lendingPool.getReserve(address(_usdc));
         Types.Vault memory beforeVault = _lendingPool.getVault(Types.VaultKey(address(_usdc), address(this)));
@@ -458,7 +458,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         uint256 beforeCouponTotalSupply = _lendingPool.totalSupply(couponId);
 
         vm.prank(_USER1);
-        _lendingPool.burnCoupon(couponKey, burnAmount, _USER1);
+        _lendingPool.burnCoupon(_toArray(Types.Coupon(couponKey, burnAmount)), _USER1);
 
         Types.Reserve memory afterReserve = _lendingPool.getReserve(address(_usdc));
         Types.Vault memory afterVault = _lendingPool.getVault(Types.VaultKey(address(_usdc), _USER1));
@@ -479,17 +479,17 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
 
         Types.CouponKey memory couponKey = Types.CouponKey({asset: address(_usdc), epoch: 1});
         uint256 couponId = couponKey.toId();
-        _lendingPool.mintCoupon(couponKey, amount, _USER1);
+        _lendingPool.mintCoupon(_toArray(Types.Coupon(couponKey, amount)), _USER1);
 
         uint256 couponBalance = _lendingPool.balanceOf(_USER1, couponId);
         vm.prank(_USER1);
-        _lendingPool.burnCoupon(couponKey, amount, _USER1);
+        _lendingPool.burnCoupon(_toArray(Types.Coupon(couponKey, amount)), _USER1);
         assertEq(_lendingPool.balanceOf(_USER1, couponId), couponBalance, "COUPON_BALANCE_0");
 
         vm.warp(block.timestamp + _lendingPool.epochDuration());
 
         vm.prank(_USER1);
-        _lendingPool.burnCoupon(couponKey, amount / 2, _USER1);
+        _lendingPool.burnCoupon(_toArray(Types.Coupon(couponKey, amount / 2)), _USER1);
         assertEq(_lendingPool.balanceOf(_USER1, couponId), amount / 2, "COUPON_BALANCE_1");
 
         assertEq(_lendingPool.getReserveLockedAmount(address(_usdc), 1), amount, "RESERVE_LOCKED_0");
@@ -498,7 +498,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
             amount,
             "VAULT_LOCKED_0"
         );
-        _lendingPool.burnCoupon(couponKey, amount / 2, address(this));
+        _lendingPool.burnCoupon(_toArray(Types.Coupon(couponKey, amount / 2)), address(this));
         // expect no change
         assertEq(_lendingPool.getReserveLockedAmount(address(_usdc), 1), amount, "RESERVE_LOCKED_1");
         assertEq(
@@ -815,5 +815,10 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         assertEq(IERC2612(address(_usdc)).nonces(_unapprovedUser), _permitParams.nonce + 1, "NONCE");
 
         vm.stopPrank();
+    }
+
+    function _toArray(Types.Coupon memory coupon) internal pure returns (Types.Coupon[] memory arr) {
+        arr = new Types.Coupon[](1);
+        arr[0] = coupon;
     }
 }

@@ -8,6 +8,11 @@ library Types {
         uint256 epoch;
     }
 
+    struct Coupon {
+        CouponKey key;
+        uint256 amount;
+    }
+
     // totalAmount = spendableAmount + lockedAmount + collateralAmount
     struct Reserve {
         uint256 spendableAmount;

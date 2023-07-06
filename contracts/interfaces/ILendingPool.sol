@@ -55,9 +55,9 @@ interface ILendingPool is ILendingPoolEvents, ICouponPool {
     // @dev If the amount exceeds the withdrawable balance, it will withdraw the maximum amount.
     function withdraw(address asset, uint256 amount, address recipient) external returns (uint256);
 
-    function mintCoupon(Types.CouponKey calldata couponKey, uint256 amount, address recipient) external;
+    function mintCoupon(Types.Coupon[] calldata coupons, address recipient) external;
 
-    function burnCoupon(Types.CouponKey calldata couponKey, uint256 amount, address recipient) external;
+    function burnCoupon(Types.Coupon[] calldata coupons, address recipient) external;
 
     // @dev Pull tokens if the deposited amount is less than the amount specified.
     function convertToCollateral(Types.LoanKey calldata loanKey, uint256 amount) external payable;
@@ -71,7 +71,7 @@ interface ILendingPool is ILendingPoolEvents, ICouponPool {
         bytes32 s
     ) external;
 
-    function borrow(Types.CouponKey calldata couponKey, address collateral, uint256 amount, address recipient) external;
+    function borrow(Types.Coupon[] calldata coupons, address collateral, address recipient) external;
 
     function repay(Types.LoanKey calldata loanKey, uint256 amount) external payable;
 
