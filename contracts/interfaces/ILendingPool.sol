@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 
 import {ICouponPool} from "./ICoupon.sol";
+import {Types} from "../Types.sol";
 
 interface ILendingPoolEvents {
     event Deposit(address indexed asset, address indexed sender, address indexed user, uint256 amount);
@@ -16,44 +17,7 @@ interface ILendingPoolEvents {
     );
 }
 
-interface ILendingPoolTypes {
-    struct CouponKey {
-        address asset;
-        uint256 epoch;
-    }
-
-    // totalAmount = spendableAmount + lockedAmount + collateralAmount
-    struct Reserve {
-        uint256 spendableAmount;
-        uint256 lockedAmount;
-        uint256 collateralAmount;
-    }
-
-    struct VaultKey {
-        address asset;
-        address user;
-    }
-
-    // totalAmount = spendableAmount + lockedAmount + collateralAmount
-    struct Vault {
-        uint256 spendableAmount;
-        uint256 lockedAmount;
-        uint256 collateralAmount;
-    }
-
-    struct LoanKey {
-        address collateral;
-        address asset;
-        address user;
-    }
-
-    struct Loan {
-        uint256 amount;
-        uint256 collateralAmount;
-    }
-}
-
-interface ILendingPool is ILendingPoolEvents, ILendingPoolTypes, ICouponPool {
+interface ILendingPool is ILendingPoolEvents, ICouponPool {
     // View Functions //
     function epochDuration() external view returns (uint256);
 
@@ -61,17 +25,17 @@ interface ILendingPool is ILendingPoolEvents, ILendingPoolTypes, ICouponPool {
 
     function yieldFarmer() external view returns (address);
 
-    function getReserve(address asset) external view returns (Reserve memory);
+    function getReserve(address asset) external view returns (Types.Reserve memory);
 
     function getReserveLockedAmount(address asset, uint256 epoch) external view returns (uint256);
 
-    function getVault(VaultKey calldata vaultKey) external view returns (Vault memory);
+    function getVault(Types.VaultKey calldata vaultKey) external view returns (Types.Vault memory);
 
-    function getVaultLockedAmount(VaultKey calldata vaultKey, uint256 epoch) external view returns (uint256);
+    function getVaultLockedAmount(Types.VaultKey calldata vaultKey, uint256 epoch) external view returns (uint256);
 
-    function getLoan(LoanKey calldata loanKey) external view returns (Loan memory);
+    function getLoan(Types.LoanKey calldata loanKey) external view returns (Types.Loan memory);
 
-    function getLoanLimit(LoanKey calldata loanKey, uint256 epoch) external view returns (uint256);
+    function getLoanLimit(Types.LoanKey calldata loanKey, uint256 epoch) external view returns (uint256);
 
     function withdrawable(address asset) external view returns (uint256);
 
@@ -91,15 +55,15 @@ interface ILendingPool is ILendingPoolEvents, ILendingPoolTypes, ICouponPool {
     // @dev If the amount exceeds the withdrawable balance, it will withdraw the maximum amount.
     function withdraw(address asset, uint256 amount, address recipient) external returns (uint256);
 
-    function mintCoupon(CouponKey calldata couponKey, uint256 amount, address recipient) external;
+    function mintCoupon(Types.CouponKey calldata couponKey, uint256 amount, address recipient) external;
 
-    function burnCoupon(CouponKey calldata couponKey, uint256 amount, address recipient) external;
+    function burnCoupon(Types.CouponKey calldata couponKey, uint256 amount, address recipient) external;
 
     // @dev Pull tokens if the deposited amount is less than the amount specified.
-    function convertToCollateral(LoanKey calldata loanKey, uint256 amount) external payable;
+    function convertToCollateral(Types.LoanKey calldata loanKey, uint256 amount) external payable;
 
     function convertToCollateralWithPermit(
-        LoanKey calldata loanKey,
+        Types.LoanKey calldata loanKey,
         uint256 amount,
         uint256 deadline,
         uint8 v,
@@ -107,12 +71,12 @@ interface ILendingPool is ILendingPoolEvents, ILendingPoolTypes, ICouponPool {
         bytes32 s
     ) external;
 
-    function borrow(CouponKey calldata couponKey, address collateral, uint256 amount, address recipient) external;
+    function borrow(Types.CouponKey calldata couponKey, address collateral, uint256 amount, address recipient) external;
 
-    function repay(LoanKey calldata loanKey, uint256 amount) external payable;
+    function repay(Types.LoanKey calldata loanKey, uint256 amount) external payable;
 
     function repayWithPermit(
-        LoanKey calldata loanKey,
+        Types.LoanKey calldata loanKey,
         uint256 amount,
         uint256 deadline,
         uint8 v,
