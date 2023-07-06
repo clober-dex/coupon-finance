@@ -545,14 +545,16 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
 
         uint256 additionalAmount = amount / 2;
 
+        Types.LoanKey memory loanKey = Types.LoanKey({user: _USER1, collateral: address(_usdc), asset: address(_weth)});
+
         Types.ReserveStatus memory beforeReserve = _lendingPool.getReserveStatus(address(_usdc));
         Types.VaultStatus memory beforeSenderVault = _lendingPool.getVaultStatus(
             Types.VaultKey(address(_usdc), address(this))
         );
         Types.VaultStatus memory beforeUserVault = _lendingPool.getVaultStatus(Types.VaultKey(address(_usdc), _USER1));
+        Types.LoanStatus memory beforeLoan = _lendingPool.getLoanStatus(loanKey);
         uint256 beforeSenderBalance = _usdc.balanceOf(address(this));
 
-        Types.LoanKey memory loanKey = Types.LoanKey({user: _USER1, collateral: address(_usdc), asset: address(_weth)});
         _snapshotId = vm.snapshot();
         // check Deposit event
         vm.expectEmit(true, true, true, true);
@@ -575,6 +577,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
             Types.VaultKey(address(_usdc), address(this))
         );
         Types.VaultStatus memory afterUserVault = _lendingPool.getVaultStatus(Types.VaultKey(address(_usdc), _USER1));
+        Types.LoanStatus memory afterLoan = _lendingPool.getLoanStatus(loanKey);
         uint256 afterSenderBalance = _usdc.balanceOf(address(this));
 
         assertEq(
@@ -594,6 +597,11 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
             "USER_VAULT_COLLATERAL"
         );
         assertEq(beforeUserVault.spendableAmount, afterUserVault.spendableAmount, "USER_VAULT_SPENDABLE");
+        assertEq(
+            beforeLoan.collateralAmount + amount + additionalAmount,
+            afterLoan.collateralAmount,
+            "LOAN_COLLATERAL"
+        );
         assertEq(beforeSenderBalance, afterSenderBalance + additionalAmount, "BALANCE");
     }
 
@@ -604,19 +612,16 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         uint256 additionalAmount = amount / 2;
         uint256 nativeAmount = amount / 3;
 
+        Types.LoanKey memory loanKey = Types.LoanKey({user: _USER1, collateral: address(_weth), asset: address(_weth)});
+
         Types.ReserveStatus memory beforeReserve = _lendingPool.getReserveStatus(address(_weth));
         Types.VaultStatus memory beforeUserVault = _lendingPool.getVaultStatus(Types.VaultKey(address(_weth), _USER1));
+        Types.LoanStatus memory beforeLoan = _lendingPool.getLoanStatus(loanKey);
         uint256 beforeSenderBalance = _weth.balanceOf(address(this));
         uint256 beforeSenderNativeBalance = address(this).balance;
 
         {
             // stack too deep
-
-            Types.LoanKey memory loanKey = Types.LoanKey({
-                user: _USER1,
-                collateral: address(_weth),
-                asset: address(_weth)
-            });
             _snapshotId = vm.snapshot();
             // check Deposit event
             vm.expectEmit(true, true, true, true);
@@ -640,8 +645,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
             Types.VaultKey(address(_weth), address(this))
         );
         Types.VaultStatus memory afterUserVault = _lendingPool.getVaultStatus(Types.VaultKey(address(_weth), _USER1));
-        uint256 afterSenderBalance = _weth.balanceOf(address(this));
-        uint256 afterSenderNativeBalance = address(this).balance;
+        Types.LoanStatus memory afterLoan = _lendingPool.getLoanStatus(loanKey);
 
         assertEq(
             beforeReserve.collateralAmount + amount + additionalAmount + nativeAmount,
@@ -655,8 +659,13 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
             afterUserVault.collateralAmount,
             "USER_VAULT_COLLATERAL"
         );
-        assertEq(beforeSenderBalance, afterSenderBalance + additionalAmount, "BALANCE");
-        assertEq(beforeSenderNativeBalance, afterSenderNativeBalance + nativeAmount, "NATIVE_BALANCE");
+        assertEq(
+            beforeLoan.collateralAmount + amount + additionalAmount + nativeAmount,
+            afterLoan.collateralAmount,
+            "LOAN_COLLATERAL"
+        );
+        assertEq(beforeSenderBalance, _weth.balanceOf(address(this)) + additionalAmount, "BALANCE");
+        assertEq(beforeSenderNativeBalance, address(this).balance + nativeAmount, "NATIVE_BALANCE");
     }
 
     function testConvertToCollateralShouldUseNativeTokenFirst() public {
@@ -665,15 +674,17 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
 
         uint256 nativeAmount = 50 ether;
 
+        Types.LoanKey memory loanKey = Types.LoanKey({user: _USER1, collateral: address(_weth), asset: address(_weth)});
+
         Types.ReserveStatus memory beforeReserve = _lendingPool.getReserveStatus(address(_weth));
         Types.VaultStatus memory beforeSenderVault = _lendingPool.getVaultStatus(
             Types.VaultKey(address(_weth), address(this))
         );
         Types.VaultStatus memory beforeUserVault = _lendingPool.getVaultStatus(Types.VaultKey(address(_weth), _USER1));
+        Types.LoanStatus memory beforeLoan = _lendingPool.getLoanStatus(loanKey);
         uint256 beforeSenderBalance = _weth.balanceOf(address(this));
         uint256 beforeSenderNativeBalance = address(this).balance;
 
-        Types.LoanKey memory loanKey = Types.LoanKey({user: _USER1, collateral: address(_weth), asset: address(_weth)});
         _snapshotId = vm.snapshot();
         // check Deposit event
         vm.expectEmit(true, true, true, true);
@@ -690,6 +701,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
             Types.VaultKey(address(_weth), address(this))
         );
         Types.VaultStatus memory afterUserVault = _lendingPool.getVaultStatus(Types.VaultKey(address(_weth), _USER1));
+        Types.LoanStatus memory afterLoan = _lendingPool.getLoanStatus(loanKey);
         uint256 afterSenderBalance = _weth.balanceOf(address(this));
         uint256 afterSenderNativeBalance = address(this).balance;
 
@@ -701,31 +713,29 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
             afterUserVault.collateralAmount,
             "USER_VAULT_COLLATERAL"
         );
+        assertEq(beforeLoan.collateralAmount + nativeAmount, afterLoan.collateralAmount, "LOAN_COLLATERAL");
         assertEq(beforeSenderBalance, afterSenderBalance, "BALANCE");
         assertEq(beforeSenderNativeBalance, afterSenderNativeBalance + nativeAmount, "NATIVE_BALANCE");
     }
 
     function testConvertToCollateralShouldReturnExceededNativeToken() public {
-        uint256 amount = 100 ether;
-        _lendingPool.deposit(address(_weth), amount, address(this));
+        _lendingPool.deposit(address(_weth), 100 ether, address(this));
 
         uint256 nativeAmount = 50 ether;
+
+        Types.LoanKey memory loanKey = Types.LoanKey({user: _USER1, collateral: address(_weth), asset: address(_weth)});
 
         Types.ReserveStatus memory beforeReserve = _lendingPool.getReserveStatus(address(_weth));
         Types.VaultStatus memory beforeSenderVault = _lendingPool.getVaultStatus(
             Types.VaultKey(address(_weth), address(this))
         );
         Types.VaultStatus memory beforeUserVault = _lendingPool.getVaultStatus(Types.VaultKey(address(_weth), _USER1));
+        Types.LoanStatus memory beforeLoan = _lendingPool.getLoanStatus(loanKey);
         uint256 beforeSenderBalance = _weth.balanceOf(address(this));
         uint256 beforeSenderNativeBalance = address(this).balance;
         uint256 beforePoolNativeBalance = address(_lendingPool).balance;
         {
             // stack too deep
-            Types.LoanKey memory loanKey = Types.LoanKey({
-                user: _USER1,
-                collateral: address(_weth),
-                asset: address(_weth)
-            });
             _snapshotId = vm.snapshot();
             // check Deposit event
             vm.expectEmit(true, true, true, true);
@@ -743,9 +753,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
             Types.VaultKey(address(_weth), address(this))
         );
         Types.VaultStatus memory afterUserVault = _lendingPool.getVaultStatus(Types.VaultKey(address(_weth), _USER1));
-        uint256 afterSenderBalance = _weth.balanceOf(address(this));
-        uint256 afterSenderNativeBalance = address(this).balance;
-        uint256 afterPoolNativeBalance = address(_lendingPool).balance;
+        Types.LoanStatus memory afterLoan = _lendingPool.getLoanStatus(loanKey);
 
         assertEq(
             beforeReserve.collateralAmount + nativeAmount / 2,
@@ -759,9 +767,10 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
             afterUserVault.collateralAmount,
             "USER_VAULT_COLLATERAL"
         );
-        assertEq(beforeSenderBalance, afterSenderBalance, "BALANCE");
-        assertEq(beforeSenderNativeBalance, afterSenderNativeBalance + nativeAmount / 2, "NATIVE_BALANCE");
-        assertEq(beforePoolNativeBalance, afterPoolNativeBalance, "POOL_NATIVE_BALANCE");
+        assertEq(beforeLoan.collateralAmount + nativeAmount / 2, afterLoan.collateralAmount, "LOAN_COLLATERAL");
+        assertEq(beforeSenderBalance, _weth.balanceOf(address(this)), "BALANCE");
+        assertEq(beforeSenderNativeBalance, address(this).balance + nativeAmount / 2, "NATIVE_BALANCE");
+        assertEq(beforePoolNativeBalance, address(_lendingPool).balance, "POOL_NATIVE_BALANCE");
     }
 
     function testConvertToCollateralWithPermit() public {
@@ -772,11 +781,14 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         vm.startPrank(_unapprovedUser);
         _lendingPool.deposit(address(_usdc), amount, _unapprovedUser);
 
+        Types.LoanKey memory loanKey = Types.LoanKey({user: _USER1, collateral: address(_usdc), asset: address(_weth)});
+
         Types.ReserveStatus memory beforeReserve = _lendingPool.getReserveStatus(address(_usdc));
         Types.VaultStatus memory beforeSenderVault = _lendingPool.getVaultStatus(
             Types.VaultKey(address(_usdc), _unapprovedUser)
         );
         Types.VaultStatus memory beforeUserVault = _lendingPool.getVaultStatus(Types.VaultKey(address(_usdc), _USER1));
+        Types.LoanStatus memory beforeLoan = _lendingPool.getLoanStatus(loanKey);
         uint256 beforeSenderBalance = _usdc.balanceOf(_unapprovedUser);
 
         _permitParams.nonce = IERC2612(address(_usdc)).nonces(_unapprovedUser);
@@ -799,11 +811,6 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
             );
             (_permitParams.v, _permitParams.r, _permitParams.s) = vm.sign(1, digest);
 
-            Types.LoanKey memory loanKey = Types.LoanKey({
-                user: _USER1,
-                collateral: address(_usdc),
-                asset: address(_weth)
-            });
             _snapshotId = vm.snapshot();
             // check Deposit event
             vm.expectEmit(true, true, true, true);
@@ -841,6 +848,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
             Types.VaultKey(address(_usdc), _unapprovedUser)
         );
         Types.VaultStatus memory afterUserVault = _lendingPool.getVaultStatus(Types.VaultKey(address(_usdc), _USER1));
+        Types.LoanStatus memory afterLoan = _lendingPool.getLoanStatus(loanKey);
         uint256 afterSenderBalance = _usdc.balanceOf(_unapprovedUser);
 
         assertEq(
@@ -860,6 +868,11 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
             "USER_VAULT_COLLATERAL"
         );
         assertEq(beforeUserVault.spendableAmount, afterUserVault.spendableAmount, "USER_VAULT_SPENDABLE");
+        assertEq(
+            beforeLoan.collateralAmount,
+            afterLoan.collateralAmount + amount + additionalAmount,
+            "LOAN_COLLATERAL"
+        );
         assertEq(beforeSenderBalance, afterSenderBalance + additionalAmount, "BALANCE");
         assertEq(IERC2612(address(_usdc)).nonces(_unapprovedUser), _permitParams.nonce + 1, "NONCE");
 
