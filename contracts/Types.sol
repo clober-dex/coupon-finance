@@ -14,7 +14,7 @@ library Types {
     }
 
     // totalAmount = spendableAmount + lockedAmount + collateralAmount
-    struct Reserve {
+    struct ReserveStatus {
         uint256 spendableAmount;
         uint256 lockedAmount;
         uint256 collateralAmount;
@@ -28,7 +28,7 @@ library Types {
     type VaultId is bytes32;
 
     // totalAmount = spendableAmount + lockedAmount + collateralAmount
-    struct Vault {
+    struct VaultStatus {
         uint256 spendableAmount;
         uint256 lockedAmount;
         uint256 collateralAmount;
@@ -42,8 +42,9 @@ library Types {
 
     type LoanId is bytes32;
 
-    struct Loan {
+    struct LoanStatus {
         uint256 amount;
         uint256 collateralAmount;
+        uint256 limit;
     }
 }

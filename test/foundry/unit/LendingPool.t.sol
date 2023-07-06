@@ -67,8 +67,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
     }
 
     function testDeposit() public {
-        Types.Reserve memory beforeReserve = _lendingPool.getReserve(address(_usdc));
-        Types.Vault memory beforeVault = _lendingPool.getVault(Types.VaultKey(address(_usdc), _USER1));
+        Types.ReserveStatus memory beforeReserve = _lendingPool.getReserveStatus(address(_usdc));
+        Types.VaultStatus memory beforeVault = _lendingPool.getVaultStatus(Types.VaultKey(address(_usdc), _USER1));
         uint256 beforeThisBalance = _usdc.balanceOf(address(this));
         uint256 beforeYieldFarmerBalance = _yieldFarmer.totalReservedAmount(address(_usdc));
 
@@ -77,8 +77,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         emit Deposit(address(_usdc), address(this), _USER1, amount);
         _lendingPool.deposit(address(_usdc), amount, _USER1);
 
-        Types.Reserve memory afterReserve = _lendingPool.getReserve(address(_usdc));
-        Types.Vault memory afterVault = _lendingPool.getVault(Types.VaultKey(address(_usdc), _USER1));
+        Types.ReserveStatus memory afterReserve = _lendingPool.getReserveStatus(address(_usdc));
+        Types.VaultStatus memory afterVault = _lendingPool.getVaultStatus(Types.VaultKey(address(_usdc), _USER1));
 
         assertEq(_usdc.balanceOf(address(this)) + amount, beforeThisBalance, "THIS_BALANCE");
         assertEq(
@@ -91,8 +91,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
     }
 
     function testDepositNative() public {
-        Types.Reserve memory beforeReserve = _lendingPool.getReserve(address(_weth));
-        Types.Vault memory beforeVault = _lendingPool.getVault(Types.VaultKey(address(_weth), _USER1));
+        Types.ReserveStatus memory beforeReserve = _lendingPool.getReserveStatus(address(_weth));
+        Types.VaultStatus memory beforeVault = _lendingPool.getVaultStatus(Types.VaultKey(address(_weth), _USER1));
         uint256 beforeThisNativeBalance = address(this).balance;
         uint256 beforeThisBalance = _weth.balanceOf(address(this));
         uint256 beforeYieldFarmerBalance = _yieldFarmer.totalReservedAmount(address(_weth));
@@ -103,8 +103,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         emit Deposit(address(_weth), address(this), _USER1, amount1 + amount2);
         _lendingPool.deposit{value: amount1}(address(_weth), amount2, _USER1);
 
-        Types.Reserve memory afterReserve = _lendingPool.getReserve(address(_weth));
-        Types.Vault memory afterVault = _lendingPool.getVault(Types.VaultKey(address(_weth), _USER1));
+        Types.ReserveStatus memory afterReserve = _lendingPool.getReserveStatus(address(_weth));
+        Types.VaultStatus memory afterVault = _lendingPool.getVaultStatus(Types.VaultKey(address(_weth), _USER1));
 
         assertEq(address(this).balance + amount1, beforeThisNativeBalance, "THIS_NATIVE_BALANCE");
         assertEq(_weth.balanceOf(address(this)) + amount2, beforeThisBalance, "THIS_BALANCE");
@@ -123,8 +123,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         _usdc.transfer(_unapprovedUser, amount);
         vm.startPrank(_unapprovedUser);
 
-        Types.Reserve memory beforeReserve = _lendingPool.getReserve(address(_usdc));
-        Types.Vault memory beforeVault = _lendingPool.getVault(Types.VaultKey(address(_usdc), _USER1));
+        Types.ReserveStatus memory beforeReserve = _lendingPool.getReserveStatus(address(_usdc));
+        Types.VaultStatus memory beforeVault = _lendingPool.getVaultStatus(Types.VaultKey(address(_usdc), _USER1));
         uint256 beforeSenderBalance = _usdc.balanceOf(_unapprovedUser);
         uint256 beforeYieldFarmerBalance = _yieldFarmer.totalReservedAmount(address(_usdc));
 
@@ -161,8 +161,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
             );
         }
 
-        Types.Reserve memory afterReserve = _lendingPool.getReserve(address(_usdc));
-        Types.Vault memory afterVault = _lendingPool.getVault(Types.VaultKey(address(_usdc), _USER1));
+        Types.ReserveStatus memory afterReserve = _lendingPool.getReserveStatus(address(_usdc));
+        Types.VaultStatus memory afterVault = _lendingPool.getVaultStatus(Types.VaultKey(address(_usdc), _USER1));
 
         assertEq(_usdc.balanceOf(_unapprovedUser) + amount, beforeSenderBalance, "SENDER_BALANCE");
         assertEq(
@@ -181,8 +181,10 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         uint256 amount = _usdc.amount(100);
         _lendingPool.deposit(address(_usdc), amount, address(this));
 
-        Types.Reserve memory beforeReserve = _lendingPool.getReserve(address(_usdc));
-        Types.Vault memory beforeVault = _lendingPool.getVault(Types.VaultKey(address(_usdc), address(this)));
+        Types.ReserveStatus memory beforeReserve = _lendingPool.getReserveStatus(address(_usdc));
+        Types.VaultStatus memory beforeVault = _lendingPool.getVaultStatus(
+            Types.VaultKey(address(_usdc), address(this))
+        );
         uint256 beforeRecipientBalance = _usdc.balanceOf(_USER1);
         uint256 beforePoolBalance = _usdc.balanceOf(address(_lendingPool));
         uint256 beforeYieldFarmerBalance = _yieldFarmer.totalReservedAmount(address(_usdc));
@@ -192,8 +194,10 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         uint256 returnValue = _lendingPool.withdraw(address(_usdc), amount, _USER1);
         assertEq(returnValue, amount, "RETURN_VALUE");
 
-        Types.Reserve memory afterReserve = _lendingPool.getReserve(address(_usdc));
-        Types.Vault memory afterVault = _lendingPool.getVault(Types.VaultKey(address(_usdc), address(this)));
+        Types.ReserveStatus memory afterReserve = _lendingPool.getReserveStatus(address(_usdc));
+        Types.VaultStatus memory afterVault = _lendingPool.getVaultStatus(
+            Types.VaultKey(address(_usdc), address(this))
+        );
 
         assertEq(_usdc.balanceOf(_USER1), beforeRecipientBalance + amount, "THIS_BALANCE");
         assertEq(_usdc.balanceOf(address(_lendingPool)), beforePoolBalance, "POOL_BALANCE");
@@ -210,8 +214,10 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         uint256 amount = 100 ether;
         _lendingPool.deposit(address(_weth), amount, address(this));
 
-        Types.Reserve memory beforeReserve = _lendingPool.getReserve(address(_weth));
-        Types.Vault memory beforeVault = _lendingPool.getVault(Types.VaultKey(address(_weth), address(this)));
+        Types.ReserveStatus memory beforeReserve = _lendingPool.getReserveStatus(address(_weth));
+        Types.VaultStatus memory beforeVault = _lendingPool.getVaultStatus(
+            Types.VaultKey(address(_weth), address(this))
+        );
         uint256 beforeRecipientNativeBalance = _USER1.balance;
         uint256 beforeYieldFarmerBalance = _yieldFarmer.totalReservedAmount(address(_weth));
 
@@ -220,8 +226,10 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         uint256 returnValue = _lendingPool.withdraw(address(0), amount, _USER1);
         assertEq(returnValue, amount, "RETURN_VALUE");
 
-        Types.Reserve memory afterReserve = _lendingPool.getReserve(address(_weth));
-        Types.Vault memory afterVault = _lendingPool.getVault(Types.VaultKey(address(_weth), address(this)));
+        Types.ReserveStatus memory afterReserve = _lendingPool.getReserveStatus(address(_weth));
+        Types.VaultStatus memory afterVault = _lendingPool.getVaultStatus(
+            Types.VaultKey(address(_weth), address(this))
+        );
 
         assertEq(_USER1.balance, beforeRecipientNativeBalance + amount, "THIS_NATIVE_BALANCE");
         assertEq(
@@ -240,8 +248,10 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         _yieldFarmer.setWithdrawLimit(address(_usdc), amount / 2);
         assertEq(_lendingPool.withdrawable(address(_usdc)), amount / 2, "WITHDRAWABLE");
 
-        Types.Reserve memory beforeReserve = _lendingPool.getReserve(address(_usdc));
-        Types.Vault memory beforeVault = _lendingPool.getVault(Types.VaultKey(address(_usdc), address(this)));
+        Types.ReserveStatus memory beforeReserve = _lendingPool.getReserveStatus(address(_usdc));
+        Types.VaultStatus memory beforeVault = _lendingPool.getVaultStatus(
+            Types.VaultKey(address(_usdc), address(this))
+        );
         uint256 beforeRecipientBalance = _usdc.balanceOf(_USER1);
         uint256 beforePoolBalance = _usdc.balanceOf(address(_lendingPool));
         uint256 beforeYieldFarmerBalance = _yieldFarmer.totalReservedAmount(address(_usdc));
@@ -251,8 +261,10 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         uint256 returnValue = _lendingPool.withdraw(address(_usdc), amount, _USER1);
         assertEq(returnValue, amount / 2, "RETURN_VALUE");
 
-        Types.Reserve memory afterReserve = _lendingPool.getReserve(address(_usdc));
-        Types.Vault memory afterVault = _lendingPool.getVault(Types.VaultKey(address(_usdc), address(this)));
+        Types.ReserveStatus memory afterReserve = _lendingPool.getReserveStatus(address(_usdc));
+        Types.VaultStatus memory afterVault = _lendingPool.getVaultStatus(
+            Types.VaultKey(address(_usdc), address(this))
+        );
 
         assertEq(_usdc.balanceOf(_USER1), beforeRecipientBalance + amount / 2, "THIS_BALANCE");
         assertEq(_usdc.balanceOf(address(_lendingPool)), beforePoolBalance, "POOL_BALANCE");
@@ -269,8 +281,10 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         uint256 amount = _usdc.amount(100);
         _lendingPool.deposit(address(_usdc), amount, address(this));
 
-        Types.Reserve memory beforeReserve = _lendingPool.getReserve(address(_usdc));
-        Types.Vault memory beforeVault = _lendingPool.getVault(Types.VaultKey(address(_usdc), address(this)));
+        Types.ReserveStatus memory beforeReserve = _lendingPool.getReserveStatus(address(_usdc));
+        Types.VaultStatus memory beforeVault = _lendingPool.getVaultStatus(
+            Types.VaultKey(address(_usdc), address(this))
+        );
         uint256 beforeRecipientBalance = _usdc.balanceOf(_USER1);
         uint256 beforePoolBalance = _usdc.balanceOf(address(_lendingPool));
         uint256 beforeYieldFarmerBalance = _yieldFarmer.totalReservedAmount(address(_usdc));
@@ -280,8 +294,10 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         uint256 returnValue = _lendingPool.withdraw(address(_usdc), amount * 2, _USER1);
         assertEq(returnValue, amount, "RETURN_VALUE");
 
-        Types.Reserve memory afterReserve = _lendingPool.getReserve(address(_usdc));
-        Types.Vault memory afterVault = _lendingPool.getVault(Types.VaultKey(address(_usdc), address(this)));
+        Types.ReserveStatus memory afterReserve = _lendingPool.getReserveStatus(address(_usdc));
+        Types.VaultStatus memory afterVault = _lendingPool.getVaultStatus(
+            Types.VaultKey(address(_usdc), address(this))
+        );
 
         assertEq(_usdc.balanceOf(_USER1), beforeRecipientBalance + amount, "THIS_BALANCE");
         assertEq(_usdc.balanceOf(address(_lendingPool)), beforePoolBalance, "POOL_BALANCE");
@@ -302,15 +318,19 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         Types.CouponKey memory couponKey = Types.CouponKey({asset: address(_usdc), epoch: 1});
         uint256 couponId = couponKey.toId();
 
-        Types.Reserve memory beforeReserve = _lendingPool.getReserve(address(_usdc));
-        Types.Vault memory beforeVault = _lendingPool.getVault(Types.VaultKey(address(_usdc), address(this)));
+        Types.ReserveStatus memory beforeReserve = _lendingPool.getReserveStatus(address(_usdc));
+        Types.VaultStatus memory beforeVault = _lendingPool.getVaultStatus(
+            Types.VaultKey(address(_usdc), address(this))
+        );
         uint256 beforeCouponBalance = _lendingPool.balanceOf(_USER1, couponId);
         uint256 beforeCouponTotalSupply = _lendingPool.totalSupply(couponId);
 
         _lendingPool.mintCoupons(_toArray(Types.Coupon(couponKey, amount)), _USER1);
 
-        Types.Reserve memory afterReserve = _lendingPool.getReserve(address(_usdc));
-        Types.Vault memory afterVault = _lendingPool.getVault(Types.VaultKey(address(_usdc), address(this)));
+        Types.ReserveStatus memory afterReserve = _lendingPool.getReserveStatus(address(_usdc));
+        Types.VaultStatus memory afterVault = _lendingPool.getVaultStatus(
+            Types.VaultKey(address(_usdc), address(this))
+        );
         uint256 afterCouponBalance = _lendingPool.balanceOf(_USER1, couponId);
         uint256 afterCouponTotalSupply = _lendingPool.totalSupply(couponId);
 
@@ -329,15 +349,19 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         Types.CouponKey memory couponKey = Types.CouponKey({asset: address(_usdc), epoch: 1});
         uint256 couponId = couponKey.toId();
 
-        Types.Reserve memory beforeReserve = _lendingPool.getReserve(address(_usdc));
-        Types.Vault memory beforeVault = _lendingPool.getVault(Types.VaultKey(address(_usdc), address(this)));
+        Types.ReserveStatus memory beforeReserve = _lendingPool.getReserveStatus(address(_usdc));
+        Types.VaultStatus memory beforeVault = _lendingPool.getVaultStatus(
+            Types.VaultKey(address(_usdc), address(this))
+        );
         uint256 beforeCouponBalance = _lendingPool.balanceOf(_USER1, couponId);
         uint256 beforeCouponTotalSupply = _lendingPool.totalSupply(couponId);
 
         _lendingPool.mintCoupons(_toArray(Types.Coupon(couponKey, amount * 2)), _USER1);
 
-        Types.Reserve memory afterReserve = _lendingPool.getReserve(address(_usdc));
-        Types.Vault memory afterVault = _lendingPool.getVault(Types.VaultKey(address(_usdc), address(this)));
+        Types.ReserveStatus memory afterReserve = _lendingPool.getReserveStatus(address(_usdc));
+        Types.VaultStatus memory afterVault = _lendingPool.getVaultStatus(
+            Types.VaultKey(address(_usdc), address(this))
+        );
         uint256 afterCouponBalance = _lendingPool.balanceOf(_USER1, couponId);
         uint256 afterCouponTotalSupply = _lendingPool.totalSupply(couponId);
 
@@ -362,8 +386,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         _lendingPool.mintCoupons(_toArray(Types.Coupon(couponKey2, amount2)), address(this));
 
         // epoch 1
-        Types.Reserve memory reserve = _lendingPool.getReserve(address(_usdc));
-        Types.Vault memory vault = _lendingPool.getVault(Types.VaultKey(address(_usdc), address(this)));
+        Types.ReserveStatus memory reserve = _lendingPool.getReserveStatus(address(_usdc));
+        Types.VaultStatus memory vault = _lendingPool.getVaultStatus(Types.VaultKey(address(_usdc), address(this)));
         assertEq(reserve.lockedAmount, amount1 + amount2, "RESERVE_LOCKED");
         assertEq(reserve.spendableAmount, amount0, "RESERVE_SPENDABLE");
         assertEq(vault.lockedAmount, amount1 + amount2, "VAULT_LOCKED");
@@ -372,8 +396,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         vm.warp(block.timestamp + _lendingPool.epochDuration());
 
         // epoch 2
-        reserve = _lendingPool.getReserve(address(_usdc));
-        vault = _lendingPool.getVault(Types.VaultKey(address(_usdc), address(this)));
+        reserve = _lendingPool.getReserveStatus(address(_usdc));
+        vault = _lendingPool.getVaultStatus(Types.VaultKey(address(_usdc), address(this)));
         assertEq(reserve.lockedAmount, amount2, "RESERVE_LOCKED");
         assertEq(reserve.spendableAmount, amount0 + amount1, "RESERVE_SPENDABLE");
         assertEq(vault.lockedAmount, amount2, "VAULT_LOCKED");
@@ -382,8 +406,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         vm.warp(block.timestamp + _lendingPool.epochDuration());
 
         // epoch 3
-        reserve = _lendingPool.getReserve(address(_usdc));
-        vault = _lendingPool.getVault(Types.VaultKey(address(_usdc), address(this)));
+        reserve = _lendingPool.getReserveStatus(address(_usdc));
+        vault = _lendingPool.getVaultStatus(Types.VaultKey(address(_usdc), address(this)));
         assertEq(reserve.lockedAmount, 0, "RESERVE_LOCKED");
         assertEq(reserve.spendableAmount, amount0 + amount1 + amount2, "RESERVE_SPENDABLE");
         assertEq(vault.lockedAmount, 0, "VAULT_LOCKED");
@@ -418,16 +442,21 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         _lendingPool.mintCoupons(_toArray(Types.Coupon(couponKey, amount)), _USER1);
 
         uint256 burnAmount = amount / 3;
-        Types.Reserve memory beforeReserve = _lendingPool.getReserve(address(_usdc));
-        Types.Vault memory beforeVault = _lendingPool.getVault(Types.VaultKey(address(_usdc), address(this)));
+        Types.ReserveStatus memory beforeReserve = _lendingPool.getReserveStatus(address(_usdc));
+        Types.VaultStatus memory beforeVault = _lendingPool.getVaultStatus(
+            Types.VaultKey(address(_usdc), address(this))
+        );
         uint256 beforeCouponBalance = _lendingPool.balanceOf(_USER1, couponId);
         uint256 beforeCouponTotalSupply = _lendingPool.totalSupply(couponId);
 
-        vm.prank(_USER1);
+        vm.startPrank(_USER1);
         _lendingPool.burnCoupons(_toArray(Types.Coupon(couponKey, burnAmount)), address(this));
+        vm.stopPrank();
 
-        Types.Reserve memory afterReserve = _lendingPool.getReserve(address(_usdc));
-        Types.Vault memory afterVault = _lendingPool.getVault(Types.VaultKey(address(_usdc), address(this)));
+        Types.ReserveStatus memory afterReserve = _lendingPool.getReserveStatus(address(_usdc));
+        Types.VaultStatus memory afterVault = _lendingPool.getVaultStatus(
+            Types.VaultKey(address(_usdc), address(this))
+        );
         uint256 afterCouponBalance = _lendingPool.balanceOf(_USER1, couponId);
         uint256 afterCouponTotalSupply = _lendingPool.totalSupply(couponId);
 
@@ -449,19 +478,21 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
 
         uint256 burnAmount = amount / 3;
         _lendingPool.deposit(address(_usdc), burnAmount - 1, _USER1);
-        vm.prank(_USER1);
+        vm.startPrank(_USER1);
         _lendingPool.mintCoupons(_toArray(Types.Coupon(couponKey, burnAmount - 1)), _USER2);
 
-        Types.Reserve memory beforeReserve = _lendingPool.getReserve(address(_usdc));
-        Types.Vault memory beforeVault = _lendingPool.getVault(Types.VaultKey(address(_usdc), address(this)));
+        Types.ReserveStatus memory beforeReserve = _lendingPool.getReserveStatus(address(_usdc));
+        Types.VaultStatus memory beforeVault = _lendingPool.getVaultStatus(
+            Types.VaultKey(address(_usdc), address(this))
+        );
         uint256 beforeCouponBalance = _lendingPool.balanceOf(_USER1, couponId);
         uint256 beforeCouponTotalSupply = _lendingPool.totalSupply(couponId);
 
-        vm.prank(_USER1);
         _lendingPool.burnCoupons(_toArray(Types.Coupon(couponKey, burnAmount)), _USER1);
+        vm.stopPrank();
 
-        Types.Reserve memory afterReserve = _lendingPool.getReserve(address(_usdc));
-        Types.Vault memory afterVault = _lendingPool.getVault(Types.VaultKey(address(_usdc), _USER1));
+        Types.ReserveStatus memory afterReserve = _lendingPool.getReserveStatus(address(_usdc));
+        Types.VaultStatus memory afterVault = _lendingPool.getVaultStatus(Types.VaultKey(address(_usdc), _USER1));
         uint256 afterCouponBalance = _lendingPool.balanceOf(_USER1, couponId);
         uint256 afterCouponTotalSupply = _lendingPool.totalSupply(couponId);
 
@@ -482,15 +513,15 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         _lendingPool.mintCoupons(_toArray(Types.Coupon(couponKey, amount)), _USER1);
 
         uint256 couponBalance = _lendingPool.balanceOf(_USER1, couponId);
-        vm.prank(_USER1);
+        vm.startPrank(_USER1);
         _lendingPool.burnCoupons(_toArray(Types.Coupon(couponKey, amount)), _USER1);
         assertEq(_lendingPool.balanceOf(_USER1, couponId), couponBalance, "COUPON_BALANCE_0");
 
         vm.warp(block.timestamp + _lendingPool.epochDuration());
 
-        vm.prank(_USER1);
         _lendingPool.burnCoupons(_toArray(Types.Coupon(couponKey, amount / 2)), _USER1);
         assertEq(_lendingPool.balanceOf(_USER1, couponId), amount / 2, "COUPON_BALANCE_1");
+        vm.stopPrank();
 
         assertEq(_lendingPool.getReserveLockedAmount(address(_usdc), 1), amount, "RESERVE_LOCKED_0");
         assertEq(
@@ -514,9 +545,11 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
 
         uint256 additionalAmount = amount / 2;
 
-        Types.Reserve memory beforeReserve = _lendingPool.getReserve(address(_usdc));
-        Types.Vault memory beforeSenderVault = _lendingPool.getVault(Types.VaultKey(address(_usdc), address(this)));
-        Types.Vault memory beforeUserVault = _lendingPool.getVault(Types.VaultKey(address(_usdc), _USER1));
+        Types.ReserveStatus memory beforeReserve = _lendingPool.getReserveStatus(address(_usdc));
+        Types.VaultStatus memory beforeSenderVault = _lendingPool.getVaultStatus(
+            Types.VaultKey(address(_usdc), address(this))
+        );
+        Types.VaultStatus memory beforeUserVault = _lendingPool.getVaultStatus(Types.VaultKey(address(_usdc), _USER1));
         uint256 beforeSenderBalance = _usdc.balanceOf(address(this));
 
         Types.LoanKey memory loanKey = Types.LoanKey({user: _USER1, collateral: address(_usdc), asset: address(_weth)});
@@ -537,9 +570,11 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         );
         _lendingPool.convertToCollateral(loanKey, amount + additionalAmount);
 
-        Types.Reserve memory afterReserve = _lendingPool.getReserve(address(_usdc));
-        Types.Vault memory afterSenderVault = _lendingPool.getVault(Types.VaultKey(address(_usdc), address(this)));
-        Types.Vault memory afterUserVault = _lendingPool.getVault(Types.VaultKey(address(_usdc), _USER1));
+        Types.ReserveStatus memory afterReserve = _lendingPool.getReserveStatus(address(_usdc));
+        Types.VaultStatus memory afterSenderVault = _lendingPool.getVaultStatus(
+            Types.VaultKey(address(_usdc), address(this))
+        );
+        Types.VaultStatus memory afterUserVault = _lendingPool.getVaultStatus(Types.VaultKey(address(_usdc), _USER1));
         uint256 afterSenderBalance = _usdc.balanceOf(address(this));
 
         assertEq(
@@ -569,8 +604,8 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         uint256 additionalAmount = amount / 2;
         uint256 nativeAmount = amount / 3;
 
-        Types.Reserve memory beforeReserve = _lendingPool.getReserve(address(_weth));
-        Types.Vault memory beforeUserVault = _lendingPool.getVault(Types.VaultKey(address(_weth), _USER1));
+        Types.ReserveStatus memory beforeReserve = _lendingPool.getReserveStatus(address(_weth));
+        Types.VaultStatus memory beforeUserVault = _lendingPool.getVaultStatus(Types.VaultKey(address(_weth), _USER1));
         uint256 beforeSenderBalance = _weth.balanceOf(address(this));
         uint256 beforeSenderNativeBalance = address(this).balance;
 
@@ -600,9 +635,11 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
             _lendingPool.convertToCollateral{value: nativeAmount}(loanKey, amount + additionalAmount + nativeAmount);
         }
 
-        Types.Reserve memory afterReserve = _lendingPool.getReserve(address(_weth));
-        Types.Vault memory afterSenderVault = _lendingPool.getVault(Types.VaultKey(address(_weth), address(this)));
-        Types.Vault memory afterUserVault = _lendingPool.getVault(Types.VaultKey(address(_weth), _USER1));
+        Types.ReserveStatus memory afterReserve = _lendingPool.getReserveStatus(address(_weth));
+        Types.VaultStatus memory afterSenderVault = _lendingPool.getVaultStatus(
+            Types.VaultKey(address(_weth), address(this))
+        );
+        Types.VaultStatus memory afterUserVault = _lendingPool.getVaultStatus(Types.VaultKey(address(_weth), _USER1));
         uint256 afterSenderBalance = _weth.balanceOf(address(this));
         uint256 afterSenderNativeBalance = address(this).balance;
 
@@ -628,9 +665,11 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
 
         uint256 nativeAmount = 50 ether;
 
-        Types.Reserve memory beforeReserve = _lendingPool.getReserve(address(_weth));
-        Types.Vault memory beforeSenderVault = _lendingPool.getVault(Types.VaultKey(address(_weth), address(this)));
-        Types.Vault memory beforeUserVault = _lendingPool.getVault(Types.VaultKey(address(_weth), _USER1));
+        Types.ReserveStatus memory beforeReserve = _lendingPool.getReserveStatus(address(_weth));
+        Types.VaultStatus memory beforeSenderVault = _lendingPool.getVaultStatus(
+            Types.VaultKey(address(_weth), address(this))
+        );
+        Types.VaultStatus memory beforeUserVault = _lendingPool.getVaultStatus(Types.VaultKey(address(_weth), _USER1));
         uint256 beforeSenderBalance = _weth.balanceOf(address(this));
         uint256 beforeSenderNativeBalance = address(this).balance;
 
@@ -646,9 +685,11 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         emit ConvertToCollateral(loanKey.collateral, loanKey.asset, address(this), loanKey.user, nativeAmount);
         _lendingPool.convertToCollateral{value: nativeAmount}(loanKey, nativeAmount);
 
-        Types.Reserve memory afterReserve = _lendingPool.getReserve(address(_weth));
-        Types.Vault memory afterSenderVault = _lendingPool.getVault(Types.VaultKey(address(_weth), address(this)));
-        Types.Vault memory afterUserVault = _lendingPool.getVault(Types.VaultKey(address(_weth), _USER1));
+        Types.ReserveStatus memory afterReserve = _lendingPool.getReserveStatus(address(_weth));
+        Types.VaultStatus memory afterSenderVault = _lendingPool.getVaultStatus(
+            Types.VaultKey(address(_weth), address(this))
+        );
+        Types.VaultStatus memory afterUserVault = _lendingPool.getVaultStatus(Types.VaultKey(address(_weth), _USER1));
         uint256 afterSenderBalance = _weth.balanceOf(address(this));
         uint256 afterSenderNativeBalance = address(this).balance;
 
@@ -670,9 +711,11 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
 
         uint256 nativeAmount = 50 ether;
 
-        Types.Reserve memory beforeReserve = _lendingPool.getReserve(address(_weth));
-        Types.Vault memory beforeSenderVault = _lendingPool.getVault(Types.VaultKey(address(_weth), address(this)));
-        Types.Vault memory beforeUserVault = _lendingPool.getVault(Types.VaultKey(address(_weth), _USER1));
+        Types.ReserveStatus memory beforeReserve = _lendingPool.getReserveStatus(address(_weth));
+        Types.VaultStatus memory beforeSenderVault = _lendingPool.getVaultStatus(
+            Types.VaultKey(address(_weth), address(this))
+        );
+        Types.VaultStatus memory beforeUserVault = _lendingPool.getVaultStatus(Types.VaultKey(address(_weth), _USER1));
         uint256 beforeSenderBalance = _weth.balanceOf(address(this));
         uint256 beforeSenderNativeBalance = address(this).balance;
         uint256 beforePoolNativeBalance = address(_lendingPool).balance;
@@ -695,9 +738,11 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
             _lendingPool.convertToCollateral{value: nativeAmount}(loanKey, nativeAmount / 2);
         }
 
-        Types.Reserve memory afterReserve = _lendingPool.getReserve(address(_weth));
-        Types.Vault memory afterSenderVault = _lendingPool.getVault(Types.VaultKey(address(_weth), address(this)));
-        Types.Vault memory afterUserVault = _lendingPool.getVault(Types.VaultKey(address(_weth), _USER1));
+        Types.ReserveStatus memory afterReserve = _lendingPool.getReserveStatus(address(_weth));
+        Types.VaultStatus memory afterSenderVault = _lendingPool.getVaultStatus(
+            Types.VaultKey(address(_weth), address(this))
+        );
+        Types.VaultStatus memory afterUserVault = _lendingPool.getVaultStatus(Types.VaultKey(address(_weth), _USER1));
         uint256 afterSenderBalance = _weth.balanceOf(address(this));
         uint256 afterSenderNativeBalance = address(this).balance;
         uint256 afterPoolNativeBalance = address(_lendingPool).balance;
@@ -727,9 +772,11 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         vm.startPrank(_unapprovedUser);
         _lendingPool.deposit(address(_usdc), amount, _unapprovedUser);
 
-        Types.Reserve memory beforeReserve = _lendingPool.getReserve(address(_usdc));
-        Types.Vault memory beforeSenderVault = _lendingPool.getVault(Types.VaultKey(address(_usdc), _unapprovedUser));
-        Types.Vault memory beforeUserVault = _lendingPool.getVault(Types.VaultKey(address(_usdc), _USER1));
+        Types.ReserveStatus memory beforeReserve = _lendingPool.getReserveStatus(address(_usdc));
+        Types.VaultStatus memory beforeSenderVault = _lendingPool.getVaultStatus(
+            Types.VaultKey(address(_usdc), _unapprovedUser)
+        );
+        Types.VaultStatus memory beforeUserVault = _lendingPool.getVaultStatus(Types.VaultKey(address(_usdc), _USER1));
         uint256 beforeSenderBalance = _usdc.balanceOf(_unapprovedUser);
 
         _permitParams.nonce = IERC2612(address(_usdc)).nonces(_unapprovedUser);
@@ -789,9 +836,11 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
             );
         }
 
-        Types.Reserve memory afterReserve = _lendingPool.getReserve(address(_usdc));
-        Types.Vault memory afterSenderVault = _lendingPool.getVault(Types.VaultKey(address(_usdc), _unapprovedUser));
-        Types.Vault memory afterUserVault = _lendingPool.getVault(Types.VaultKey(address(_usdc), _USER1));
+        Types.ReserveStatus memory afterReserve = _lendingPool.getReserveStatus(address(_usdc));
+        Types.VaultStatus memory afterSenderVault = _lendingPool.getVaultStatus(
+            Types.VaultKey(address(_usdc), _unapprovedUser)
+        );
+        Types.VaultStatus memory afterUserVault = _lendingPool.getVaultStatus(Types.VaultKey(address(_usdc), _USER1));
         uint256 afterSenderBalance = _usdc.balanceOf(_unapprovedUser);
 
         assertEq(

@@ -25,15 +25,15 @@ interface ILendingPool is ILendingPoolEvents, ICouponPool {
 
     function yieldFarmer() external view returns (address);
 
-    function getReserve(address asset) external view returns (Types.Reserve memory);
+    function getReserveStatus(address asset) external view returns (Types.ReserveStatus memory);
 
     function getReserveLockedAmount(address asset, uint256 epoch) external view returns (uint256);
 
-    function getVault(Types.VaultKey calldata vaultKey) external view returns (Types.Vault memory);
+    function getVaultStatus(Types.VaultKey calldata vaultKey) external view returns (Types.VaultStatus memory);
 
     function getVaultLockedAmount(Types.VaultKey calldata vaultKey, uint256 epoch) external view returns (uint256);
 
-    function getLoan(Types.LoanKey calldata loanKey) external view returns (Types.Loan memory);
+    function getLoanStatus(Types.LoanKey calldata loanKey) external view returns (Types.LoanStatus memory);
 
     function getLoanLimit(Types.LoanKey calldata loanKey, uint256 epoch) external view returns (uint256);
 
