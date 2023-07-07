@@ -15,6 +15,7 @@ import {CouponKeyLibrary, LoanKeyLibrary} from "../../../contracts/libraries/Key
 import {MockYieldFarmer} from "../mocks/MockYieldFarmer.sol";
 import {ForkTestSetUp} from "../ForkTestSetUp.sol";
 import {ERC20Utils} from "../Utils.sol";
+import "../mocks/MockOracle.sol";
 
 contract LendingPoolUnitTest is Test, ILendingPoolEvents {
     using ERC20Utils for IERC20;
@@ -39,6 +40,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
     IWETH9 private _weth;
     ILendingPool private _lendingPool;
     MockYieldFarmer private _yieldFarmer;
+    MockOracle private _oracle;
     uint256 private _snapshotId;
 
     PermitParams private _permitParams;
@@ -55,6 +57,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         _usdc = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
 
         _yieldFarmer = new MockYieldFarmer();
+        _oracle = new MockOracle();
         // _lendingPool = new LendingPool();
 
         vm.prank(_USDC_WHALE);
@@ -64,6 +67,10 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
 
         _usdc.approve(address(_lendingPool), type(uint256).max);
         _weth.approve(address(_lendingPool), type(uint256).max);
+
+        // set oracle
+        _oracle.setPrice(address(_usdc), 10 ** 18);
+        _oracle.setPrice(address(_weth), 2000 * 10 ** 18);
     }
 
     function testDeposit() public {
