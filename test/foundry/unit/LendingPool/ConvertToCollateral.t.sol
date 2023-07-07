@@ -293,9 +293,9 @@ contract LendingPoolDepositUnitTest is Test, ILendingPoolEvents, ERC1155Holder {
         uint256 amount = r.usdc.amount(100);
         uint256 additionalAmount = amount / 2;
 
-        r.usdc.transfer(r.unapprovedUser, amount + additionalAmount);
-        vm.startPrank(r.unapprovedUser);
-        r.lendingPool.deposit(address(r.usdc), amount, r.unapprovedUser);
+        r.usdc.transfer(r.permitUser, amount + additionalAmount);
+        vm.startPrank(r.permitUser);
+        r.lendingPool.deposit(address(r.usdc), amount, r.permitUser);
 
         Types.LoanKey memory loanKey = Types.LoanKey({
             user: Constants.USER1,
@@ -305,15 +305,15 @@ contract LendingPoolDepositUnitTest is Test, ILendingPoolEvents, ERC1155Holder {
 
         Types.ReserveStatus memory beforeReserve = r.lendingPool.getReserveStatus(address(r.usdc));
         Types.VaultStatus memory beforeSenderVault = r.lendingPool.getVaultStatus(
-            Types.VaultKey(address(r.usdc), r.unapprovedUser)
+            Types.VaultKey(address(r.usdc), r.permitUser)
         );
         Types.VaultStatus memory beforeUserVault = r.lendingPool.getVaultStatus(
             Types.VaultKey(address(r.usdc), Constants.USER1)
         );
         Types.LoanStatus memory beforeLoan = r.lendingPool.getLoanStatus(loanKey);
-        uint256 beforeSenderBalance = r.usdc.balanceOf(r.unapprovedUser);
+        uint256 beforeSenderBalance = r.usdc.balanceOf(r.permitUser);
 
-        _permitParams.nonce = IERC2612(address(r.usdc)).nonces(r.unapprovedUser);
+        _permitParams.nonce = IERC2612(address(r.usdc)).nonces(r.permitUser);
         {
             bytes32 digest = keccak256(
                 abi.encodePacked(
@@ -322,7 +322,7 @@ contract LendingPoolDepositUnitTest is Test, ILendingPoolEvents, ERC1155Holder {
                     keccak256(
                         abi.encode(
                             Constants.PERMIT_TYPEHASH,
-                            r.unapprovedUser,
+                            r.permitUser,
                             address(r.lendingPool),
                             additionalAmount,
                             _permitParams.nonce,
@@ -336,7 +336,7 @@ contract LendingPoolDepositUnitTest is Test, ILendingPoolEvents, ERC1155Holder {
             _snapshotId = vm.snapshot();
             // check Deposit event
             vm.expectEmit(true, true, true, true);
-            emit Deposit(address(r.usdc), r.unapprovedUser, Constants.USER1, additionalAmount);
+            emit Deposit(address(r.usdc), r.permitUser, Constants.USER1, additionalAmount);
             r.lendingPool.convertToCollateralWithPermit(
                 loanKey,
                 amount + additionalAmount,
@@ -348,7 +348,7 @@ contract LendingPoolDepositUnitTest is Test, ILendingPoolEvents, ERC1155Holder {
             // check ConvertToCollateral event
             vm.revertTo(_snapshotId);
             vm.expectEmit(true, true, true, true);
-            emit ConvertToCollateral(loanKey.toId(), r.unapprovedUser, amount + additionalAmount);
+            emit ConvertToCollateral(loanKey.toId(), r.permitUser, amount + additionalAmount);
             r.lendingPool.convertToCollateralWithPermit(
                 loanKey,
                 amount + additionalAmount,
@@ -361,13 +361,13 @@ contract LendingPoolDepositUnitTest is Test, ILendingPoolEvents, ERC1155Holder {
 
         Types.ReserveStatus memory afterReserve = r.lendingPool.getReserveStatus(address(r.usdc));
         Types.VaultStatus memory afterSenderVault = r.lendingPool.getVaultStatus(
-            Types.VaultKey(address(r.usdc), r.unapprovedUser)
+            Types.VaultKey(address(r.usdc), r.permitUser)
         );
         Types.VaultStatus memory afterUserVault = r.lendingPool.getVaultStatus(
             Types.VaultKey(address(r.usdc), Constants.USER1)
         );
         Types.LoanStatus memory afterLoan = r.lendingPool.getLoanStatus(loanKey);
-        uint256 afterSenderBalance = r.usdc.balanceOf(r.unapprovedUser);
+        uint256 afterSenderBalance = r.usdc.balanceOf(r.permitUser);
 
         assertEq(
             beforeReserve.collateralAmount + amount + additionalAmount,
@@ -392,7 +392,7 @@ contract LendingPoolDepositUnitTest is Test, ILendingPoolEvents, ERC1155Holder {
             "LOAN_COLLATERAL"
         );
         assertEq(beforeSenderBalance, afterSenderBalance + additionalAmount, "BALANCE");
-        assertEq(IERC2612(address(r.usdc)).nonces(r.unapprovedUser), _permitParams.nonce + 1, "NONCE");
+        assertEq(IERC2612(address(r.usdc)).nonces(r.permitUser), _permitParams.nonce + 1, "NONCE");
 
         vm.stopPrank();
     }

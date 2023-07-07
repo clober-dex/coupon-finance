@@ -17,7 +17,7 @@ library SetUp {
     using ERC20Utils for IERC20;
 
     struct Result {
-        address unapprovedUser;
+        address permitUser;
         IERC20 usdc;
         IWETH9 weth;
         ILendingPool lendingPool;
@@ -29,7 +29,7 @@ library SetUp {
         ForkUtils.fork(vm, Constants.FORK_BLOCK_NUMBER);
 
         Result memory res;
-        res.unapprovedUser = vm.addr(1);
+        res.permitUser = vm.addr(1);
 
         res.weth = IWETH9(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
         res.usdc = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);

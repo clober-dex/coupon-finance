@@ -92,17 +92,17 @@ contract LendingPoolDepositUnitTest is Test, ILendingPoolEvents {
     function testDepositWithPermit() public {
         IERC2612 permitToken = IERC2612(address(r.usdc));
         uint256 amount = r.usdc.amount(100);
-        r.usdc.transfer(r.unapprovedUser, amount);
-        vm.startPrank(r.unapprovedUser);
+        r.usdc.transfer(r.permitUser, amount);
+        vm.startPrank(r.permitUser);
 
         Types.ReserveStatus memory beforeReserve = r.lendingPool.getReserveStatus(address(r.usdc));
         Types.VaultStatus memory beforeVault = r.lendingPool.getVaultStatus(
             Types.VaultKey(address(r.usdc), Constants.USER1)
         );
-        uint256 beforeSenderBalance = r.usdc.balanceOf(r.unapprovedUser);
+        uint256 beforeSenderBalance = r.usdc.balanceOf(r.permitUser);
         uint256 beforeYieldFarmerBalance = r.yieldFarmer.totalReservedAmount(address(r.usdc));
 
-        _permitParams.nonce = permitToken.nonces(r.unapprovedUser);
+        _permitParams.nonce = permitToken.nonces(r.permitUser);
         {
             bytes32 digest = keccak256(
                 abi.encodePacked(
@@ -111,7 +111,7 @@ contract LendingPoolDepositUnitTest is Test, ILendingPoolEvents {
                     keccak256(
                         abi.encode(
                             Constants.PERMIT_TYPEHASH,
-                            r.unapprovedUser,
+                            r.permitUser,
                             address(r.lendingPool),
                             amount,
                             _permitParams.nonce,
@@ -123,7 +123,7 @@ contract LendingPoolDepositUnitTest is Test, ILendingPoolEvents {
             (_permitParams.v, _permitParams.r, _permitParams.s) = vm.sign(1, digest);
 
             vm.expectEmit(true, true, true, true);
-            emit Deposit(address(r.usdc), r.unapprovedUser, Constants.USER1, amount);
+            emit Deposit(address(r.usdc), r.permitUser, Constants.USER1, amount);
             r.lendingPool.depositWithPermit(
                 address(r.usdc),
                 amount,
@@ -140,7 +140,7 @@ contract LendingPoolDepositUnitTest is Test, ILendingPoolEvents {
             Types.VaultKey(address(r.usdc), Constants.USER1)
         );
 
-        assertEq(r.usdc.balanceOf(r.unapprovedUser) + amount, beforeSenderBalance, "SENDER_BALANCE");
+        assertEq(r.usdc.balanceOf(r.permitUser) + amount, beforeSenderBalance, "SENDER_BALANCE");
         assertEq(
             r.yieldFarmer.totalReservedAmount(address(r.usdc)),
             beforeYieldFarmerBalance + amount,
@@ -148,7 +148,7 @@ contract LendingPoolDepositUnitTest is Test, ILendingPoolEvents {
         );
         assertEq(beforeReserve.spendableAmount + amount, afterReserve.spendableAmount, "RESERVE_SPENDABLE");
         assertEq(beforeVault.spendableAmount + amount, afterVault.spendableAmount, "VAULT_SPENDABLE");
-        assertEq(permitToken.nonces(r.unapprovedUser), _permitParams.nonce + 1, "NONCE");
+        assertEq(permitToken.nonces(r.permitUser), _permitParams.nonce + 1, "NONCE");
 
         vm.stopPrank();
     }

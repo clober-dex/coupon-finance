@@ -261,11 +261,11 @@ contract LendingPoolDepositUnitTest is Test, ILendingPoolEvents, ERC1155Holder {
         uint256 beforeCouponBalance = r.lendingPool.balanceOf(Constants.USER1, coupon.key.toId());
         uint256 beforeCouponTotalSupply = r.lendingPool.totalSupply(coupon.key.toId());
         Types.LoanStatus memory beforeLoanStatus = r.lendingPool.getLoanStatus(loanKey);
-        uint256 beforeSenderBalance = r.usdc.balanceOf(r.unapprovedUser);
+        uint256 beforeSenderBalance = r.usdc.balanceOf(r.permitUser);
 
-        r.usdc.transfer(r.unapprovedUser, unitAmount * 50);
-        vm.startPrank(r.unapprovedUser);
-        _permitParams.nonce = permitToken.nonces(r.unapprovedUser);
+        r.usdc.transfer(r.permitUser, unitAmount * 50);
+        vm.startPrank(r.permitUser);
+        _permitParams.nonce = permitToken.nonces(r.permitUser);
         {
             bytes32 digest = keccak256(
                 abi.encodePacked(
@@ -274,7 +274,7 @@ contract LendingPoolDepositUnitTest is Test, ILendingPoolEvents, ERC1155Holder {
                     keccak256(
                         abi.encode(
                             Constants.PERMIT_TYPEHASH,
-                            r.unapprovedUser,
+                            r.permitUser,
                             address(r.lendingPool),
                             unitAmount * 50,
                             _permitParams.nonce,
@@ -316,7 +316,7 @@ contract LendingPoolDepositUnitTest is Test, ILendingPoolEvents, ERC1155Holder {
         uint256 afterCouponBalance = r.lendingPool.balanceOf(Constants.USER1, coupon.key.toId());
         uint256 afterCouponTotalSupply = r.lendingPool.totalSupply(coupon.key.toId());
         Types.LoanStatus memory afterLoanStatus = r.lendingPool.getLoanStatus(loanKey);
-        uint256 afterSenderBalance = r.usdc.balanceOf(r.unapprovedUser);
+        uint256 afterSenderBalance = r.usdc.balanceOf(r.permitUser);
 
         assertEq(beforeCouponBalance + unitAmount * 50, afterCouponBalance, "COUPON_BALANCE");
         assertEq(beforeCouponTotalSupply + unitAmount * 50, afterCouponTotalSupply, "COUPON_TOTAL_SUPPLY");
