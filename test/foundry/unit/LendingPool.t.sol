@@ -6,6 +6,7 @@ import "forge-std/Test.sol";
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC2612} from "@openzeppelin/contracts/interfaces/IERC2612.sol";
+import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 
 import {Types} from "../../../contracts/Types.sol";
 import {ILendingPoolEvents, ILendingPool} from "../../../contracts/interfaces/ILendingPool.sol";
@@ -15,9 +16,9 @@ import {CouponKeyLibrary, LoanKeyLibrary} from "../../../contracts/libraries/Key
 import {MockYieldFarmer} from "../mocks/MockYieldFarmer.sol";
 import {ForkTestSetUp} from "../ForkTestSetUp.sol";
 import {ERC20Utils} from "../Utils.sol";
-import "../mocks/MockOracle.sol";
+import {MockOracle} from "../mocks/MockOracle.sol";
 
-contract LendingPoolUnitTest is Test, ILendingPoolEvents {
+contract LendingPoolUnitTest is Test, ILendingPoolEvents, ERC1155Holder {
     using ERC20Utils for IERC20;
     using CouponKeyLibrary for Types.CouponKey;
     using LoanKeyLibrary for Types.LoanKey;
