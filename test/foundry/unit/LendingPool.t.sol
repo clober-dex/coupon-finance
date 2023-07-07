@@ -380,6 +380,16 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         assertEq(beforeCouponTotalSupply + amount, afterCouponTotalSupply, "COUPON_TOTAL_SUPPLY");
     }
 
+    function testMintCouponWhenEpochTooBig() public {
+        uint256 amount = _usdc.amount(100);
+        _lendingPool.deposit(address(_usdc), amount, address(this));
+
+        Types.CouponKey memory couponKey = Types.CouponKey({asset: address(_usdc), epoch: _lendingPool.maxEpoch() + 1});
+
+        vm.expectRevert("Epoch too big");
+        _lendingPool.mintCoupons(_toArray(Types.Coupon(couponKey, amount)), _USER1);
+    }
+
     function testLockedAmountChanges() public {
         uint256 amount0 = _usdc.amount(50);
         uint256 amount1 = _usdc.amount(70);

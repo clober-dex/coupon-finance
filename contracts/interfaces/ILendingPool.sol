@@ -19,6 +19,8 @@ interface ILendingPoolEvents {
 
 interface ILendingPool is ILendingPoolEvents, ICouponPool {
     // View Functions //
+    function maxEpoch() external view returns (uint256);
+
     function epochDuration() external view returns (uint256);
 
     function currentEpoch() external view returns (uint256);
