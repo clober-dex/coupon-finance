@@ -317,7 +317,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         assertEq(beforeVault.spendableAmount, afterVault.spendableAmount + amount, "VAULT_SPENDABLE");
     }
 
-    function testMintCoupon() public {
+    function testMintCoupons() public {
         uint256 amount = _usdc.amount(100);
         _lendingPool.deposit(address(_usdc), amount, address(this));
         amount /= 2;
@@ -349,7 +349,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         assertEq(beforeCouponTotalSupply + amount, afterCouponTotalSupply, "COUPON_TOTAL_SUPPLY");
     }
 
-    function testMintCouponWhenAmountExceedsDepositedAmount() public {
+    function testMintCouponsWhenAmountExceedsDepositedAmount() public {
         uint256 amount = _usdc.amount(100);
         _lendingPool.deposit(address(_usdc), amount, address(this));
 
@@ -380,7 +380,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         assertEq(beforeCouponTotalSupply + amount, afterCouponTotalSupply, "COUPON_TOTAL_SUPPLY");
     }
 
-    function testMintCouponWhenEpochTooBig() public {
+    function testMintCouponsWhenEpochTooBig() public {
         uint256 amount = _usdc.amount(100);
         _lendingPool.deposit(address(_usdc), amount, address(this));
 
@@ -450,7 +450,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         );
     }
 
-    function testBurnCoupon() public {
+    function testBurnCoupons() public {
         uint256 amount = _usdc.amount(100);
         _lendingPool.deposit(address(_usdc), amount, address(this));
 
@@ -485,7 +485,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         assertEq(beforeCouponTotalSupply, afterCouponTotalSupply + burnAmount, "COUPON_TOTAL_SUPPLY");
     }
 
-    function testBurnCouponWhenTheAmountExceedsLockedAmount() public {
+    function testBurnCouponsWhenTheAmountExceedsLockedAmount() public {
         uint256 amount = _usdc.amount(100);
         _lendingPool.deposit(address(_usdc), amount, address(this));
 
@@ -521,7 +521,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         assertEq(beforeCouponTotalSupply, afterCouponTotalSupply + burnAmount - 1, "COUPON_TOTAL_SUPPLY");
     }
 
-    function testBurnCouponWithExpiredCoupon() public {
+    function testBurnCouponsWithExpiredCoupon() public {
         uint256 amount = _usdc.amount(100);
         _lendingPool.deposit(address(_usdc), amount, address(this));
 
