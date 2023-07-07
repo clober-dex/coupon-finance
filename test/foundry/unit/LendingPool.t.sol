@@ -886,6 +886,193 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         vm.stopPrank();
     }
 
+    function testBorrow() public {
+        uint256 amount = _usdc.amount(100);
+        _lendingPool.deposit(address(_usdc), amount, address(this));
+
+        Types.CouponKey memory couponKey = Types.CouponKey({asset: address(_usdc), epoch: 1});
+        uint256 couponId = couponKey.toId();
+        _lendingPool.mintCoupons(_toArray(Types.Coupon(couponKey, amount)), _USER1);
+
+        Types.LoanKey memory loanKey = Types.LoanKey({user: _USER1, collateral: address(_weth), asset: address(_usdc)});
+        _lendingPool.convertToCollateral{value: 1 ether}(loanKey, 1 ether);
+
+        Types.LoanStatus memory beforeLoanStatus = _lendingPool.getLoanStatus(loanKey);
+        uint256 beforeUserCouponBalance = _lendingPool.balanceOf(_USER1, couponId);
+        uint256 beforeCouponTotalSupply = _lendingPool.totalSupply(couponId);
+        uint256 beforeRecipientBalance = _usdc.balanceOf(_USER2);
+
+        vm.startPrank(_USER1);
+        _lendingPool.borrow(_toArray(Types.Coupon(couponKey, amount)), address(_weth), _USER2);
+        vm.stopPrank();
+
+        Types.LoanStatus memory afterLoanStatus = _lendingPool.getLoanStatus(loanKey);
+        uint256 afterUserCouponBalance = _lendingPool.balanceOf(_USER1, couponId);
+        uint256 afterCouponTotalSupply = _lendingPool.totalSupply(couponId);
+        uint256 afterRecipientBalance = _usdc.balanceOf(_USER2);
+
+        assertEq(beforeLoanStatus.amount + amount, afterLoanStatus.amount, "LOAN_AMOUNT");
+        assertEq(beforeLoanStatus.limit + amount, afterLoanStatus.limit, "LOAN_LIMIT");
+        assertEq(beforeUserCouponBalance, afterUserCouponBalance + amount, "USER_COUPON_BALANCE");
+        assertEq(beforeCouponTotalSupply, afterCouponTotalSupply + amount, "COUPON_TOTAL_SUPPLY");
+        assertEq(beforeRecipientBalance + amount, afterRecipientBalance, "RECIPIENT_BALANCE");
+    }
+
+    function testBorrowNative() public {
+        _lendingPool.deposit(address(_weth), 1 ether, address(this));
+
+        Types.CouponKey memory couponKey = Types.CouponKey({asset: address(_weth), epoch: 1});
+        uint256 couponId = couponKey.toId();
+        _lendingPool.mintCoupons(_toArray(Types.Coupon(couponKey, 1 ether)), _USER1);
+
+        Types.LoanKey memory loanKey = Types.LoanKey({user: _USER1, collateral: address(_usdc), asset: address(_weth)});
+        _lendingPool.convertToCollateral(loanKey, _usdc.amount(10000));
+
+        Types.LoanStatus memory beforeLoanStatus = _lendingPool.getLoanStatus(loanKey);
+        uint256 beforeUserCouponBalance = _lendingPool.balanceOf(_USER1, couponId);
+        uint256 beforeCouponTotalSupply = _lendingPool.totalSupply(couponId);
+        uint256 beforeRecipientBalance = _weth.balanceOf(_USER2);
+        uint256 beforeRecipientNativeBalance = _USER2.balance;
+
+        vm.startPrank(_USER1);
+        _lendingPool.borrow(
+            _toArray(Types.Coupon(Types.CouponKey({asset: address(0), epoch: 1}), 1 ether)),
+            address(_usdc),
+            _USER2
+        );
+        vm.stopPrank();
+
+        Types.LoanStatus memory afterLoanStatus = _lendingPool.getLoanStatus(loanKey);
+        uint256 afterUserCouponBalance = _lendingPool.balanceOf(_USER1, couponId);
+        uint256 afterCouponTotalSupply = _lendingPool.totalSupply(couponId);
+        uint256 afterRecipientBalance = _weth.balanceOf(_USER2);
+        uint256 afterRecipientNativeBalance = _USER2.balance;
+
+        assertEq(beforeLoanStatus.amount + 1 ether, afterLoanStatus.amount, "LOAN_AMOUNT");
+        assertEq(beforeLoanStatus.limit + 1 ether, afterLoanStatus.limit, "LOAN_LIMIT");
+        assertEq(beforeUserCouponBalance, afterUserCouponBalance + 1 ether, "USER_COUPON_BALANCE");
+        assertEq(beforeCouponTotalSupply, afterCouponTotalSupply + 1 ether, "COUPON_TOTAL_SUPPLY");
+        assertEq(beforeRecipientBalance, afterRecipientBalance, "RECIPIENT_BALANCE");
+        assertEq(beforeRecipientNativeBalance + 1 ether, afterRecipientNativeBalance, "RECIPIENT_NATIVE_BALANCE");
+    }
+
+    function testBorrowTooMuchToken() public {
+        uint256 amount = _usdc.amount(2000);
+        _lendingPool.deposit(address(_usdc), amount, address(this));
+
+        Types.CouponKey memory couponKey = Types.CouponKey({asset: address(_usdc), epoch: 1});
+        _lendingPool.mintCoupons(_toArray(Types.Coupon(couponKey, amount)), _USER1);
+
+        Types.LoanKey memory loanKey = Types.LoanKey({user: _USER1, collateral: address(_weth), asset: address(_usdc)});
+        _lendingPool.convertToCollateral{value: 1 ether}(loanKey, 1 ether);
+
+        vm.startPrank(_USER1);
+        Types.Coupon[] memory coupons = _toArray(Types.Coupon(couponKey, amount));
+        vm.expectRevert("Insufficient collateral");
+        _lendingPool.borrow(coupons, address(_weth), _USER2);
+        vm.stopPrank();
+    }
+
+    function testBorrowWithExpiredCoupon() public {
+        uint256 amount = _usdc.amount(100);
+        _lendingPool.deposit(address(_usdc), amount, address(this));
+
+        Types.CouponKey memory couponKey = Types.CouponKey({asset: address(_usdc), epoch: 1});
+        _lendingPool.mintCoupons(_toArray(Types.Coupon(couponKey, amount)), _USER1);
+
+        Types.LoanKey memory loanKey = Types.LoanKey({user: _USER1, collateral: address(_weth), asset: address(_usdc)});
+        _lendingPool.convertToCollateral{value: 1 ether}(loanKey, 1 ether);
+
+        vm.warp(block.timestamp + _lendingPool.epochDuration());
+
+        Types.Coupon[] memory coupons = _toArray(Types.Coupon(couponKey, amount));
+        vm.startPrank(_USER1);
+        vm.expectRevert("Coupon expired");
+        _lendingPool.borrow(coupons, address(_weth), _USER2);
+        vm.stopPrank();
+    }
+
+    function testBorrowWithFutureEpochCoupon() public {
+        uint256 amount = _usdc.amount(100);
+        _lendingPool.deposit(address(_usdc), amount * 3, address(this));
+
+        Types.Coupon[] memory coupons = new Types.Coupon[](3);
+        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(_usdc), epoch: 1}), amount: amount});
+        coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(_usdc), epoch: 2}), amount: amount * 2});
+
+        _lendingPool.mintCoupons(coupons, _USER1);
+
+        vm.startPrank(_USER1);
+
+        Types.LoanKey memory loanKey = Types.LoanKey({user: _USER1, collateral: address(_weth), asset: address(_usdc)});
+        _lendingPool.convertToCollateral{value: 1 ether}(loanKey, 1 ether);
+
+        _lendingPool.borrow(_toArray(coupons[0]), address(_weth), _USER2);
+
+        uint256 couponId = coupons[1].key.toId();
+        Types.LoanStatus memory beforeLoanStatus = _lendingPool.getLoanStatus(loanKey);
+        uint256 beforeEpoch2LoanLimit = _lendingPool.getLoanLimit(loanKey, 2);
+        uint256 beforeUserCouponBalance = _lendingPool.balanceOf(_USER1, couponId);
+        uint256 beforeCouponTotalSupply = _lendingPool.totalSupply(couponId);
+        uint256 beforeRecipientBalance = _usdc.balanceOf(_USER2);
+
+        _lendingPool.borrow(_toArray(coupons[1]), address(_weth), _USER2);
+
+        Types.LoanStatus memory afterLoanStatus = _lendingPool.getLoanStatus(loanKey);
+        uint256 afterEpoch2LoanLimit = _lendingPool.getLoanLimit(loanKey, 2);
+        uint256 afterUserCouponBalance = _lendingPool.balanceOf(_USER1, couponId);
+        uint256 afterCouponTotalSupply = _lendingPool.totalSupply(couponId);
+        uint256 afterRecipientBalance = _usdc.balanceOf(_USER2);
+
+        assertEq(beforeLoanStatus.amount, afterLoanStatus.amount, "LOAN_AMOUNT");
+        assertEq(beforeLoanStatus.limit, afterLoanStatus.limit, "LOAN_LIMIT");
+        assertEq(beforeEpoch2LoanLimit + amount, afterEpoch2LoanLimit, "EPOCH2_LOAN_LIMIT");
+        assertEq(beforeUserCouponBalance, afterUserCouponBalance + amount, "USER_COUPON_BALANCE");
+        assertEq(beforeCouponTotalSupply, afterCouponTotalSupply + amount, "COUPON_TOTAL_SUPPLY");
+        assertEq(beforeRecipientBalance, afterRecipientBalance, "RECIPIENT_BALANCE");
+        vm.stopPrank();
+    }
+
+    function testBorrowWhenLoanedAmountAlreadyExceedsLimit() public {
+        uint256 amount = _usdc.amount(100);
+        _lendingPool.deposit(address(_usdc), amount * 3, address(this));
+
+        Types.Coupon[] memory coupons = new Types.Coupon[](3);
+        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(_usdc), epoch: 1}), amount: amount});
+        coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(_usdc), epoch: 2}), amount: amount * 2});
+
+        _lendingPool.mintCoupons(coupons, _USER1);
+
+        vm.startPrank(_USER1);
+
+        Types.LoanKey memory loanKey = Types.LoanKey({user: _USER1, collateral: address(_weth), asset: address(_usdc)});
+        _lendingPool.convertToCollateral{value: 1 ether}(loanKey, 1 ether);
+
+        _lendingPool.borrow(_toArray(coupons[0]), address(_weth), _USER2);
+
+        vm.warp(block.timestamp + _lendingPool.epochDuration());
+
+        uint256 couponId = coupons[1].key.toId();
+        Types.LoanStatus memory beforeLoanStatus = _lendingPool.getLoanStatus(loanKey);
+        uint256 beforeUserCouponBalance = _lendingPool.balanceOf(_USER1, couponId);
+        uint256 beforeCouponTotalSupply = _lendingPool.totalSupply(couponId);
+        uint256 beforeRecipientBalance = _usdc.balanceOf(_USER2);
+
+        _lendingPool.borrow(_toArray(coupons[1]), address(_weth), _USER2);
+
+        Types.LoanStatus memory afterLoanStatus = _lendingPool.getLoanStatus(loanKey);
+        uint256 afterUserCouponBalance = _lendingPool.balanceOf(_USER1, couponId);
+        uint256 afterCouponTotalSupply = _lendingPool.totalSupply(couponId);
+        uint256 afterRecipientBalance = _usdc.balanceOf(_USER2);
+
+        assertEq(beforeLoanStatus.amount + amount, afterLoanStatus.amount, "LOAN_AMOUNT");
+        assertEq(beforeLoanStatus.limit + amount * 2, afterLoanStatus.limit, "LOAN_LIMIT");
+        assertEq(beforeUserCouponBalance, afterUserCouponBalance + amount * 2, "USER_COUPON_BALANCE");
+        assertEq(beforeCouponTotalSupply, afterCouponTotalSupply + amount * 2, "COUPON_TOTAL_SUPPLY");
+        assertEq(beforeRecipientBalance + amount, afterRecipientBalance, "RECIPIENT_BALANCE");
+        vm.stopPrank();
+    }
+
     function _toArray(Types.Coupon memory coupon) internal pure returns (Types.Coupon[] memory arr) {
         arr = new Types.Coupon[](1);
         arr[0] = coupon;
