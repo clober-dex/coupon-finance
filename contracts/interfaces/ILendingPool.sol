@@ -15,10 +15,33 @@ interface ILendingPoolEvents {
         address indexed user,
         uint256 amount
     );
+    event LoanLimitChanged(
+        address indexed collateral,
+        address indexed loanAsset,
+        address indexed user,
+        uint256 epoch,
+        uint256 limit
+    );
+    event Borrow(
+        address indexed collateral,
+        address indexed loanAsset,
+        address indexed user,
+        address to,
+        uint256 amount
+    );
+    event Repay(
+        address indexed collateral,
+        address indexed loanAsset,
+        address sender,
+        address indexed user,
+        uint256 amount
+    );
 }
 
 interface ILendingPool is ILendingPoolEvents, ICouponPool {
     // View Functions //
+    function treasury() external view returns (address);
+
     function maxEpoch() external view returns (uint256);
 
     function epochDuration() external view returns (uint256);
@@ -86,8 +109,14 @@ interface ILendingPool is ILendingPoolEvents, ICouponPool {
         bytes32 s
     ) external;
 
+    function claimable(address asset, address user) external view returns (uint256);
+
+    function claim(address asset, address recipient) external returns (uint256);
+
     function liquidate(address collateral, address debt, address user, uint256 maxRepayAmount) external;
 
     // Admin Functions //
     function openReserve(address asset) external;
+
+    function setTreasury(address newTreasury) external;
 }
