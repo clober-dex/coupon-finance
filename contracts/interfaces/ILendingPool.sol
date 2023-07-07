@@ -8,34 +8,10 @@ import {Types} from "../Types.sol";
 interface ILendingPoolEvents {
     event Deposit(address indexed asset, address indexed sender, address indexed user, uint256 amount);
     event Withdraw(address indexed asset, address indexed user, address indexed to, uint256 amount);
-    event ConvertToCollateral(
-        address indexed collateral,
-        address indexed loanAsset,
-        address sender,
-        address indexed user,
-        uint256 amount
-    );
-    event LoanLimitChanged(
-        address indexed collateral,
-        address indexed loanAsset,
-        address indexed user,
-        uint256 epoch,
-        uint256 limit
-    );
-    event Borrow(
-        address indexed collateral,
-        address indexed loanAsset,
-        address indexed user,
-        address to,
-        uint256 amount
-    );
-    event Repay(
-        address indexed collateral,
-        address indexed loanAsset,
-        address sender,
-        address indexed user,
-        uint256 amount
-    );
+    event ConvertToCollateral(Types.LoanId indexed loanId, address indexed sender, uint256 amount);
+    event LoanLimitChanged(Types.LoanId indexed loanId, uint256 indexed epoch, uint256 limit);
+    event Borrow(Types.LoanId indexed loanId, address indexed to, uint256 amount);
+    event Repay(Types.LoanId indexed loanId, address indexed sender, uint256 amount);
 }
 
 interface ILendingPool is ILendingPoolEvents, ICouponPool {

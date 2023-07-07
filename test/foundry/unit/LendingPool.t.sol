@@ -580,13 +580,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         // check ConvertToCollateral event
         vm.revertTo(_snapshotId);
         vm.expectEmit(true, true, true, true);
-        emit ConvertToCollateral(
-            loanKey.collateral,
-            loanKey.asset,
-            address(this),
-            loanKey.user,
-            amount + additionalAmount
-        );
+        emit ConvertToCollateral(loanKey.toId(), address(this), amount + additionalAmount);
         _lendingPool.convertToCollateral(loanKey, amount + additionalAmount);
 
         Types.ReserveStatus memory afterReserve = _lendingPool.getReserveStatus(address(_usdc));
@@ -647,13 +641,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
             // check ConvertToCollateral event
             vm.revertTo(_snapshotId);
             vm.expectEmit(true, true, true, true);
-            emit ConvertToCollateral(
-                loanKey.collateral,
-                loanKey.asset,
-                address(this),
-                loanKey.user,
-                amount + additionalAmount + nativeAmount
-            );
+            emit ConvertToCollateral(loanKey.toId(), address(this), amount + additionalAmount + nativeAmount);
             _lendingPool.convertToCollateral{value: nativeAmount}(loanKey, amount + additionalAmount + nativeAmount);
         }
 
@@ -710,7 +698,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         // check ConvertToCollateral event
         vm.revertTo(_snapshotId);
         vm.expectEmit(true, true, true, true);
-        emit ConvertToCollateral(loanKey.collateral, loanKey.asset, address(this), loanKey.user, nativeAmount);
+        emit ConvertToCollateral(loanKey.toId(), address(this), nativeAmount);
         _lendingPool.convertToCollateral{value: nativeAmount}(loanKey, nativeAmount);
 
         Types.ReserveStatus memory afterReserve = _lendingPool.getReserveStatus(address(_weth));
@@ -761,7 +749,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
             // check ConvertToCollateral event
             vm.revertTo(_snapshotId);
             vm.expectEmit(true, true, true, true);
-            emit ConvertToCollateral(loanKey.collateral, loanKey.asset, address(this), loanKey.user, nativeAmount / 2);
+            emit ConvertToCollateral(loanKey.toId(), address(this), nativeAmount / 2);
             _lendingPool.convertToCollateral{value: nativeAmount}(loanKey, nativeAmount / 2);
         }
 
@@ -843,13 +831,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
             // check ConvertToCollateral event
             vm.revertTo(_snapshotId);
             vm.expectEmit(true, true, true, true);
-            emit ConvertToCollateral(
-                loanKey.collateral,
-                loanKey.asset,
-                _unapprovedUser,
-                loanKey.user,
-                amount + additionalAmount
-            );
+            emit ConvertToCollateral(loanKey.toId(), _unapprovedUser, amount + additionalAmount);
             _lendingPool.convertToCollateralWithPermit(
                 loanKey,
                 amount + additionalAmount,
@@ -1071,7 +1053,7 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         uint256 amount = _usdc.amount(100);
         _lendingPool.deposit(address(_usdc), amount * 3, address(this));
 
-        Types.Coupon[] memory coupons = new Types.Coupon[](3);
+        Types.Coupon[] memory coupons = new Types.Coupon[](2);
         coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(_usdc), epoch: 1}), amount: amount});
         coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(_usdc), epoch: 2}), amount: amount * 2});
 
