@@ -2,13 +2,16 @@
 
 pragma solidity ^0.8.0;
 
-import "../Constants.sol";
-import "../../ForkTestSetUp.sol";
-import "../../../../contracts/external/weth/IWETH9.sol";
-import "../../../../contracts/interfaces/ILendingPool.sol";
-import "../../mocks/MockYieldFarmer.sol";
-import "../../mocks/MockOracle.sol";
-import "../../Utils.sol";
+import "forge-std/Test.sol";
+
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+import {Constants} from "../Constants.sol";
+import {IWETH9} from "../../../../contracts/external/weth/IWETH9.sol";
+import {ILendingPool} from "../../../../contracts/interfaces/ILendingPool.sol";
+import {MockYieldFarmer} from "../../mocks/MockYieldFarmer.sol";
+import {MockOracle} from "../../mocks/MockOracle.sol";
+import {ForkUtils, ERC20Utils} from "../../Utils.sol";
 
 library SetUp {
     using ERC20Utils for IERC20;
@@ -23,8 +26,7 @@ library SetUp {
     }
 
     function run(Vm vm) internal returns (Result memory) {
-        ForkTestSetUp forkSetUp = new ForkTestSetUp();
-        forkSetUp.fork(Constants.FORK_BLOCK_NUMBER);
+        ForkUtils.fork(vm, Constants.FORK_BLOCK_NUMBER);
 
         Result memory res;
         res.unapprovedUser = vm.addr(1);

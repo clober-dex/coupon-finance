@@ -2,6 +2,8 @@
 
 pragma solidity ^0.8.0;
 
+import "forge-std/Test.sol";
+
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
@@ -17,5 +19,13 @@ library Utils {
     function toArray(Types.Coupon memory coupon) internal pure returns (Types.Coupon[] memory arr) {
         arr = new Types.Coupon[](1);
         arr[0] = coupon;
+    }
+}
+
+library ForkUtils {
+    function fork(Vm vm, uint256 blockNumber) public {
+        uint256 newFork = vm.createFork(vm.envString("FORK_TEST_NODE_URL"));
+        vm.selectFork(newFork);
+        vm.rollFork(blockNumber);
     }
 }
