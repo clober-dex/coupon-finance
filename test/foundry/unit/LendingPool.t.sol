@@ -1311,6 +1311,92 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents, ERC1155Holder {
         assertEq(beforeSenderBalance, afterSenderBalance + unitAmount * 50, "SENDER_BALANCE");
     }
 
+    function testRepayWithPermit() public {
+        IERC2612 permitToken = IERC2612(address(_usdc));
+
+        uint256 unitAmount = _usdc.amount(1);
+        _lendingPool.deposit(address(_usdc), unitAmount * 100, address(this));
+
+        Types.Coupon memory coupon = Types.Coupon({
+            key: Types.CouponKey({asset: address(_usdc), epoch: 1}),
+            amount: unitAmount * 100
+        });
+
+        _lendingPool.mintCoupons(_toArray(coupon), _USER1);
+
+        Types.LoanKey memory loanKey = Types.LoanKey({user: _USER1, collateral: address(_weth), asset: address(_usdc)});
+        _lendingPool.convertToCollateral{value: 1 ether}(loanKey, 1 ether);
+        vm.startPrank(_USER1);
+        _lendingPool.borrow(_toArray(coupon), address(_weth), _USER2);
+        vm.stopPrank();
+
+        uint256 beforeCouponBalance = _lendingPool.balanceOf(_USER1, coupon.key.toId());
+        uint256 beforeCouponTotalSupply = _lendingPool.totalSupply(coupon.key.toId());
+        Types.LoanStatus memory beforeLoanStatus = _lendingPool.getLoanStatus(loanKey);
+        uint256 beforeSenderBalance = _usdc.balanceOf(_unapprovedUser);
+
+        _usdc.transfer(_unapprovedUser, unitAmount * 50);
+        vm.startPrank(_unapprovedUser);
+        _permitParams.nonce = permitToken.nonces(_unapprovedUser);
+        {
+            bytes32 digest = keccak256(
+                abi.encodePacked(
+                    "\x19\x01",
+                    permitToken.DOMAIN_SEPARATOR(),
+                    keccak256(
+                        abi.encode(
+                            _PERMIT_TYPEHASH,
+                            _unapprovedUser,
+                            address(_lendingPool),
+                            unitAmount * 50,
+                            _permitParams.nonce,
+                            type(uint256).max
+                        )
+                    )
+                )
+            );
+            (_permitParams.v, _permitParams.r, _permitParams.s) = vm.sign(1, digest);
+
+            _snapshotId = vm.snapshot();
+            // check Repay event
+            vm.expectEmit(true, true, true, true);
+            emit Repay(loanKey.toId(), address(this), unitAmount * 50);
+            _lendingPool.repayWithPermit(
+                loanKey,
+                unitAmount * 50,
+                type(uint256).max,
+                _permitParams.v,
+                _permitParams.r,
+                _permitParams.s
+            );
+            // check LoanLimitChanged event
+            vm.revertTo(_snapshotId);
+            vm.expectEmit(true, true, true, true);
+            emit LoanLimitChanged(loanKey.toId(), 1, unitAmount * 50);
+            _lendingPool.repayWithPermit(
+                loanKey,
+                unitAmount * 50,
+                type(uint256).max,
+                _permitParams.v,
+                _permitParams.r,
+                _permitParams.s
+            );
+        }
+
+        vm.stopPrank();
+
+        uint256 afterCouponBalance = _lendingPool.balanceOf(_USER1, coupon.key.toId());
+        uint256 afterCouponTotalSupply = _lendingPool.totalSupply(coupon.key.toId());
+        Types.LoanStatus memory afterLoanStatus = _lendingPool.getLoanStatus(loanKey);
+        uint256 afterSenderBalance = _usdc.balanceOf(_unapprovedUser);
+
+        assertEq(beforeCouponBalance + unitAmount * 50, afterCouponBalance, "COUPON_BALANCE");
+        assertEq(beforeCouponTotalSupply + unitAmount * 50, afterCouponTotalSupply, "COUPON_TOTAL_SUPPLY");
+        assertEq(beforeLoanStatus.amount, afterLoanStatus.amount + unitAmount * 50, "LOAN_AMOUNT");
+        assertEq(beforeLoanStatus.limit, afterLoanStatus.limit + unitAmount * 50, "LOAN_LIMIT");
+        assertEq(beforeSenderBalance, afterSenderBalance + unitAmount * 50, "SENDER_BALANCE");
+    }
+
     function _toArray(Types.Coupon memory coupon) internal pure returns (Types.Coupon[] memory arr) {
         arr = new Types.Coupon[](1);
         arr[0] = coupon;
