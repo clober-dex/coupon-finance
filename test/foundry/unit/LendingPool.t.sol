@@ -895,7 +895,17 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         uint256 beforeRecipientBalance = _usdc.balanceOf(_USER2);
 
         vm.startPrank(_USER1);
-        _lendingPool.borrow(_toArray(Types.Coupon(couponKey, amount)), address(_weth), _USER2);
+        Types.Coupon[] memory coupons = _toArray(Types.Coupon(couponKey, amount));
+        _snapshotId = vm.snapshot();
+        // check Borrow event
+        vm.expectEmit(true, true, true, true);
+        emit Borrow(loanKey.toId(), _USER2, amount);
+        _lendingPool.borrow(coupons, address(_weth), _USER2);
+        // check LoanLimitChanged event
+        vm.revertTo(_snapshotId);
+        vm.expectEmit(true, true, true, true);
+        emit LoanLimitChanged(loanKey.toId(), 1, beforeLoanStatus.limit + amount);
+        _lendingPool.borrow(coupons, address(_weth), _USER2);
         vm.stopPrank();
 
         Types.LoanStatus memory afterLoanStatus = _lendingPool.getLoanStatus(loanKey);
@@ -927,11 +937,17 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         uint256 beforeRecipientNativeBalance = _USER2.balance;
 
         vm.startPrank(_USER1);
-        _lendingPool.borrow(
-            _toArray(Types.Coupon(Types.CouponKey({asset: address(0), epoch: 1}), 1 ether)),
-            address(_usdc),
-            _USER2
-        );
+        Types.Coupon[] memory coupons = _toArray(Types.Coupon(Types.CouponKey({asset: address(0), epoch: 1}), 1 ether));
+        _snapshotId = vm.snapshot();
+        // check Borrow event
+        vm.expectEmit(true, true, true, true);
+        emit Borrow(loanKey.toId(), _USER2, 1 ether);
+        _lendingPool.borrow(coupons, address(_usdc), _USER2);
+        // check LoanLimitChanged event
+        vm.revertTo(_snapshotId);
+        vm.expectEmit(true, true, true, true);
+        emit LoanLimitChanged(loanKey.toId(), 1, beforeLoanStatus.limit + 1 ether);
+        _lendingPool.borrow(coupons, address(_usdc), _USER2);
         vm.stopPrank();
 
         Types.LoanStatus memory afterLoanStatus = _lendingPool.getLoanStatus(loanKey);
@@ -1004,29 +1020,35 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
 
         uint256 couponId = coupons[1].key.toId();
         Types.LoanStatus memory beforeLoanStatus = _lendingPool.getLoanStatus(loanKey);
-        uint256 beforeEpoch2LoanLimit = _lendingPool.getLoanLimit(loanKey, coupons[1].key.epoch);
+        uint256 beforeFutureEpochLoanLimit = _lendingPool.getLoanLimit(loanKey, coupons[1].key.epoch);
         uint256 beforeUserCouponBalance = _lendingPool.balanceOf(_USER1, couponId);
         uint256 beforeCouponTotalSupply = _lendingPool.totalSupply(couponId);
         uint256 beforeRecipientBalance = _usdc.balanceOf(_USER2);
 
-        _lendingPool.borrow(_toArray(coupons[1]), address(_weth), _USER2);
+        {
+            Types.Coupon[] memory inputCoupons = new Types.Coupon[](1);
+            inputCoupons[0] = coupons[1];
+            vm.expectEmit(true, true, true, true);
+            emit LoanLimitChanged(loanKey.toId(), 2, beforeLoanStatus.limit + amount);
+            _lendingPool.borrow(inputCoupons, address(_weth), _USER2);
+        }
 
         Types.LoanStatus memory afterLoanStatus = _lendingPool.getLoanStatus(loanKey);
-        uint256 afterEpoch2LoanLimit = _lendingPool.getLoanLimit(loanKey, coupons[1].key.epoch);
+        uint256 afterFutureEpochLoanLimit = _lendingPool.getLoanLimit(loanKey, coupons[1].key.epoch);
         uint256 afterUserCouponBalance = _lendingPool.balanceOf(_USER1, couponId);
         uint256 afterCouponTotalSupply = _lendingPool.totalSupply(couponId);
         uint256 afterRecipientBalance = _usdc.balanceOf(_USER2);
 
         assertEq(beforeLoanStatus.amount, afterLoanStatus.amount, "LOAN_AMOUNT_0");
         assertEq(beforeLoanStatus.limit, afterLoanStatus.limit, "LOAN_LIMIT_0");
-        assertEq(beforeEpoch2LoanLimit + amount, afterEpoch2LoanLimit, "EPOCH2_LOAN_LIMIT_0");
+        assertEq(beforeFutureEpochLoanLimit + amount, afterFutureEpochLoanLimit, "FUTURE_EPOCH_LOAN_LIMIT_0");
         assertEq(beforeUserCouponBalance, afterUserCouponBalance + amount, "USER_COUPON_BALANCE_0");
         assertEq(beforeCouponTotalSupply, afterCouponTotalSupply + amount, "COUPON_TOTAL_SUPPLY_0");
         assertEq(beforeRecipientBalance, afterRecipientBalance, "RECIPIENT_BALANCE_0");
 
         couponId = coupons[2].key.toId();
         beforeLoanStatus = _lendingPool.getLoanStatus(loanKey);
-        beforeEpoch2LoanLimit = _lendingPool.getLoanLimit(loanKey, coupons[2].key.epoch);
+        beforeFutureEpochLoanLimit = _lendingPool.getLoanLimit(loanKey, coupons[2].key.epoch);
         beforeUserCouponBalance = _lendingPool.balanceOf(_USER1, couponId);
         beforeCouponTotalSupply = _lendingPool.totalSupply(couponId);
         beforeRecipientBalance = _usdc.balanceOf(_USER2);
@@ -1034,16 +1056,16 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         _lendingPool.borrow(_toArray(coupons[2]), address(_weth), _USER2);
 
         afterLoanStatus = _lendingPool.getLoanStatus(loanKey);
-        afterEpoch2LoanLimit = _lendingPool.getLoanLimit(loanKey, coupons[2].key.epoch);
+        afterFutureEpochLoanLimit = _lendingPool.getLoanLimit(loanKey, coupons[2].key.epoch);
         afterUserCouponBalance = _lendingPool.balanceOf(_USER1, couponId);
         afterCouponTotalSupply = _lendingPool.totalSupply(couponId);
         afterRecipientBalance = _usdc.balanceOf(_USER2);
 
         assertEq(beforeLoanStatus.amount, afterLoanStatus.amount, "LOAN_AMOUNT_1");
         assertEq(beforeLoanStatus.limit, afterLoanStatus.limit, "LOAN_LIMIT_1");
-        assertEq(beforeEpoch2LoanLimit + amount, afterEpoch2LoanLimit, "EPOCH2_LOAN_LIMIT_1");
-        assertEq(beforeUserCouponBalance, afterUserCouponBalance + amount, "USER_COUPON_BALANCE_1");
-        assertEq(beforeCouponTotalSupply, afterCouponTotalSupply + amount, "COUPON_TOTAL_SUPPLY_1");
+        assertEq(beforeFutureEpochLoanLimit, afterFutureEpochLoanLimit, "FUTURE_EPOCH_LOAN_LIMIT_1");
+        assertEq(beforeUserCouponBalance, afterUserCouponBalance, "USER_COUPON_BALANCE_1");
+        assertEq(beforeCouponTotalSupply, afterCouponTotalSupply, "COUPON_TOTAL_SUPPLY_1");
         assertEq(beforeRecipientBalance, afterRecipientBalance, "RECIPIENT_BALANCE_1");
 
         vm.stopPrank();
@@ -1074,7 +1096,18 @@ contract LendingPoolUnitTest is Test, ILendingPoolEvents {
         uint256 beforeCouponTotalSupply = _lendingPool.totalSupply(couponId);
         uint256 beforeRecipientBalance = _usdc.balanceOf(_USER2);
 
-        _lendingPool.borrow(_toArray(coupons[1]), address(_weth), _USER2);
+        Types.Coupon[] memory inputCoupons = new Types.Coupon[](1);
+        inputCoupons[0] = coupons[1];
+        _snapshotId = vm.snapshot();
+        // check Borrow event
+        vm.expectEmit(true, true, true, true);
+        emit Borrow(loanKey.toId(), _USER2, amount);
+        _lendingPool.borrow(inputCoupons, address(_weth), _USER2);
+        // check LoanLimitChanged event
+        vm.revertTo(_snapshotId);
+        vm.expectEmit(true, true, true, true);
+        emit LoanLimitChanged(loanKey.toId(), 2, beforeLoanStatus.limit + amount * 2);
+        _lendingPool.borrow(inputCoupons, address(_weth), _USER2);
 
         Types.LoanStatus memory afterLoanStatus = _lendingPool.getLoanStatus(loanKey);
         uint256 afterUserCouponBalance = _lendingPool.balanceOf(_USER1, couponId);
