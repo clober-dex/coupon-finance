@@ -226,6 +226,6 @@ contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard {
     }
 
     function _checkValidAsset(address asset) internal view {
-        require(_assetConfig[asset].liquidationThreshold > 0, "invalid asset");
+        require(_assetConfig[asset].liquidationThreshold > 0, "Unregistered asset");
     }
 }
