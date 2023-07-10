@@ -12,6 +12,7 @@ interface ILendingPoolEvents {
     event LoanLimitChanged(Types.LoanId indexed loanId, uint256 indexed epoch, uint256 limit);
     event Borrow(Types.LoanId indexed loanId, address indexed to, uint256 amount);
     event Repay(Types.LoanId indexed loanId, address indexed sender, uint256 amount);
+    event RegisterAsset(address indexed asset, Types.AssetConfiguration config);
 }
 
 interface ILendingPool is ILendingPoolEvents, ICoupon {
