@@ -58,7 +58,7 @@ library SetUp {
         res.usdc.approve(address(res.lendingPool), type(uint256).max);
         res.weth.approve(address(res.lendingPool), type(uint256).max);
 
-        res.lendingPool.openReserve(
+        res.lendingPool.registerAsset(
             address(res.usdc),
             Types.AssetConfiguration({
                 liquidationThreshold: 800000,
@@ -66,7 +66,7 @@ library SetUp {
                 liquidationProtocolFee: 5000
             })
         );
-        res.lendingPool.openReserve(
+        res.lendingPool.registerAsset(
             address(res.weth),
             Types.AssetConfiguration({
                 liquidationThreshold: 800000,
