@@ -2,11 +2,14 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "../../../contracts/interfaces/IYieldFarmer.sol";
+import {IYieldFarmer} from "../../../contracts/interfaces/IYieldFarmer.sol";
 
 contract MockYieldFarmer is IYieldFarmer {
+    using SafeERC20 for IERC20;
+
     mapping(address asset => uint256) public override totalReservedAmount;
     mapping(address asset => uint256) public override reservedAmount;
     mapping(address => uint256) public withdrawLimit;
@@ -19,14 +22,14 @@ contract MockYieldFarmer is IYieldFarmer {
     }
 
     function deposit(address asset, uint256 amount) external {
-        IERC20(asset).transferFrom(msg.sender, address(this), amount);
+        IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
         totalReservedAmount[asset] += amount;
         reservedAmount[asset] += amount;
     }
 
     function withdraw(address asset, uint256 amount, address recipient) external {
         require(totalReservedAmount[asset] >= amount, "insufficient balance");
-        IERC20(asset).transfer(recipient, amount);
+        IERC20(asset).safeTransfer(recipient, amount);
         totalReservedAmount[asset] -= amount;
         reservedAmount[asset] -= amount;
     }
