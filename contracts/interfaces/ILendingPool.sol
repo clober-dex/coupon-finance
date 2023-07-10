@@ -85,10 +85,6 @@ interface ILendingPool is ILendingPoolEvents, ICouponPool {
         bytes32 s
     ) external;
 
-    function claimable(address asset, address user) external view returns (uint256);
-
-    function claim(address asset, address recipient) external returns (uint256);
-
     function liquidate(address collateral, address debt, address user, uint256 maxRepayAmount) external;
 
     // Admin Functions //
