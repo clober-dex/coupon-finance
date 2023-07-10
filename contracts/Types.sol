@@ -52,5 +52,6 @@ library Types {
         uint32 liquidationThreshold;
         uint32 liquidationBonus;
         uint32 liquidationProtocolFee;
+        uint32 liquidationTargetLtv;
     }
 }

@@ -63,7 +63,8 @@ library SetUp {
             Types.AssetConfiguration({
                 liquidationThreshold: 800000,
                 liquidationBonus: 10000,
-                liquidationProtocolFee: 5000
+                liquidationProtocolFee: 5000,
+                liquidationTargetLtv: 700000
             })
         );
         res.lendingPool.registerAsset(
@@ -71,7 +72,8 @@ library SetUp {
             Types.AssetConfiguration({
                 liquidationThreshold: 800000,
                 liquidationBonus: 10000,
-                liquidationProtocolFee: 5000
+                liquidationProtocolFee: 5000,
+                liquidationTargetLtv: 700000
             })
         );
         // set oracle
