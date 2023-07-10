@@ -3,7 +3,10 @@
 pragma solidity ^0.8.0;
 
 library Constants {
+    uint256 internal constant MAX_EPOCH_DIFF = 10;
+    uint256 internal constant EPOCH_DURATION = 180 days;
     uint256 internal constant FORK_BLOCK_NUMBER = 17617512;
+    address internal constant TREASURY = address(0xc0f1);
     address internal constant USER1 = address(0x1);
     address internal constant USER2 = address(0x2);
     address internal constant WETH_ADDRESS = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;

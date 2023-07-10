@@ -12,6 +12,7 @@ import {ILendingPool} from "../../../../contracts/interfaces/ILendingPool.sol";
 import {MockYieldFarmer} from "../../mocks/MockYieldFarmer.sol";
 import {MockOracle} from "../../mocks/MockOracle.sol";
 import {ForkUtils, ERC20Utils} from "../../Utils.sol";
+import {LendingPool} from "../../../../contracts/LendingPool.sol";
 
 library SetUp {
     using ERC20Utils for IERC20;
@@ -36,7 +37,14 @@ library SetUp {
 
         res.yieldFarmer = new MockYieldFarmer();
         res.oracle = new MockOracle();
-        // res.lendingPool = new LendingPool();
+        res.lendingPool = new LendingPool(
+            Constants.MAX_EPOCH_DIFF,
+            block.timestamp,
+            Constants.EPOCH_DURATION,
+            Constants.TREASURY,
+            address(res.yieldFarmer),
+            "baseURI/"
+        );
 
         vm.prank(Constants.USDC_WHALE);
         res.usdc.transfer(address(this), res.usdc.amount(1_000_000_000));
