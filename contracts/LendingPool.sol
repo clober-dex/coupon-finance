@@ -13,10 +13,11 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {Types} from "./Types.sol";
 import {ICoupon} from "./interfaces/ICoupon.sol";
 import {ILendingPool} from "./interfaces/ILendingPool.sol";
-import {CouponKeyLibrary, LoanKeyLibrary, VaultKeyLibrary} from "./libraries/Keys.sol";
 import {IYieldFarmer} from "./interfaces/IYieldFarmer.sol";
+import {CouponKeyLibrary, LoanKeyLibrary, VaultKeyLibrary} from "./libraries/Keys.sol";
+import {ReentrancyGuard} from "./libraries/ReentrancyGuard.sol";
 
-contract LendingPool is ILendingPool, ERC1155Supply {
+contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard {
     using Strings for uint256;
     using SafeERC20 for IERC20;
     using CouponKeyLibrary for Types.CouponKey;
@@ -139,7 +140,7 @@ contract LendingPool is ILendingPool, ERC1155Supply {
     }
 
     // User Functions //
-    function deposit(address asset, uint256 amount, address recipient) external payable {
+    function deposit(address asset, uint256 amount, address recipient) public payable nonReentrant {
         revert("not implemented");
     }
 
