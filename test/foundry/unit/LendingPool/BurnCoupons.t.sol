@@ -14,7 +14,7 @@ import {ERC20Utils, Utils} from "../../Utils.sol";
 import {Constants} from "../Constants.sol";
 import {SetUp} from "./SetUp.sol";
 
-contract LendingPoolDepositUnitTest is Test, ILendingPoolEvents, ERC1155Holder {
+contract LendingPoolBurnCouponsUnitTest is Test, ILendingPoolEvents, ERC1155Holder {
     using ERC20Utils for IERC20;
     using CouponKeyLibrary for Types.CouponKey;
 

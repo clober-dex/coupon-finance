@@ -12,7 +12,7 @@ import {ERC20Utils} from "../../Utils.sol";
 import {Constants} from "../Constants.sol";
 import {SetUp} from "./SetUp.sol";
 
-contract LendingPoolDepositUnitTest is Test, ILendingPoolEvents {
+contract LendingPoolWithdrawUnitTest is Test, ILendingPoolEvents {
     using ERC20Utils for IERC20;
 
     SetUp.Result public r;
