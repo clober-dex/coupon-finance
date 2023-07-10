@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import {ICouponPool} from "./ICoupon.sol";
+import {ICoupon} from "./ICoupon.sol";
 import {Types} from "../Types.sol";
 
 interface ILendingPoolEvents {
@@ -14,9 +14,13 @@ interface ILendingPoolEvents {
     event Repay(Types.LoanId indexed loanId, address indexed sender, uint256 amount);
 }
 
-interface ILendingPool is ILendingPoolEvents, ICouponPool {
+interface ILendingPool is ILendingPoolEvents, ICoupon {
     // View Functions //
+    function baseURI() external view returns (string memory);
+
     function treasury() external view returns (address);
+
+    function startedAt() external view returns (uint256);
 
     function maxEpoch() external view returns (uint256);
 
@@ -84,10 +88,6 @@ interface ILendingPool is ILendingPoolEvents, ICouponPool {
         bytes32 r,
         bytes32 s
     ) external;
-
-    function claimable(address asset, address user) external view returns (uint256);
-
-    function claim(address asset, address recipient) external returns (uint256);
 
     function liquidate(address collateral, address debt, address user, uint256 maxRepayAmount) external;
 
