@@ -5,13 +5,19 @@ pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+import {IERC1155MetadataURI} from "@openzeppelin/contracts/token/ERC1155/extensions/IERC1155MetadataURI.sol";
+import {ERC1155Supply} from "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Supply.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 import {Types} from "./Types.sol";
+import {ICoupon} from "./interfaces/ICoupon.sol";
 import {ILendingPool} from "./interfaces/ILendingPool.sol";
 import {CouponKeyLibrary, LoanKeyLibrary, VaultKeyLibrary} from "./libraries/Keys.sol";
 import {IYieldFarmer} from "./interfaces/IYieldFarmer.sol";
 
-abstract contract LendingPool is ILendingPool {
+contract LendingPool is ILendingPool, ERC1155Supply {
+    using Strings for uint256;
     using SafeERC20 for IERC20;
     using CouponKeyLibrary for Types.CouponKey;
     using LoanKeyLibrary for Types.LoanKey;
@@ -46,13 +52,31 @@ abstract contract LendingPool is ILendingPool {
     mapping(Types.LoanId => Loan) private _loanMap;
     mapping(Types.LoanId => mapping(uint256 epoch => uint256)) private _loanLimit;
 
-    constructor(uint256 maxEpochDiff_, uint256 startedAt_, uint256 epochDuration_) {
+    constructor(
+        uint256 maxEpochDiff_,
+        uint256 startedAt_,
+        uint256 epochDuration_,
+        string memory baseURI_
+    ) ERC1155(baseURI_) {
         _maxEpochDiff = maxEpochDiff_;
         startedAt = startedAt_;
         epochDuration = epochDuration_;
+        baseURI = baseURI_;
     }
 
     // View Functions //
+    function totalSupply(uint256 id) public view override(ERC1155Supply, ICoupon) returns (uint256) {
+        return super.totalSupply(id);
+    }
+
+    function exists(uint256 id) public view override(ERC1155Supply, ICoupon) returns (bool) {
+        return super.exists(id);
+    }
+
+    function uri(uint256 id) public view override(ERC1155, IERC1155MetadataURI) returns (string memory) {
+        return bytes(baseURI).length > 0 ? string(abi.encodePacked(baseURI, id.toString())) : "";
+    }
+
     function maxEpoch() public view returns (uint256) {
         unchecked {
             return currentEpoch() + _maxEpochDiff;
