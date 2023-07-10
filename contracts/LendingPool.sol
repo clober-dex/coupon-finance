@@ -103,6 +103,10 @@ contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard, Ownable {
         }
     }
 
+    function isAssetRegistered(address asset) public view returns (bool) {
+        return _assetConfig[asset].liquidationThreshold > 0;
+    }
+
     function getAssetConfiguration(address asset) external view returns (Types.AssetConfiguration memory) {
         return _assetConfig[asset];
     }
@@ -227,6 +231,6 @@ contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard, Ownable {
     }
 
     function _checkValidAsset(address asset) internal view {
-        require(_assetConfig[asset].liquidationThreshold > 0, "Unregistered asset");
+        require(isAssetRegistered(asset), "Unregistered asset");
     }
 }

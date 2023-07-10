@@ -32,6 +32,8 @@ interface ILendingPool is ILendingPoolEvents, ICoupon {
 
     function yieldFarmer() external view returns (address);
 
+    function isAssetRegistered(address asset) external view returns (bool);
+
     function getAssetConfiguration(address asset) external view returns (Types.AssetConfiguration memory);
 
     function getReserveStatus(address asset) external view returns (Types.ReserveStatus memory);
