@@ -12,7 +12,7 @@ contract MockOracle is IPriceOracleGetter {
     }
 
     function BASE_CURRENCY_UNIT() external view returns (uint256) {
-        return 8;
+        return 100000000;
     }
 
     function getAssetPrice(address asset) external view override returns (uint256) {

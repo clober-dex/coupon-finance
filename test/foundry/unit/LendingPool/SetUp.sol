@@ -47,8 +47,8 @@ library SetUp {
         res.weth.approve(address(res.lendingPool), type(uint256).max);
 
         // set oracle
-        res.oracle.setAssetPrice(address(res.usdc), 10 ** 18);
-        res.oracle.setAssetPrice(address(res.weth), 2000 * 10 ** 18);
+        res.oracle.setAssetPrice(address(res.usdc), 10 ** 8);
+        res.oracle.setAssetPrice(address(res.weth), 2000 * 10 ** 8);
         return res;
     }
 }
