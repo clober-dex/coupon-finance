@@ -47,6 +47,7 @@ contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard {
     address public override treasury;
     address public override yieldFarmer;
 
+    mapping(address asset => Types.AssetConfiguration) private _assetConfig;
     mapping(address asset => Reserve) private _reserveMap;
     mapping(address asset => mapping(uint256 epoch => uint256)) private _reserveLockedAmountMap;
     mapping(Types.VaultId => Vault) private _vaultMap;
@@ -96,6 +97,10 @@ contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard {
         unchecked {
             return block.timestamp < startedAt ? 0 : (block.timestamp - startedAt) / epochDuration + 1;
         }
+    }
+
+    function getAssetConfiguration(address asset) external view returns (Types.AssetConfiguration memory) {
+        return _assetConfig[asset];
     }
 
     function getReserveStatus(address asset) external view returns (Types.ReserveStatus memory) {
@@ -209,7 +214,7 @@ contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard {
     }
 
     // Admin Functions //
-    function openReserve(address asset) external {
+    function openReserve(address asset, Types.AssetConfiguration calldata config) external {
         revert("not implemented");
     }
 
