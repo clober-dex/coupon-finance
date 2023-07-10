@@ -46,8 +46,9 @@ library SetUp {
             "baseURI/"
         );
 
-        vm.prank(Constants.USDC_WHALE);
+        vm.startPrank(Constants.USDC_WHALE);
         res.usdc.transfer(address(this), res.usdc.amount(1_000_000_000));
+        vm.stopPrank();
         vm.deal(address(this), 2_000_000_000 ether);
         res.weth.deposit{value: 1_000_000_000 ether}();
 
