@@ -34,6 +34,7 @@ abstract contract LendingPool is ILendingPool {
     uint256 public immutable override startedAt;
     uint256 public immutable override epochDuration;
 
+    string public override baseURI;
     address public override treasury;
     address public override yieldFarmer;
 
