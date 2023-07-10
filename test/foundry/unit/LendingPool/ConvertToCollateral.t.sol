@@ -130,12 +130,12 @@ contract LendingPoolConvertToCollateralUnitTest is Test, ILendingPoolEvents, ERC
             // check Deposit event
             vm.expectEmit(true, true, true, true);
             emit Deposit(address(r.weth), address(this), Constants.USER1, additionalAmount + nativeAmount);
-            r.lendingPool.convertToCollateral{value: nativeAmount}(loanKey, amount + additionalAmount + nativeAmount);
+            r.lendingPool.convertToCollateral{value: nativeAmount}(loanKey, amount + additionalAmount);
             // check ConvertToCollateral event
             vm.revertTo(_snapshotId);
             vm.expectEmit(true, true, true, true);
             emit ConvertToCollateral(loanKey.toId(), address(this), amount + additionalAmount + nativeAmount);
-            r.lendingPool.convertToCollateral{value: nativeAmount}(loanKey, amount + additionalAmount + nativeAmount);
+            r.lendingPool.convertToCollateral{value: nativeAmount}(loanKey, amount + additionalAmount);
         }
 
         Types.ReserveStatus memory afterReserve = r.lendingPool.getReserveStatus(address(r.weth));
@@ -166,127 +166,6 @@ contract LendingPoolConvertToCollateralUnitTest is Test, ILendingPoolEvents, ERC
         );
         assertEq(beforeSenderBalance, r.weth.balanceOf(address(this)) + additionalAmount, "BALANCE");
         assertEq(beforeSenderNativeBalance, address(this).balance + nativeAmount, "NATIVE_BALANCE");
-    }
-
-    function testConvertToCollateralShouldUseNativeTokenFirst() public {
-        uint256 amount = 100 ether;
-        r.lendingPool.deposit(address(r.weth), amount, address(this));
-
-        uint256 nativeAmount = 50 ether;
-
-        Types.LoanKey memory loanKey = Types.LoanKey({
-            user: Constants.USER1,
-            collateral: address(r.weth),
-            asset: address(r.weth)
-        });
-
-        Types.ReserveStatus memory beforeReserve = r.lendingPool.getReserveStatus(address(r.weth));
-        Types.VaultStatus memory beforeSenderVault = r.lendingPool.getVaultStatus(
-            Types.VaultKey(address(r.weth), address(this))
-        );
-        Types.VaultStatus memory beforeUserVault = r.lendingPool.getVaultStatus(
-            Types.VaultKey(address(r.weth), Constants.USER1)
-        );
-        Types.LoanStatus memory beforeLoan = r.lendingPool.getLoanStatus(loanKey);
-        uint256 beforeSenderBalance = r.weth.balanceOf(address(this));
-        uint256 beforeSenderNativeBalance = address(this).balance;
-
-        _snapshotId = vm.snapshot();
-        // check Deposit event
-        vm.expectEmit(true, true, true, true);
-        emit Deposit(address(r.weth), address(this), Constants.USER1, nativeAmount);
-        r.lendingPool.convertToCollateral{value: nativeAmount}(loanKey, nativeAmount);
-        // check ConvertToCollateral event
-        vm.revertTo(_snapshotId);
-        vm.expectEmit(true, true, true, true);
-        emit ConvertToCollateral(loanKey.toId(), address(this), nativeAmount);
-        r.lendingPool.convertToCollateral{value: nativeAmount}(loanKey, nativeAmount);
-
-        Types.ReserveStatus memory afterReserve = r.lendingPool.getReserveStatus(address(r.weth));
-        Types.VaultStatus memory afterSenderVault = r.lendingPool.getVaultStatus(
-            Types.VaultKey(address(r.weth), address(this))
-        );
-        Types.VaultStatus memory afterUserVault = r.lendingPool.getVaultStatus(
-            Types.VaultKey(address(r.weth), Constants.USER1)
-        );
-        Types.LoanStatus memory afterLoan = r.lendingPool.getLoanStatus(loanKey);
-        uint256 afterSenderBalance = r.weth.balanceOf(address(this));
-        uint256 afterSenderNativeBalance = address(this).balance;
-
-        assertEq(beforeReserve.collateralAmount + nativeAmount, afterReserve.collateralAmount, "RESERVE_COLLATERAL");
-        assertEq(beforeReserve.spendableAmount, afterReserve.spendableAmount, "RESERVE_SPENDABLE");
-        assertEq(beforeSenderVault.spendableAmount, afterSenderVault.spendableAmount, "SENDER_VAULT_SPENDABLE");
-        assertEq(
-            beforeUserVault.collateralAmount + nativeAmount,
-            afterUserVault.collateralAmount,
-            "USER_VAULT_COLLATERAL"
-        );
-        assertEq(beforeLoan.collateralAmount + nativeAmount, afterLoan.collateralAmount, "LOAN_COLLATERAL");
-        assertEq(beforeSenderBalance, afterSenderBalance, "BALANCE");
-        assertEq(beforeSenderNativeBalance, afterSenderNativeBalance + nativeAmount, "NATIVE_BALANCE");
-    }
-
-    function testConvertToCollateralShouldReturnExceededNativeToken() public {
-        r.lendingPool.deposit(address(r.weth), 100 ether, address(this));
-
-        uint256 nativeAmount = 50 ether;
-
-        Types.LoanKey memory loanKey = Types.LoanKey({
-            user: Constants.USER1,
-            collateral: address(r.weth),
-            asset: address(r.weth)
-        });
-
-        Types.ReserveStatus memory beforeReserve = r.lendingPool.getReserveStatus(address(r.weth));
-        Types.VaultStatus memory beforeSenderVault = r.lendingPool.getVaultStatus(
-            Types.VaultKey(address(r.weth), address(this))
-        );
-        Types.VaultStatus memory beforeUserVault = r.lendingPool.getVaultStatus(
-            Types.VaultKey(address(r.weth), Constants.USER1)
-        );
-        Types.LoanStatus memory beforeLoan = r.lendingPool.getLoanStatus(loanKey);
-        uint256 beforeSenderBalance = r.weth.balanceOf(address(this));
-        uint256 beforeSenderNativeBalance = address(this).balance;
-        uint256 beforePoolNativeBalance = address(r.lendingPool).balance;
-        {
-            // stack too deep
-            _snapshotId = vm.snapshot();
-            // check Deposit event
-            vm.expectEmit(true, true, true, true);
-            emit Deposit(address(r.weth), address(this), Constants.USER1, nativeAmount / 2);
-            r.lendingPool.convertToCollateral{value: nativeAmount}(loanKey, nativeAmount / 2);
-            // check ConvertToCollateral event
-            vm.revertTo(_snapshotId);
-            vm.expectEmit(true, true, true, true);
-            emit ConvertToCollateral(loanKey.toId(), address(this), nativeAmount / 2);
-            r.lendingPool.convertToCollateral{value: nativeAmount}(loanKey, nativeAmount / 2);
-        }
-
-        Types.ReserveStatus memory afterReserve = r.lendingPool.getReserveStatus(address(r.weth));
-        Types.VaultStatus memory afterSenderVault = r.lendingPool.getVaultStatus(
-            Types.VaultKey(address(r.weth), address(this))
-        );
-        Types.VaultStatus memory afterUserVault = r.lendingPool.getVaultStatus(
-            Types.VaultKey(address(r.weth), Constants.USER1)
-        );
-        Types.LoanStatus memory afterLoan = r.lendingPool.getLoanStatus(loanKey);
-
-        assertEq(
-            beforeReserve.collateralAmount + nativeAmount / 2,
-            afterReserve.collateralAmount,
-            "RESERVE_COLLATERAL"
-        );
-        assertEq(beforeReserve.spendableAmount, afterReserve.spendableAmount, "RESERVE_SPENDABLE");
-        assertEq(beforeSenderVault.spendableAmount, afterSenderVault.spendableAmount, "SENDER_VAULT_SPENDABLE");
-        assertEq(
-            beforeUserVault.collateralAmount + nativeAmount / 2,
-            afterUserVault.collateralAmount,
-            "USER_VAULT_COLLATERAL"
-        );
-        assertEq(beforeLoan.collateralAmount + nativeAmount / 2, afterLoan.collateralAmount, "LOAN_COLLATERAL");
-        assertEq(beforeSenderBalance, r.weth.balanceOf(address(this)), "BALANCE");
-        assertEq(beforeSenderNativeBalance, address(this).balance + nativeAmount / 2, "NATIVE_BALANCE");
-        assertEq(beforePoolNativeBalance, address(r.lendingPool).balance, "POOL_NATIVE_BALANCE");
     }
 
     function testConvertToCollateralWithPermit() public {
