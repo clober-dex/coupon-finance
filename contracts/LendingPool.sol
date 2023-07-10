@@ -44,6 +44,7 @@ contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard {
     uint256 public immutable override epochDuration;
 
     string public override baseURI;
+    address public override oracle;
     address public override treasury;
     address public override yieldFarmer;
 
@@ -60,6 +61,7 @@ contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard {
         uint256 maxEpochDiff_,
         uint256 startedAt_,
         uint256 epochDuration_,
+        address oracle_,
         address treasury_,
         address yieldFarmer_,
         address weth_,
@@ -68,6 +70,7 @@ contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard {
         _maxEpochDiff = maxEpochDiff_;
         startedAt = startedAt_;
         epochDuration = epochDuration_;
+        oracle = oracle_;
         treasury = treasury_;
         yieldFarmer = yieldFarmer_;
         _weth = IWETH9(weth_);

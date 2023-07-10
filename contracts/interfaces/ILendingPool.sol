@@ -18,6 +18,8 @@ interface ILendingPool is ILendingPoolEvents, ICoupon {
     // View Functions //
     function baseURI() external view returns (string memory);
 
+    function oracle() external view returns (address);
+
     function treasury() external view returns (address);
 
     function startedAt() external view returns (uint256);
