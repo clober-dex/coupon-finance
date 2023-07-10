@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import {ICouponPool} from "./ICoupon.sol";
+import {ICoupon} from "./ICoupon.sol";
 import {Types} from "../Types.sol";
 
 interface ILendingPoolEvents {
@@ -14,7 +14,7 @@ interface ILendingPoolEvents {
     event Repay(Types.LoanId indexed loanId, address indexed sender, uint256 amount);
 }
 
-interface ILendingPool is ILendingPoolEvents, ICouponPool {
+interface ILendingPool is ILendingPoolEvents, ICoupon {
     // View Functions //
     function treasury() external view returns (address);
 
