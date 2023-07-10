@@ -56,11 +56,15 @@ contract LendingPool is ILendingPool, ERC1155Supply {
         uint256 maxEpochDiff_,
         uint256 startedAt_,
         uint256 epochDuration_,
+        address treasury_,
+        address yieldFarmer_,
         string memory baseURI_
     ) ERC1155(baseURI_) {
         _maxEpochDiff = maxEpochDiff_;
         startedAt = startedAt_;
         epochDuration = epochDuration_;
+        treasury = treasury_;
+        yieldFarmer = yieldFarmer_;
         baseURI = baseURI_;
     }
 
