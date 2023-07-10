@@ -57,7 +57,7 @@ contract LendingPoolMintCouponsUnitTest is Test, ILendingPoolEvents, ERC1155Hold
     }
 
     function testWithdrawWithUnregisteredToken() public {
-        vm.expectRevert("Unregistered token");
+        vm.expectRevert("Unregistered asset");
         r.lendingPool.mintCoupons(
             Utils.toArray(Types.Coupon(Types.CouponKey({asset: address(0x123), epoch: 1}), 10000)),
             Constants.USER1

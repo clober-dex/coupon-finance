@@ -104,7 +104,7 @@ contract LendingPoolConvertToCollateralUnitTest is Test, ILendingPoolEvents, ERC
     }
 
     function testConvertToCollateralWithUnregisteredToken() public {
-        vm.expectRevert("Unregistered token");
+        vm.expectRevert("Unregistered asset");
         Types.LoanKey memory loanKey1 = Types.LoanKey({
             user: Constants.USER1,
             collateral: address(0x123),
@@ -112,7 +112,7 @@ contract LendingPoolConvertToCollateralUnitTest is Test, ILendingPoolEvents, ERC
         });
         r.lendingPool.convertToCollateral(loanKey1, 1000);
 
-        vm.expectRevert("Unregistered token");
+        vm.expectRevert("Unregistered asset");
         Types.LoanKey memory loanKey2 = Types.LoanKey({
             user: Constants.USER1,
             collateral: address(r.usdc),

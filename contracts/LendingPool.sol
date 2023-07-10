@@ -217,11 +217,15 @@ contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard {
     }
 
     // Admin Functions //
-    function openReserve(address asset, Types.AssetConfiguration calldata config) external {
+    function registerAsset(address asset, Types.AssetConfiguration calldata config) external {
         revert("not implemented");
     }
 
     function setTreasury(address newTreasury) external {
         revert("not implemented");
+    }
+
+    function _checkValidAsset(address asset) internal view {
+        require(_assetConfig[asset].liquidationThreshold > 0, "Unregistered asset");
     }
 }

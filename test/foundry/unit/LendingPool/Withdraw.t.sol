@@ -57,7 +57,7 @@ contract LendingPoolWithdrawUnitTest is Test, ILendingPoolEvents {
     }
 
     function testWithdrawWithUnregisteredToken() public {
-        vm.expectRevert("Unregistered token");
+        vm.expectRevert("Unregistered asset");
         r.lendingPool.withdraw(address(0x123), 1000, Constants.USER1);
     }
 
