@@ -42,6 +42,7 @@ library SetUp {
             block.timestamp,
             Constants.EPOCH_DURATION,
             Constants.TREASURY,
+            Constants.WETH_ADDRESS,
             address(res.yieldFarmer),
             "baseURI/"
         );

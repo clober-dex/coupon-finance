@@ -11,6 +11,7 @@ import {ERC1155Supply} from "@openzeppelin/contracts/token/ERC1155/extensions/ER
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 import {Types} from "./Types.sol";
+import {IWETH9} from "./external/weth/IWETH9.sol";
 import {ICoupon} from "./interfaces/ICoupon.sol";
 import {ILendingPool} from "./interfaces/ILendingPool.sol";
 import {IYieldFarmer} from "./interfaces/IYieldFarmer.sol";
@@ -37,6 +38,7 @@ contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard {
         uint256 collateralAmount;
     }
 
+    IWETH9 private immutable _weth;
     uint256 private immutable _maxEpochDiff;
     uint256 public immutable override startedAt;
     uint256 public immutable override epochDuration;
@@ -59,6 +61,7 @@ contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard {
         uint256 epochDuration_,
         address treasury_,
         address yieldFarmer_,
+        address weth_,
         string memory baseURI_
     ) ERC1155(baseURI_) {
         _maxEpochDiff = maxEpochDiff_;
@@ -66,6 +69,7 @@ contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard {
         epochDuration = epochDuration_;
         treasury = treasury_;
         yieldFarmer = yieldFarmer_;
+        _weth = IWETH9(weth_);
         baseURI = baseURI_;
     }
 
@@ -140,9 +144,7 @@ contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard {
     }
 
     // User Functions //
-    function deposit(address asset, uint256 amount, address recipient) public payable nonReentrant {
-        revert("not implemented");
-    }
+    function deposit(address asset, uint256 amount, address recipient) public payable nonReentrant {}
 
     function depositWithPermit(
         address asset,
