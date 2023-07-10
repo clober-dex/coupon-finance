@@ -44,8 +44,8 @@ library SetUp {
             Constants.EPOCH_DURATION,
             address(res.oracle),
             Constants.TREASURY,
-            Constants.WETH_ADDRESS,
             address(res.yieldFarmer),
+            Constants.WETH_ADDRESS,
             "baseURI/"
         );
 

@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import {IERC1155MetadataURI} from "@openzeppelin/contracts/token/ERC1155/extensions/IERC1155MetadataURI.sol";
 import {ERC1155Supply} from "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Supply.sol";
@@ -157,7 +158,20 @@ contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard, Ownable {
     }
 
     // User Functions //
-    function deposit(address asset, uint256 amount, address recipient) public payable nonReentrant {}
+    function deposit(address asset, uint256 amount, address recipient) public payable nonReentrant {
+        _checkValidAsset(asset);
+        IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
+        if (asset == address(_weth)) {
+            if (msg.value > 0) {
+                amount += msg.value;
+                _weth.deposit{value: msg.value}();
+            }
+        }
+        _reserveMap[asset].spendableAmount += amount;
+        _vaultMap[Types.VaultKey({asset: asset, user: recipient}).toId()].spendableAmount += amount;
+        emit Deposit(asset, msg.sender, recipient, amount);
+        IYieldFarmer(yieldFarmer).deposit(asset, amount);
+    }
 
     function depositWithPermit(
         address asset,
@@ -168,7 +182,8 @@ contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard, Ownable {
         bytes32 r,
         bytes32 s
     ) external {
-        revert("not implemented");
+        IERC20Permit(asset).permit(msg.sender, address(this), amount, deadline, v, r, s);
+        deposit(asset, amount, recipient);
     }
 
     function withdraw(address asset, uint256 amount, address recipient) external returns (uint256) {
@@ -227,6 +242,8 @@ contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard, Ownable {
         require(config.liquidationThreshold > 0, "Invalid liquidation threshold");
         _assetConfig[asset] = config;
         emit RegisterAsset(asset, config);
+
+        IERC20(asset).approve(yieldFarmer, type(uint256).max);
     }
 
     function setTreasury(address newTreasury) external onlyOwner {
