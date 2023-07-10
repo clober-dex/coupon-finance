@@ -103,6 +103,24 @@ contract LendingPoolConvertToCollateralUnitTest is Test, ILendingPoolEvents, ERC
         assertEq(beforeSenderBalance, afterSenderBalance + additionalAmount, "BALANCE");
     }
 
+    function testConvertToCollateralWithUnregisteredToken() public {
+        vm.expectRevert("Unregistered token");
+        Types.LoanKey memory loanKey1 = Types.LoanKey({
+            user: Constants.USER1,
+            collateral: address(0x123),
+            asset: address(r.weth)
+        });
+        r.lendingPool.convertToCollateral(loanKey1, 1000);
+
+        vm.expectRevert("Unregistered token");
+        Types.LoanKey memory loanKey2 = Types.LoanKey({
+            user: Constants.USER1,
+            collateral: address(r.usdc),
+            asset: address(0x123)
+        });
+        r.lendingPool.convertToCollateral(loanKey2, 1000);
+    }
+
     function testConvertToCollateralWithExtraNativeToken() public {
         uint256 amount = 100 ether;
         r.lendingPool.deposit(address(r.weth), amount, address(this));

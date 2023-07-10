@@ -58,6 +58,11 @@ contract LendingPoolDepositUnitTest is Test, ILendingPoolEvents {
         assertEq(beforeVault.spendableAmount + amount, afterVault.spendableAmount, "VAULT_SPENDABLE");
     }
 
+    function testDepositWithUnregisteredToken() public {
+        vm.expectRevert("Unregistered token");
+        r.lendingPool.deposit(address(0x123), 1000, Constants.USER1);
+    }
+
     function testDepositNative() public {
         Types.ReserveStatus memory beforeReserve = r.lendingPool.getReserveStatus(address(r.weth));
         Types.VaultStatus memory beforeVault = r.lendingPool.getVaultStatus(

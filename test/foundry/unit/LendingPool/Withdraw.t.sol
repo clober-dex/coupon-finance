@@ -56,6 +56,11 @@ contract LendingPoolWithdrawUnitTest is Test, ILendingPoolEvents {
         assertEq(beforeVault.spendableAmount, afterVault.spendableAmount + amount, "VAULT_SPENDABLE");
     }
 
+    function testWithdrawWithUnregisteredToken() public {
+        vm.expectRevert("Unregistered token");
+        r.lendingPool.withdraw(address(0x123), 1000, Constants.USER1);
+    }
+
     function testWithdrawNative() public {
         uint256 amount = 100 ether;
         r.lendingPool.deposit(address(r.weth), amount, address(this));

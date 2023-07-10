@@ -114,6 +114,24 @@ contract LendingPoolRepayUnitTest is Test, ILendingPoolEvents, ERC1155Holder {
         assertEq(beforeSenderBalance, afterSenderBalance + unitAmount * 50, "SENDER_BALANCE");
     }
 
+    function testWithdrawWithUnregisteredToken() public {
+        Types.LoanKey memory loanKey1 = Types.LoanKey({
+            user: Constants.USER1,
+            collateral: address(0x123),
+            asset: address(r.usdc)
+        });
+        vm.expectRevert("Unregistered token");
+        r.lendingPool.repay(loanKey1, 1000);
+
+        Types.LoanKey memory loanKey2 = Types.LoanKey({
+            user: Constants.USER1,
+            collateral: address(r.weth),
+            asset: address(0x231)
+        });
+        vm.expectRevert("Unregistered token");
+        r.lendingPool.repay(loanKey2, 1000);
+    }
+
     function testRepayWithNativeToken() public {
         r.lendingPool.deposit(address(r.weth), 1 ether, address(this));
 

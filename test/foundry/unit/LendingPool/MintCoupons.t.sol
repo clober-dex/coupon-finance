@@ -56,6 +56,14 @@ contract LendingPoolMintCouponsUnitTest is Test, ILendingPoolEvents, ERC1155Hold
         assertEq(beforeCouponTotalSupply + amount, afterCouponTotalSupply, "COUPON_TOTAL_SUPPLY");
     }
 
+    function testWithdrawWithUnregisteredToken() public {
+        vm.expectRevert("Unregistered token");
+        r.lendingPool.mintCoupons(
+            Utils.toArray(Types.Coupon(Types.CouponKey({asset: address(0x123), epoch: 1}), 10000)),
+            Constants.USER1
+        );
+    }
+
     function testMintCouponsWhenAmountExceedsDepositedAmount() public {
         uint256 amount = r.usdc.amount(100);
         r.lendingPool.deposit(address(r.usdc), amount, address(this));

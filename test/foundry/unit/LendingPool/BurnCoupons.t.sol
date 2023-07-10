@@ -59,6 +59,14 @@ contract LendingPoolBurnCouponsUnitTest is Test, ILendingPoolEvents, ERC1155Hold
         assertEq(beforeCouponTotalSupply, afterCouponTotalSupply + burnAmount, "COUPON_TOTAL_SUPPLY");
     }
 
+    function testWithdrawWithUnregisteredToken() public {
+        vm.expectRevert("Unregistered token");
+        r.lendingPool.burnCoupons(
+            Utils.toArray(Types.Coupon(Types.CouponKey({asset: address(0x123), epoch: 1}), 1000)),
+            address(this)
+        );
+    }
+
     function testBurnCouponsWhenTheAmountExceedsLockedAmount() public {
         uint256 amount = r.usdc.amount(100);
         r.lendingPool.deposit(address(r.usdc), amount, address(this));
