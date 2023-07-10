@@ -47,4 +47,11 @@ library Types {
         uint256 collateralAmount;
         uint256 limit;
     }
+
+    struct AssetConfiguration {
+        address oracle;
+        uint32 liquidationThreshold;
+        uint32 liquidationBonus;
+        uint32 liquidationProtocolFee;
+    }
 }
