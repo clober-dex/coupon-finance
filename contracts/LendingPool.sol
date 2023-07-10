@@ -108,4 +108,80 @@ abstract contract LendingPool is ILendingPool {
     function withdrawable(address asset) external view returns (uint256) {
         return IYieldFarmer(yieldFarmer).withdrawable(asset);
     }
+
+    // User Functions //
+    function deposit(address asset, uint256 amount, address recipient) external payable {
+        revert("not implemented");
+    }
+
+    function depositWithPermit(
+        address asset,
+        uint256 amount,
+        address recipient,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        revert("not implemented");
+    }
+
+    function withdraw(address asset, uint256 amount, address recipient) external returns (uint256) {
+        revert("not implemented");
+    }
+
+    function mintCoupons(Types.Coupon[] calldata coupons, address recipient) external {
+        revert("not implemented");
+    }
+
+    function burnCoupons(Types.Coupon[] calldata coupons, address recipient) external {
+        revert("not implemented");
+    }
+
+    function convertToCollateral(Types.LoanKey calldata loanKey, uint256 amount) external payable {
+        revert("not implemented");
+    }
+
+    function convertToCollateralWithPermit(
+        Types.LoanKey calldata loanKey,
+        uint256 amount,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        revert("not implemented");
+    }
+
+    function borrow(Types.Coupon[] calldata coupons, address collateral, address recipient) external {
+        revert("not implemented");
+    }
+
+    function repay(Types.LoanKey calldata loanKey, uint256 amount) external payable {
+        revert("not implemented");
+    }
+
+    function repayWithPermit(
+        Types.LoanKey calldata loanKey,
+        uint256 amount,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        revert("not implemented");
+    }
+
+    function liquidate(address collateral, address debt, address user, uint256 maxRepayAmount) external {
+        revert("not implemented");
+    }
+
+    // Admin Functions //
+    function openReserve(address asset) external {
+        revert("not implemented");
+    }
+
+    function setTreasury(address newTreasury) external {
+        revert("not implemented");
+    }
 }
