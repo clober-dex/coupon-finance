@@ -9,6 +9,7 @@ import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import {IERC1155MetadataURI} from "@openzeppelin/contracts/token/ERC1155/extensions/IERC1155MetadataURI.sol";
 import {ERC1155Supply} from "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Supply.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 import {Types} from "./Types.sol";
 import {IWETH9} from "./external/weth/IWETH9.sol";
@@ -18,7 +19,7 @@ import {IYieldFarmer} from "./interfaces/IYieldFarmer.sol";
 import {CouponKeyLibrary, LoanKeyLibrary, VaultKeyLibrary} from "./libraries/Keys.sol";
 import {ReentrancyGuard} from "./libraries/ReentrancyGuard.sol";
 
-contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard {
+contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard, Ownable {
     using Strings for uint256;
     using SafeERC20 for IERC20;
     using CouponKeyLibrary for Types.CouponKey;
@@ -217,11 +218,11 @@ contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard {
     }
 
     // Admin Functions //
-    function registerAsset(address asset, Types.AssetConfiguration calldata config) external {
+    function registerAsset(address asset, Types.AssetConfiguration calldata config) external onlyOwner {
         revert("not implemented");
     }
 
-    function setTreasury(address newTreasury) external {
+    function setTreasury(address newTreasury) external onlyOwner {
         revert("not implemented");
     }
 
