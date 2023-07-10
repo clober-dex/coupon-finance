@@ -59,7 +59,7 @@ contract LendingPoolDepositUnitTest is Test, ILendingPoolEvents {
     }
 
     function testDepositWithUnregisteredToken() public {
-        vm.expectRevert("Unregistered token");
+        vm.expectRevert("Unregistered asset");
         r.lendingPool.deposit(address(0x123), 1000, Constants.USER1);
     }
 

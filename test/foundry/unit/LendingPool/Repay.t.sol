@@ -120,7 +120,7 @@ contract LendingPoolRepayUnitTest is Test, ILendingPoolEvents, ERC1155Holder {
             collateral: address(0x123),
             asset: address(r.usdc)
         });
-        vm.expectRevert("Unregistered token");
+        vm.expectRevert("Unregistered asset");
         r.lendingPool.repay(loanKey1, 1000);
 
         Types.LoanKey memory loanKey2 = Types.LoanKey({
@@ -128,7 +128,7 @@ contract LendingPoolRepayUnitTest is Test, ILendingPoolEvents, ERC1155Holder {
             collateral: address(r.weth),
             asset: address(0x231)
         });
-        vm.expectRevert("Unregistered token");
+        vm.expectRevert("Unregistered asset");
         r.lendingPool.repay(loanKey2, 1000);
     }
 

@@ -224,4 +224,8 @@ contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard {
     function setTreasury(address newTreasury) external {
         revert("not implemented");
     }
+
+    function _checkValidAsset(address asset) internal view {
+        require(_assetConfig[asset].liquidationThreshold > 0, "invalid asset");
+    }
 }
