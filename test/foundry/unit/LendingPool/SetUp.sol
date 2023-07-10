@@ -6,6 +6,7 @@ import "forge-std/Test.sol";
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+import {Types} from "../../../../contracts/Types.sol";
 import {Constants} from "../Constants.sol";
 import {IWETH9} from "../../../../contracts/external/weth/IWETH9.sol";
 import {ILendingPool} from "../../../../contracts/interfaces/ILendingPool.sol";
@@ -41,6 +42,7 @@ library SetUp {
             Constants.MAX_EPOCH_DIFF,
             block.timestamp,
             Constants.EPOCH_DURATION,
+            address(res.oracle),
             Constants.TREASURY,
             Constants.WETH_ADDRESS,
             address(res.yieldFarmer),
@@ -56,6 +58,22 @@ library SetUp {
         res.usdc.approve(address(res.lendingPool), type(uint256).max);
         res.weth.approve(address(res.lendingPool), type(uint256).max);
 
+        res.lendingPool.openReserve(
+            address(res.usdc),
+            Types.AssetConfiguration({
+                liquidationThreshold: 800000,
+                liquidationBonus: 10000,
+                liquidationProtocolFee: 5000
+            })
+        );
+        res.lendingPool.openReserve(
+            address(res.weth),
+            Types.AssetConfiguration({
+                liquidationThreshold: 800000,
+                liquidationBonus: 10000,
+                liquidationProtocolFee: 5000
+            })
+        );
         // set oracle
         res.oracle.setAssetPrice(address(res.usdc), 10 ** 8);
         res.oracle.setAssetPrice(address(res.weth), 2000 * 10 ** 8);

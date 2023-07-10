@@ -49,7 +49,6 @@ library Types {
     }
 
     struct AssetConfiguration {
-        address oracle;
         uint32 liquidationThreshold;
         uint32 liquidationBonus;
         uint32 liquidationProtocolFee;

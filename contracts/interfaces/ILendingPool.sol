@@ -18,6 +18,8 @@ interface ILendingPool is ILendingPoolEvents, ICoupon {
     // View Functions //
     function baseURI() external view returns (string memory);
 
+    function oracle() external view returns (address);
+
     function treasury() external view returns (address);
 
     function startedAt() external view returns (uint256);
@@ -29,6 +31,8 @@ interface ILendingPool is ILendingPoolEvents, ICoupon {
     function currentEpoch() external view returns (uint256);
 
     function yieldFarmer() external view returns (address);
+
+    function getAssetConfiguration(address asset) external view returns (Types.AssetConfiguration memory);
 
     function getReserveStatus(address asset) external view returns (Types.ReserveStatus memory);
 
@@ -92,7 +96,7 @@ interface ILendingPool is ILendingPoolEvents, ICoupon {
     function liquidate(address collateral, address debt, address user, uint256 maxRepayAmount) external;
 
     // Admin Functions //
-    function openReserve(address asset) external;
+    function openReserve(address asset, Types.AssetConfiguration calldata config) external;
 
     function setTreasury(address newTreasury) external;
 }
