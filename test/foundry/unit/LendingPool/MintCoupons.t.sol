@@ -56,7 +56,7 @@ contract LendingPoolMintCouponsUnitTest is Test, ILendingPoolEvents, ERC1155Hold
         assertEq(beforeCouponTotalSupply + amount, afterCouponTotalSupply, "COUPON_TOTAL_SUPPLY");
     }
 
-    function testWithdrawWithUnregisteredToken() public {
+    function testMintCouponsWithUnregisteredToken() public {
         vm.expectRevert("Unregistered asset");
         r.lendingPool.mintCoupons(
             address(0x123),

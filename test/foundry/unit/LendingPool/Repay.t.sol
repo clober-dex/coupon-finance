@@ -119,7 +119,7 @@ contract LendingPoolRepayUnitTest is Test, ILendingPoolEvents, ERC1155Holder {
         assertEq(beforeSenderBalance, afterSenderBalance + unitAmount * 50, "SENDER_BALANCE");
     }
 
-    function testWithdrawWithUnregisteredToken() public {
+    function testRepayWithUnregisteredToken() public {
         Types.LoanKey memory loanKey1 = Types.LoanKey({
             user: Constants.USER1,
             collateral: address(0x123),
