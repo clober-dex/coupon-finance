@@ -34,6 +34,14 @@ contract MockYieldFarmer is IYieldFarmer {
         reservedAmount[asset] -= amount;
     }
 
+    function claimableAmount(address asset) public view returns (uint256) {
+        return IERC20(asset).balanceOf(address(this)) - totalReservedAmount[asset];
+    }
+
+    function claim(address asset, address recipient) external {
+        IERC20(asset).safeTransfer(recipient, claimableAmount(asset));
+    }
+
     function setWithdrawLimit(address asset, uint256 amount) external {
         withdrawLimit[asset] = amount;
     }

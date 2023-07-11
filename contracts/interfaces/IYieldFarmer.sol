@@ -12,4 +12,8 @@ interface IYieldFarmer {
     function deposit(address asset, uint256 amount) external;
 
     function withdraw(address asset, uint256 amount, address recipient) external;
+
+    function claimableAmount(address asset) external view returns (uint256);
+
+    function claim(address asset, address recipient) external;
 }
