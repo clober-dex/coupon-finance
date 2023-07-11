@@ -44,7 +44,12 @@ contract LendingPoolRepayUnitTest is Test, ILendingPoolEvents, ERC1155Holder {
         coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(r.usdc), epoch: 2}), amount: unitAmount * 80});
         coupons[2] = Types.Coupon({key: Types.CouponKey({asset: address(r.usdc), epoch: 3}), amount: unitAmount * 10});
 
-        r.lendingPool.mintCoupons(coupons, Constants.USER1);
+        r.lendingPool.mintCoupons(
+            address(r.usdc),
+            Utils.toArr(1, 2, 3),
+            Utils.toArr(unitAmount * 100, unitAmount * 80, unitAmount * 10),
+            Constants.USER1
+        );
 
         Types.LoanKey memory loanKey = Types.LoanKey({
             user: Constants.USER1,
@@ -137,7 +142,7 @@ contract LendingPoolRepayUnitTest is Test, ILendingPoolEvents, ERC1155Holder {
 
         Types.CouponKey memory couponKey = Types.CouponKey({asset: address(r.weth), epoch: 1});
         uint256 couponId = couponKey.toId();
-        r.lendingPool.mintCoupons(Utils.toArray(Types.Coupon(couponKey, 1 ether)), Constants.USER1);
+        r.lendingPool.mintCoupons(couponKey.asset, Utils.toArr(couponKey.epoch), Utils.toArr(1 ether), Constants.USER1);
 
         Types.LoanKey memory loanKey = Types.LoanKey({
             user: Constants.USER1,
@@ -147,7 +152,7 @@ contract LendingPoolRepayUnitTest is Test, ILendingPoolEvents, ERC1155Holder {
         r.lendingPool.convertToCollateral(loanKey, r.usdc.amount(10000));
         vm.startPrank(Constants.USER1);
         r.lendingPool.borrow(
-            Utils.toArray(Types.Coupon(Types.CouponKey({asset: address(0), epoch: 1}), 1 ether)),
+            Utils.toArr(Types.Coupon(Types.CouponKey({asset: address(0), epoch: 1}), 1 ether)),
             address(r.usdc),
             Constants.USER2
         );
@@ -194,7 +199,12 @@ contract LendingPoolRepayUnitTest is Test, ILendingPoolEvents, ERC1155Holder {
         coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(r.usdc), epoch: 1}), amount: unitAmount * 100});
         coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(r.usdc), epoch: 2}), amount: unitAmount * 80});
 
-        r.lendingPool.mintCoupons(coupons, Constants.USER1);
+        r.lendingPool.mintCoupons(
+            address(r.usdc),
+            Utils.toArr(1, 2),
+            Utils.toArr(unitAmount * 100, unitAmount * 80),
+            Constants.USER1
+        );
 
         Types.LoanKey memory loanKey = Types.LoanKey({
             user: Constants.USER1,
@@ -264,7 +274,7 @@ contract LendingPoolRepayUnitTest is Test, ILendingPoolEvents, ERC1155Holder {
             amount: unitAmount * 100
         });
 
-        r.lendingPool.mintCoupons(Utils.toArray(coupon), Constants.USER1);
+        r.lendingPool.mintCoupons(address(r.usdc), Utils.toArr(1), Utils.toArr(unitAmount * 100), Constants.USER1);
 
         Types.LoanKey memory loanKey = Types.LoanKey({
             user: Constants.USER1,
@@ -273,7 +283,7 @@ contract LendingPoolRepayUnitTest is Test, ILendingPoolEvents, ERC1155Holder {
         });
         r.lendingPool.convertToCollateral{value: 1 ether}(loanKey, 1 ether);
         vm.startPrank(Constants.USER1);
-        r.lendingPool.borrow(Utils.toArray(coupon), address(r.weth), Constants.USER2);
+        r.lendingPool.borrow(Utils.toArr(coupon), address(r.weth), Constants.USER2);
         vm.stopPrank();
 
         uint256 beforeCouponBalance = r.lendingPool.balanceOf(Constants.USER1, coupon.key.toId());

@@ -16,9 +16,27 @@ library ERC20Utils {
 }
 
 library Utils {
-    function toArray(Types.Coupon memory coupon) internal pure returns (Types.Coupon[] memory arr) {
+    function toArr(Types.Coupon memory coupon) internal pure returns (Types.Coupon[] memory arr) {
         arr = new Types.Coupon[](1);
         arr[0] = coupon;
+    }
+
+    function toArr(uint256 n0) internal pure returns (uint256[] memory arr) {
+        arr = new uint256[](1);
+        arr[0] = n0;
+    }
+
+    function toArr(uint256 n0, uint256 n1) internal pure returns (uint256[] memory arr) {
+        arr = new uint256[](2);
+        arr[0] = n0;
+        arr[1] = n1;
+    }
+
+    function toArr(uint256 n0, uint256 n1, uint256 n2) internal pure returns (uint256[] memory arr) {
+        arr = new uint256[](3);
+        arr[0] = n0;
+        arr[1] = n1;
+        arr[2] = n2;
     }
 }
 

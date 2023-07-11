@@ -30,7 +30,7 @@ contract LendingPoolBurnCouponsUnitTest is Test, ILendingPoolEvents, ERC1155Hold
 
         Types.CouponKey memory couponKey = Types.CouponKey({asset: address(r.usdc), epoch: 1});
         uint256 couponId = couponKey.toId();
-        r.lendingPool.mintCoupons(Utils.toArray(Types.Coupon(couponKey, amount)), Constants.USER1);
+        r.lendingPool.mintCoupons(couponKey.asset, Utils.toArr(couponKey.epoch), Utils.toArr(amount), Constants.USER1);
 
         uint256 burnAmount = amount / 3;
         Types.ReserveStatus memory beforeReserve = r.lendingPool.getReserveStatus(address(r.usdc));
@@ -41,7 +41,7 @@ contract LendingPoolBurnCouponsUnitTest is Test, ILendingPoolEvents, ERC1155Hold
         uint256 beforeCouponTotalSupply = r.lendingPool.totalSupply(couponId);
 
         vm.startPrank(Constants.USER1);
-        r.lendingPool.burnCoupons(Utils.toArray(Types.Coupon(couponKey, burnAmount)), address(this));
+        r.lendingPool.burnCoupons(Utils.toArr(Types.Coupon(couponKey, burnAmount)), address(this));
         vm.stopPrank();
 
         Types.ReserveStatus memory afterReserve = r.lendingPool.getReserveStatus(address(r.usdc));
@@ -62,7 +62,7 @@ contract LendingPoolBurnCouponsUnitTest is Test, ILendingPoolEvents, ERC1155Hold
     function testWithdrawWithUnregisteredToken() public {
         vm.expectRevert("Unregistered asset");
         r.lendingPool.burnCoupons(
-            Utils.toArray(Types.Coupon(Types.CouponKey({asset: address(0x123), epoch: 1}), 1000)),
+            Utils.toArr(Types.Coupon(Types.CouponKey({asset: address(0x123), epoch: 1}), 1000)),
             address(this)
         );
     }
@@ -73,12 +73,17 @@ contract LendingPoolBurnCouponsUnitTest is Test, ILendingPoolEvents, ERC1155Hold
 
         Types.CouponKey memory couponKey = Types.CouponKey({asset: address(r.usdc), epoch: 1});
         uint256 couponId = couponKey.toId();
-        r.lendingPool.mintCoupons(Utils.toArray(Types.Coupon(couponKey, amount)), Constants.USER1);
+        r.lendingPool.mintCoupons(couponKey.asset, Utils.toArr(couponKey.epoch), Utils.toArr(amount), Constants.USER1);
 
         uint256 burnAmount = amount / 3;
         r.lendingPool.deposit(address(r.usdc), burnAmount - 1, Constants.USER1);
         vm.startPrank(Constants.USER1);
-        r.lendingPool.mintCoupons(Utils.toArray(Types.Coupon(couponKey, burnAmount - 1)), Constants.USER2);
+        r.lendingPool.mintCoupons(
+            couponKey.asset,
+            Utils.toArr(couponKey.epoch),
+            Utils.toArr(burnAmount - 1),
+            Constants.USER2
+        );
 
         Types.ReserveStatus memory beforeReserve = r.lendingPool.getReserveStatus(address(r.usdc));
         Types.VaultStatus memory beforeVault = r.lendingPool.getVaultStatus(
@@ -87,7 +92,7 @@ contract LendingPoolBurnCouponsUnitTest is Test, ILendingPoolEvents, ERC1155Hold
         uint256 beforeCouponBalance = r.lendingPool.balanceOf(Constants.USER1, couponId);
         uint256 beforeCouponTotalSupply = r.lendingPool.totalSupply(couponId);
 
-        r.lendingPool.burnCoupons(Utils.toArray(Types.Coupon(couponKey, burnAmount)), Constants.USER1);
+        r.lendingPool.burnCoupons(Utils.toArr(Types.Coupon(couponKey, burnAmount)), Constants.USER1);
         vm.stopPrank();
 
         Types.ReserveStatus memory afterReserve = r.lendingPool.getReserveStatus(address(r.usdc));
@@ -111,16 +116,16 @@ contract LendingPoolBurnCouponsUnitTest is Test, ILendingPoolEvents, ERC1155Hold
 
         Types.CouponKey memory couponKey = Types.CouponKey({asset: address(r.usdc), epoch: 1});
         uint256 couponId = couponKey.toId();
-        r.lendingPool.mintCoupons(Utils.toArray(Types.Coupon(couponKey, amount)), Constants.USER1);
+        r.lendingPool.mintCoupons(couponKey.asset, Utils.toArr(couponKey.epoch), Utils.toArr(amount), Constants.USER1);
 
         uint256 couponBalance = r.lendingPool.balanceOf(Constants.USER1, couponId);
         vm.startPrank(Constants.USER1);
-        r.lendingPool.burnCoupons(Utils.toArray(Types.Coupon(couponKey, amount)), Constants.USER1);
+        r.lendingPool.burnCoupons(Utils.toArr(Types.Coupon(couponKey, amount)), Constants.USER1);
         assertEq(r.lendingPool.balanceOf(Constants.USER1, couponId), couponBalance, "COUPON_BALANCE_0");
 
         vm.warp(block.timestamp + r.lendingPool.epochDuration());
 
-        r.lendingPool.burnCoupons(Utils.toArray(Types.Coupon(couponKey, amount / 2)), Constants.USER1);
+        r.lendingPool.burnCoupons(Utils.toArr(Types.Coupon(couponKey, amount / 2)), Constants.USER1);
         assertEq(r.lendingPool.balanceOf(Constants.USER1, couponId), amount / 2, "COUPON_BALANCE_1");
         vm.stopPrank();
 
@@ -130,7 +135,7 @@ contract LendingPoolBurnCouponsUnitTest is Test, ILendingPoolEvents, ERC1155Hold
             amount,
             "VAULT_LOCKED_0"
         );
-        r.lendingPool.burnCoupons(Utils.toArray(Types.Coupon(couponKey, amount / 2)), address(this));
+        r.lendingPool.burnCoupons(Utils.toArr(Types.Coupon(couponKey, amount / 2)), address(this));
         // expect no change
         assertEq(r.lendingPool.getReserveLockedAmount(address(r.usdc), 1), amount, "RESERVE_LOCKED_1");
         assertEq(

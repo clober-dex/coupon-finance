@@ -199,7 +199,12 @@ contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard, Ownable {
         IYieldFarmer(yieldFarmer).withdraw(isNative ? address(0) : asset, amount, recipient);
     }
 
-    function mintCoupons(Types.Coupon[] calldata coupons, address recipient) external {
+    function mintCoupons(
+        address asset,
+        uint256[] calldata epochs,
+        uint256[] calldata amounts,
+        address recipient
+    ) external payable {
         revert("not implemented");
     }
 

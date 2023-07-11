@@ -39,7 +39,7 @@ contract LendingPoolMintCouponsUnitTest is Test, ILendingPoolEvents, ERC1155Hold
         uint256 beforeCouponBalance = r.lendingPool.balanceOf(Constants.USER1, couponId);
         uint256 beforeCouponTotalSupply = r.lendingPool.totalSupply(couponId);
 
-        r.lendingPool.mintCoupons(Utils.toArray(Types.Coupon(couponKey, amount)), Constants.USER1);
+        r.lendingPool.mintCoupons(couponKey.asset, Utils.toArr(couponKey.epoch), Utils.toArr(amount), Constants.USER1);
 
         Types.ReserveStatus memory afterReserve = r.lendingPool.getReserveStatus(address(r.usdc));
         Types.VaultStatus memory afterVault = r.lendingPool.getVaultStatus(
@@ -59,7 +59,9 @@ contract LendingPoolMintCouponsUnitTest is Test, ILendingPoolEvents, ERC1155Hold
     function testWithdrawWithUnregisteredToken() public {
         vm.expectRevert("Unregistered asset");
         r.lendingPool.mintCoupons(
-            Utils.toArray(Types.Coupon(Types.CouponKey({asset: address(0x123), epoch: 1}), 10000)),
+            address(0x123),
+            Utils.toArr(uint256(1)),
+            Utils.toArr(uint256(10000)),
             Constants.USER1
         );
     }
@@ -78,7 +80,12 @@ contract LendingPoolMintCouponsUnitTest is Test, ILendingPoolEvents, ERC1155Hold
         uint256 beforeCouponBalance = r.lendingPool.balanceOf(Constants.USER1, couponId);
         uint256 beforeCouponTotalSupply = r.lendingPool.totalSupply(couponId);
 
-        r.lendingPool.mintCoupons(Utils.toArray(Types.Coupon(couponKey, amount * 2)), Constants.USER1);
+        r.lendingPool.mintCoupons(
+            couponKey.asset,
+            Utils.toArr(couponKey.epoch),
+            Utils.toArr(amount * 2),
+            Constants.USER1
+        );
 
         Types.ReserveStatus memory afterReserve = r.lendingPool.getReserveStatus(address(r.usdc));
         Types.VaultStatus memory afterVault = r.lendingPool.getVaultStatus(
@@ -105,7 +112,7 @@ contract LendingPoolMintCouponsUnitTest is Test, ILendingPoolEvents, ERC1155Hold
         });
 
         vm.expectRevert("Epoch too big");
-        r.lendingPool.mintCoupons(Utils.toArray(Types.Coupon(couponKey, amount)), Constants.USER1);
+        r.lendingPool.mintCoupons(couponKey.asset, Utils.toArr(couponKey.epoch), Utils.toArr(amount), Constants.USER1);
     }
 
     function testMintCouponsLockedAmountChanges() public {
@@ -117,8 +124,8 @@ contract LendingPoolMintCouponsUnitTest is Test, ILendingPoolEvents, ERC1155Hold
         Types.CouponKey memory couponKey1 = Types.CouponKey({asset: address(r.usdc), epoch: 1});
         Types.CouponKey memory couponKey2 = Types.CouponKey({asset: address(r.usdc), epoch: 2});
 
-        r.lendingPool.mintCoupons(Utils.toArray(Types.Coupon(couponKey1, amount1)), address(this));
-        r.lendingPool.mintCoupons(Utils.toArray(Types.Coupon(couponKey2, amount2)), address(this));
+        r.lendingPool.mintCoupons(couponKey1.asset, Utils.toArr(couponKey1.epoch), Utils.toArr(amount1), address(this));
+        r.lendingPool.mintCoupons(couponKey2.asset, Utils.toArr(couponKey2.epoch), Utils.toArr(amount2), address(this));
 
         // epoch 1
         Types.ReserveStatus memory reserve = r.lendingPool.getReserveStatus(address(r.usdc));
