@@ -197,6 +197,7 @@ contract LendingPoolRepayUnitTest is Test, ILendingPoolEvents, ERC1155Holder {
             collateral: address(r.weth),
             asset: address(r.usdc)
         });
+        uint256 unitAmount = r.usdc.amount(1);
         vm.expectRevert("msg.value not allowed");
         r.lendingPool.repay{value: 1000}(loanKey, unitAmount * 50);
     }
