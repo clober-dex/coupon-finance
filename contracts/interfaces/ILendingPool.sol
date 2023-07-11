@@ -65,7 +65,7 @@ interface ILendingPool is ILendingPoolEvents, ICoupon {
     ) external;
 
     // @dev If the amount exceeds the withdrawable balance, it will withdraw the maximum amount.
-    function withdraw(address asset, uint256 amount, address recipient) external returns (uint256);
+    function withdraw(address asset, uint256 amount, address recipient) external;
 
     function mintCoupons(Types.Coupon[] calldata coupons, address recipient) external;
 
