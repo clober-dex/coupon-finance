@@ -186,6 +186,17 @@ contract LendingPoolConvertToCollateralUnitTest is Test, ILendingPoolEvents, ERC
         assertEq(beforeSenderNativeBalance, address(this).balance + nativeAmount, "NATIVE_BALANCE");
     }
 
+    function testConvertToCollateralNativeWithWrongToken() public {
+        uint256 amount = r.usdc.amount(100);
+        Types.LoanKey memory loanKey = Types.LoanKey({
+            user: Constants.USER1,
+            collateral: address(r.usdc),
+            asset: address(r.weth)
+        });
+        vm.expectRevert("msg.value not allowed");
+        r.lendingPool.convertToCollateral{value: 1000}(loanKey, amount);
+    }
+
     function testConvertToCollateralWithPermit() public {
         uint256 amount = r.usdc.amount(100);
         uint256 additionalAmount = amount / 2;

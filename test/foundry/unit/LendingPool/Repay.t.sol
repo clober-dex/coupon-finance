@@ -191,6 +191,16 @@ contract LendingPoolRepayUnitTest is Test, ILendingPoolEvents, ERC1155Holder {
         assertEq(beforeSenderNativeBalance, afterSenderNativeBalance + 0.4 ether, "SENDER_NATIVE_BALANCE");
     }
 
+    function testRepayNativeWithWrongToken() public {
+        Types.LoanKey memory loanKey = Types.LoanKey({
+            user: Constants.USER1,
+            collateral: address(r.weth),
+            asset: address(r.usdc)
+        });
+        vm.expectRevert("msg.value not allowed");
+        r.lendingPool.repay{value: 1000}(loanKey, unitAmount * 50);
+    }
+
     function testRepayWhenLoanAmountAlreadyExceedsLimit() public {
         uint256 unitAmount = r.usdc.amount(1);
         r.lendingPool.deposit(address(r.usdc), unitAmount * 200, address(this));

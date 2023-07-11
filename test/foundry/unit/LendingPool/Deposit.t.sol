@@ -97,6 +97,11 @@ contract LendingPoolDepositUnitTest is Test, ILendingPoolEvents {
         assertEq(beforeVault.spendableAmount + amount1 + amount2, afterVault.spendableAmount, "VAULT_SPENDABLE");
     }
 
+    function testDepositNativeWithWrongToken() public {
+        vm.expectRevert("msg.value not allowed");
+        r.lendingPool.deposit{value: 1000}(address(r.usdc), 1000, Constants.USER1);
+    }
+
     function testDepositWithPermit() public {
         IERC2612 permitToken = IERC2612(address(r.usdc));
         uint256 amount = r.usdc.amount(100);
