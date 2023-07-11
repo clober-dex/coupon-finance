@@ -186,8 +186,16 @@ contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard, Ownable {
         deposit(asset, amount, recipient);
     }
 
-    function withdraw(address asset, uint256 amount, address recipient) external returns (uint256) {
-        revert("not implemented");
+    function withdraw(address asset, uint256 amount, address recipient) external nonReentrant {
+        bool isNative = asset == address(0);
+        if (isNative) {
+            asset = address(_weth);
+        }
+        _checkValidAsset(asset);
+        _reserveMap[asset].spendableAmount -= amount;
+        _vaultMap[Types.VaultKey({asset: asset, user: msg.sender}).toId()].spendableAmount -= amount;
+        emit Withdraw(asset, msg.sender, recipient, amount);
+        IYieldFarmer(yieldFarmer).withdraw(isNative ? address(0) : asset, amount, recipient);
     }
 
     function mintCoupons(Types.Coupon[] calldata coupons, address recipient) external {
