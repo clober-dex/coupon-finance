@@ -55,4 +55,11 @@ library Types {
         uint32 liquidationProtocolFee;
         uint32 liquidationTargetLtv;
     }
+
+    struct PermitParams {
+        uint256 deadline;
+        uint8 v;
+        bytes32 r;
+        bytes32 s;
+    }
 }
