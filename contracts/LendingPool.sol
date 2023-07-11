@@ -248,6 +248,7 @@ contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard, Ownable {
     function registerAsset(address asset, Types.AssetConfiguration calldata config) external onlyOwner {
         require(!isAssetRegistered(asset), "Already registered");
         require(config.liquidationThreshold > 0, "Invalid liquidation threshold");
+        require(config.decimal == IERC20Metadata(asset).decimals(), "Wrong decimal");
         _assetConfig[asset] = config;
         emit RegisterAsset(asset, config);
 
