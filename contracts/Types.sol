@@ -9,11 +9,13 @@ library Types {
         uint256 collateralAmount;
     }
     struct Bond {
+        uint256 nonce;
         address asset;
         uint256 unlockedAt;
         uint256 amount;
     }
     struct Loan {
+        uint256 nonce;
         address collateralToken;
         address debtToken;
         uint256 collateralAmount;
