@@ -3,6 +3,8 @@
 pragma solidity ^0.8.0;
 
 interface IYieldFarmer {
+    function treasury() external view returns (address);
+
     function totalReservedAmount(address asset) external view returns (uint256);
 
     function reservedAmount(address asset) external view returns (uint256);
@@ -16,4 +18,6 @@ interface IYieldFarmer {
     function claimableAmount(address asset) external view returns (uint256);
 
     function claim(address asset, address recipient) external;
+
+    function setTreasury(address newTreasury) external;
 }
