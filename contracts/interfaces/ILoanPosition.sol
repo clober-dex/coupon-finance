@@ -12,56 +12,30 @@ interface ILoanPosition is IERC721Permit, IERC721Metadata {
 
     function coupon() external view returns (address);
 
-    function assetPool() external view returns (address);
-
     function nextId() external view returns (uint256);
+
+    function loans(uint256 tokenId) external view returns (Types.Loan memory);
+
+    function getLiquidationStatus(uint256 tokenId) external view returns (Types.LiquidationStatus memory);
 
     function mint(
         address collateralToken,
-        address loanToken,
+        address debtToken,
         uint256 loanEpochs,
         uint256 collateralAmount,
-        uint256 loanAmount,
-        address recipient
+        uint256 debtAmount,
+        address recipient,
+        bytes calldata data
     ) external payable returns (uint256);
 
-    function mintWithPermit(
-        address collateralToken,
-        address loanToken,
-        uint256 loanEpochs,
-        uint256 collateralAmount,
-        uint256 loanAmount,
-        address recipient,
-        Types.PermitParams calldata permitParams
-    ) external returns (uint256);
-
-    function increaseLoan(uint256 tokenId, uint256 loanAmount, address recipient) external;
-
-    function decreaseLoan(uint256 tokenId, uint256 loanAmount, address recipient) external payable;
-
-    function decreaseLoanWithPermit(
+    function adjustPosition(
         uint256 tokenId,
-        uint256 loanAmount,
+        int256 debtAmount,
+        int256 collateralAmount,
+        int256 loanEpochs,
         address recipient,
-        Types.PermitParams calldata permitParams
+        bytes calldata data
     ) external;
-
-    function increaseCollateral(uint256 tokenId, uint256 collateralAmount, address recipient) external payable;
-
-    function increaseCollateralWithPermit(
-        uint256 tokenId,
-        uint256 collateralAmount,
-        address recipient,
-        Types.PermitParams calldata permitParams
-    ) external;
-
-    function decreaseCollateral(uint256 tokenId, uint256 collateralAmount, address recipient) external;
-
-    function increaseEpochs(uint256 tokenId, uint256 epochs, address recipient) external;
-
-    function decreaseEpochs(uint256 tokenId, uint256 epochs, address recipient) external;
 
     function liquidate(uint256 tokenId, uint256 maxRepayAmount) external;
-
-    function burn(uint256 tokenId, address recipient) external;
 }

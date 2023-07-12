@@ -8,43 +8,28 @@ import {Types} from "../Types.sol";
 import {IERC721Permit} from "./IERC721Permit.sol";
 
 interface IBondPosition is IERC721Permit, IERC721Metadata {
+    // View Functions //
     function baseURI() external view returns (string memory);
 
     function coupon() external view returns (address);
 
-    function assetPool() external view returns (address);
-
     function nextId() external view returns (uint256);
+
+    function bonds(uint256 tokenId) external view returns (Types.Bond memory);
 
     function mint(
         address asset,
         uint256 amount,
         uint256 lockEpochs,
-        address recipient
-    ) external payable returns (uint256);
-
-    function mintWithPermit(
-        address asset,
-        uint256 amount,
-        uint256 lockEpochs,
         address recipient,
-        Types.PermitParams calldata permitParams
+        bytes calldata data
     ) external returns (uint256);
 
-    function increaseBond(uint256 tokenId, uint256 amount, address recipient) external payable;
-
-    function increaseBondWithPermit(
+    function adjustPosition(
         uint256 tokenId,
-        uint256 amount,
+        int256 amountAmount,
+        int256 lockEpochs,
         address recipient,
-        Types.PermitParams calldata permitParams
-    ) external payable;
-
-    function decreaseBond(uint256 tokenId, uint256 amount, address recipient) external;
-
-    function increaseLockEpochs(uint256 tokenId, uint256 epochs, address recipient) external;
-
-    function decreaseLockEpochs(uint256 tokenId, uint256 epochs, address recipient) external;
-
-    function burn(uint256 tokenId, address recipient) external;
+        bytes calldata data
+    ) external;
 }

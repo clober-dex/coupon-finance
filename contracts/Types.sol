@@ -3,6 +3,25 @@
 pragma solidity ^0.8.0;
 
 library Types {
+    /// NEW TYPES=== ///
+    struct Reserve {
+        uint256 bondAmount;
+        uint256 collateralAmount;
+    }
+    struct Bond {
+        address asset;
+        uint256 unlockedAt;
+        uint256 amount;
+    }
+    struct Loan {
+        address collateralToken;
+        address debtToken;
+        uint256 collateralAmount;
+        uint256 debtAmount;
+        uint256 expiredAt;
+    }
+    /// ===NEW TYPES ///
+
     struct CouponKey {
         address asset;
         uint256 epoch;
