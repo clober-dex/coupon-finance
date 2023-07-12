@@ -48,6 +48,11 @@ library Types {
         uint256 limit;
     }
 
+    struct LiquidationStatus {
+        bool available;
+        uint256 liquidationAmount;
+    }
+
     struct AssetConfiguration {
         uint32 decimal;
         uint32 liquidationThreshold;

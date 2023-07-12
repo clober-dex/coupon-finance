@@ -17,6 +17,7 @@ import {Types} from "./Types.sol";
 import {IWETH9} from "./external/weth/IWETH9.sol";
 import {ICoupon} from "./interfaces/ICoupon.sol";
 import {ILendingPool} from "./interfaces/ILendingPool.sol";
+import {IAaveOracle} from "./external/aave-v3/IAaveOracle.sol";
 import {IYieldFarmer} from "./interfaces/IYieldFarmer.sol";
 import {CouponKeyLibrary, LoanKeyLibrary, VaultKeyLibrary} from "./libraries/Keys.sol";
 import {ReentrancyGuard} from "./libraries/ReentrancyGuard.sol";
@@ -40,6 +41,8 @@ contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard, Ownable {
         uint256 amount;
         uint256 collateralAmount;
     }
+
+    uint256 private constant _RATE_PRECISION = 10 ** 6;
 
     IWETH9 private immutable _weth;
     uint256 private immutable _maxEpochDiff;
@@ -150,6 +153,81 @@ contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard, Ownable {
             });
     }
 
+    function _getAssetConfig(address asset, address collateral) private view returns (Types.AssetConfiguration memory) {
+        Types.AssetConfiguration memory deptAssetConfig = _assetConfig[asset];
+        Types.AssetConfiguration memory collateralAssetConfig = _assetConfig[collateral];
+
+        if (deptAssetConfig.liquidationBonus > collateralAssetConfig.liquidationBonus) {
+            collateralAssetConfig.liquidationBonus = deptAssetConfig.liquidationBonus;
+        }
+        if (deptAssetConfig.liquidationProtocolFee > collateralAssetConfig.liquidationProtocolFee) {
+            collateralAssetConfig.liquidationProtocolFee = deptAssetConfig.liquidationProtocolFee;
+        }
+        if (deptAssetConfig.liquidationThreshold < collateralAssetConfig.liquidationThreshold) {
+            collateralAssetConfig.liquidationThreshold = deptAssetConfig.liquidationThreshold;
+        }
+        if (deptAssetConfig.liquidationTargetLtv < collateralAssetConfig.liquidationTargetLtv) {
+            collateralAssetConfig.liquidationTargetLtv = deptAssetConfig.liquidationTargetLtv;
+        }
+        return collateralAssetConfig;
+    }
+
+    function _getPriceWithPrecision(address asset, address collateral) private view returns (uint256, uint256) {
+        address[] memory assets = new address[](2);
+        assets[0] = asset;
+        assets[1] = collateral;
+
+        uint256 assetDecimal = _assetConfig[asset].decimal;
+        uint256 collateralDecimal = _assetConfig[collateral].decimal;
+
+        uint256[] memory prices = IAaveOracle(oracle).getAssetsPrices(assets);
+        if (assetDecimal > collateralDecimal) {
+            return (prices[0], prices[1] * 10 ** (assetDecimal - collateralDecimal));
+        }
+        return (prices[0] * 10 ** (collateralDecimal - assetDecimal), prices[1]);
+    }
+
+    function _getMaxLiquidationAmount(Types.LoanKey calldata loanKey) private view returns (uint256) {
+        Types.LoanId id = loanKey.toId();
+
+        Types.AssetConfiguration memory assetConfig = _getAssetConfig(loanKey.asset, loanKey.collateral);
+        (uint256 assetPrice, uint256 collateralPrice) = _getPriceWithPrecision(loanKey.asset, loanKey.collateral);
+
+        uint256 amount = _loanMap[id].amount;
+        uint256 collateralAmount = _loanMap[id].collateralAmount;
+
+        if (
+            collateralAmount * collateralPrice * assetConfig.liquidationThreshold <
+            amount * assetPrice * _RATE_PRECISION
+        ) {
+            return 0;
+        }
+
+        if (
+            collateralAmount * collateralPrice * (_RATE_PRECISION - assetConfig.liquidationThreshold) <=
+            amount * assetPrice * _RATE_PRECISION
+        ) {
+            return collateralAmount;
+        }
+
+        return
+            (amount *
+                assetPrice *
+                _RATE_PRECISION -
+                collateralAmount *
+                collateralPrice *
+                assetConfig.liquidationTargetLtv) /
+            assetPrice /
+            (_RATE_PRECISION - assetConfig.liquidationTargetLtv * 1);
+    }
+
+    function getLiquidationStatus(
+        Types.LoanKey calldata loanKey
+    ) external view returns (Types.LiquidationStatus memory) {
+        uint256 maxLiquidationAmount = _getMaxLiquidationAmount(loanKey);
+        return Types.LiquidationStatus({available: maxLiquidationAmount > 0, liquidationAmount: maxLiquidationAmount});
+    }
+
     function getLoanLimit(Types.LoanKey calldata loanKey, uint256 epoch) external view returns (uint256) {
         return _loanLimit[loanKey.toId()][epoch];
     }
@@ -246,7 +324,13 @@ contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard, Ownable {
         revert("not implemented");
     }
 
-    function liquidate(address collateral, address debt, address user, uint256 maxRepayAmount) external {
+    function liquidate(
+        address collateral,
+        address debt,
+        address user,
+        uint256 maxRepayAmount,
+        bytes calldata data
+    ) external {
         revert("not implemented");
     }
 

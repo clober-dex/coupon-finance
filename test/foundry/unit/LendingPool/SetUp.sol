@@ -62,10 +62,10 @@ library SetUp {
             address(res.usdc),
             Types.AssetConfiguration({
                 decimal: 6,
-                liquidationThreshold: 800000,
+                liquidationThreshold: 900000,
                 liquidationBonus: 10000,
-                liquidationProtocolFee: 5000,
-                liquidationTargetLtv: 700000
+                liquidationProtocolFee: 3000,
+                liquidationTargetLtv: 800000
             })
         );
         res.lendingPool.registerAsset(
@@ -73,7 +73,7 @@ library SetUp {
             Types.AssetConfiguration({
                 decimal: 18,
                 liquidationThreshold: 800000,
-                liquidationBonus: 10000,
+                liquidationBonus: 20000,
                 liquidationProtocolFee: 5000,
                 liquidationTargetLtv: 700000
             })

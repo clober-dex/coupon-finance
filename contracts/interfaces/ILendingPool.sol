@@ -45,6 +45,10 @@ interface ILendingPool is ILendingPoolEvents, ICoupon {
 
     function getLoanStatus(Types.LoanKey calldata loanKey) external view returns (Types.LoanStatus memory);
 
+    function getLiquidationStatus(
+        Types.LoanKey calldata loanKey
+    ) external view returns (Types.LiquidationStatus memory);
+
     function getLoanLimit(Types.LoanKey calldata loanKey, uint256 epoch) external view returns (uint256);
 
     function withdrawable(address asset) external view returns (uint256);
@@ -99,7 +103,13 @@ interface ILendingPool is ILendingPoolEvents, ICoupon {
         bytes32 s
     ) external;
 
-    function liquidate(address collateral, address debt, address user, uint256 maxRepayAmount) external;
+    function liquidate(
+        address collateral,
+        address debt,
+        address user,
+        uint256 maxRepayAmount,
+        bytes calldata data
+    ) external;
 
     // Admin Functions //
     function registerAsset(address asset, Types.AssetConfiguration calldata config) external;
