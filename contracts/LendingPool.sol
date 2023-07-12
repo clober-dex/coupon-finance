@@ -158,7 +158,7 @@ contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard, Ownable {
         Types.AssetConfiguration memory collateralAssetConfig = _assetConfig[collateral];
 
         if (collateralAssetConfig.liquidationThreshold == 0) return deptAssetConfig;
-        if (deptAssetConfig.liquidationThreshold) return collateralAssetConfig;
+        if (deptAssetConfig.liquidationThreshold == 0) return collateralAssetConfig;
 
         if (deptAssetConfig.liquidationBonus > collateralAssetConfig.liquidationBonus) {
             collateralAssetConfig.liquidationBonus = deptAssetConfig.liquidationBonus;
