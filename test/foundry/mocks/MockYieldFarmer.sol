@@ -13,6 +13,7 @@ contract MockYieldFarmer is IYieldFarmer {
 
     IWETH9 private immutable _weth;
 
+    address public override treasury;
     mapping(address asset => uint256) public override totalReservedAmount;
     mapping(address asset => uint256) public override reservedAmount;
     mapping(address => uint256) public withdrawLimit;
@@ -63,5 +64,9 @@ contract MockYieldFarmer is IYieldFarmer {
 
     function setWithdrawLimit(address asset, uint256 amount) external {
         withdrawLimit[asset] = amount;
+    }
+
+    function setTreasury(address newTreasury) external {
+        treasury = newTreasury;
     }
 }
