@@ -7,7 +7,7 @@ import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/I
 import {Types} from "../Types.sol";
 import {IERC721Permit} from "./IERC721Permit.sol";
 
-interface IBondPosition is IERC721Permit, IERC721Metadata {
+interface IBondPosition is IERC721Metadata, IERC721Permit {
     // View Functions //
     function baseURI() external view returns (string memory);
 
@@ -16,6 +16,8 @@ interface IBondPosition is IERC721Permit, IERC721Metadata {
     function nextId() external view returns (uint256);
 
     function bonds(uint256 tokenId) external view returns (Types.Bond memory);
+
+    function isAssetRegistered(address asset) external view returns (bool);
 
     function mint(
         address asset,

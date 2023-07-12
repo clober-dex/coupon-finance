@@ -16,6 +16,10 @@ interface ILoanPosition is IERC721Permit, IERC721Metadata {
 
     function loans(uint256 tokenId) external view returns (Types.Loan memory);
 
+    function isAssetRegistered(address asset) external view returns (bool);
+
+    function getLoanConfiguration(address asset) external view returns (Types.LoanConfiguration memory);
+
     function getLiquidationStatus(uint256 tokenId) external view returns (Types.LiquidationStatus memory);
 
     function mint(

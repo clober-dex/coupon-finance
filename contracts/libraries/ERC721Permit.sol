@@ -2,12 +2,12 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/interfaces/IERC1271.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
+import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
-import "./ChainId.sol";
-import "../interfaces/IERC721Permit.sol";
+import {ChainId} from "./ChainId.sol";
+import {IERC721Permit} from "../interfaces/IERC721Permit.sol";
 
 /// @title ERC721 with permit
 /// @notice Nonfungible tokens that support an approve via signature, i.e. permit

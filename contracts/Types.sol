@@ -4,10 +4,6 @@ pragma solidity ^0.8.0;
 
 library Types {
     /// NEW TYPES=== ///
-    struct Reserve {
-        uint256 bondAmount;
-        uint256 collateralAmount;
-    }
     struct Bond {
         uint256 nonce;
         address asset;
@@ -21,6 +17,13 @@ library Types {
         uint256 collateralAmount;
         uint256 debtAmount;
         uint256 expiredAt;
+    }
+    struct LoanConfiguration {
+        uint32 decimal;
+        uint32 liquidationThreshold;
+        uint32 liquidationBonus;
+        uint32 liquidationProtocolFee;
+        uint32 liquidationTargetLtv;
     }
     /// ===NEW TYPES ///
 

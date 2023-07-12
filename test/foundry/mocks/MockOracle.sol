@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import "../../../contracts/external/aave-v3/IPriceOracleGetter.sol";
+import {IPriceOracleGetter} from "../../../contracts/external/aave-v3/IPriceOracleGetter.sol";
 
 contract MockOracle is IPriceOracleGetter {
     mapping(address => uint256) private _priceMap;
