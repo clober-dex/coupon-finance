@@ -13,17 +13,23 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
 
     address public immutable override coupon;
     address public immutable override assetPool;
+    address public immutable override oracle;
 
     string public override baseURI;
-    address public override oracle;
     uint256 public override nextId;
 
     mapping(address asset => Types.AssetLoanConfiguration) private _assetConfig;
     mapping(uint256 id => Types.Loan) private _loanMap;
 
-    constructor(address coupon_, address assetPool_, string memory baseURI_) ERC721Permit("Loan Position", "LP", "1") {
+    constructor(
+        address coupon_,
+        address assetPool_,
+        address oracle_,
+        string memory baseURI_
+    ) ERC721Permit("Loan Position", "LP", "1") {
         coupon = coupon_;
         assetPool = assetPool_;
+        oracle = oracle_;
         baseURI = baseURI_;
     }
 
