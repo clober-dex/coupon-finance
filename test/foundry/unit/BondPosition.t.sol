@@ -71,7 +71,8 @@ contract BondPositionUnitTest is Test, IBondPositionEvents {
     }
 
     function _beforeAdjustPosition() internal returns (uint256 tokenId) {
-        return bondPosition.mint(address(usdc), _initialAmount, 2, address(this), new bytes(0));
+        tokenId = bondPosition.mint(address(usdc), _initialAmount, 3, address(this), new bytes(0));
+        vm.warp(block.timestamp + coupon.epochDuration());
     }
 
     function testAdjustPositionIncreaseAmountAndEpochs() public {
@@ -79,7 +80,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents {
 
         uint256 amount = usdc.amount(70);
         uint256 epochs = 3;
-        uint256 expectedUnlockedAt = coupon.epochEndTime(5);
+        uint256 expectedUnlockedAt = coupon.epochEndTime(6);
 
         uint256 beforeThisBalance = usdc.balanceOf(address(this));
         Types.Bond memory beforeBond = bondPosition.bonds(tokenId);
@@ -90,11 +91,11 @@ contract BondPositionUnitTest is Test, IBondPositionEvents {
         bondPosition.adjustPosition(tokenId, int256(amount), int256(epochs), new bytes(0));
         vm.revertTo(_snapshotId);
         Types.Coupon[] memory coupons = new Types.Coupon[](5);
-        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 1}), amount: amount});
-        coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 2}), amount: amount});
-        coupons[2] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 3}), amount: usdc.amount(170)});
-        coupons[3] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 4}), amount: usdc.amount(170)});
-        coupons[4] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 5}), amount: usdc.amount(170)});
+        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 2}), amount: amount});
+        coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 3}), amount: amount});
+        coupons[2] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 4}), amount: usdc.amount(170)});
+        coupons[3] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 5}), amount: usdc.amount(170)});
+        coupons[4] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 6}), amount: usdc.amount(170)});
         vm.expectCall(address(coupon), abi.encodeCall(INewCoupon.mintBatch, (address(this), coupons, new bytes(0))));
         bondPosition.adjustPosition(tokenId, int256(amount), int256(epochs), new bytes(0));
 
@@ -102,7 +103,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents {
 
         assertEq(usdc.balanceOf(address(this)), beforeThisBalance - amount, "THIS_BALANCE");
         assertEq(afterBond.amount, beforeBond.amount + amount, "LOCKED_AMOUNT");
-        assertEq(afterBond.unlockedAt, coupon.epochEndTime(5), "UNLOCKED_AT");
+        assertEq(afterBond.unlockedAt, expectedUnlockedAt, "UNLOCKED_AT");
     }
 
     function testAdjustPositionIncreaseAmountAndDecreaseEpochs() public {
@@ -110,7 +111,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents {
 
         uint256 amount = usdc.amount(70);
         uint256 epochs = 1;
-        uint256 expectedUnlockedAt = coupon.epochEndTime(1);
+        uint256 expectedUnlockedAt = coupon.epochEndTime(2);
 
         uint256 beforeThisBalance = usdc.balanceOf(address(this));
         Types.Bond memory beforeBond = bondPosition.bonds(tokenId);
@@ -121,12 +122,12 @@ contract BondPositionUnitTest is Test, IBondPositionEvents {
         bondPosition.adjustPosition(tokenId, int256(amount), -int256(epochs), new bytes(0));
         vm.revertTo(_snapshotId);
         Types.Coupon[] memory coupons = new Types.Coupon[](1);
-        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 1}), amount: amount});
+        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 2}), amount: amount});
         vm.expectCall(address(coupon), abi.encodeCall(INewCoupon.mintBatch, (address(this), coupons, new bytes(0))));
         bondPosition.adjustPosition(tokenId, int256(amount), -int256(epochs), new bytes(0));
         vm.revertTo(_snapshotId);
         coupons = new Types.Coupon[](1);
-        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 2}), amount: _initialAmount});
+        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 3}), amount: _initialAmount});
         vm.expectCall(address(coupon), abi.encodeCall(INewCoupon.burnBatch, (address(this), coupons)));
         bondPosition.adjustPosition(tokenId, int256(amount), -int256(epochs), new bytes(0));
 
@@ -134,7 +135,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents {
 
         assertEq(usdc.balanceOf(address(this)), beforeThisBalance - amount, "THIS_BALANCE");
         assertEq(afterBond.amount, beforeBond.amount + amount, "LOCKED_AMOUNT");
-        assertEq(afterBond.unlockedAt, coupon.epochEndTime(1), "UNLOCKED_AT");
+        assertEq(afterBond.unlockedAt, expectedUnlockedAt, "UNLOCKED_AT");
     }
 
     function testAdjustPositionDecreaseAmountAndIncreaseEpochs() public {
@@ -143,7 +144,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents {
         uint256 amount = usdc.amount(70);
         uint256 epochs = 3;
         uint256 expectedAmount = _initialAmount - amount;
-        uint256 expectedUnlockedAt = coupon.epochEndTime(5);
+        uint256 expectedUnlockedAt = coupon.epochEndTime(6);
 
         uint256 beforeThisBalance = usdc.balanceOf(address(this));
         Types.Bond memory beforeBond = bondPosition.bonds(tokenId);
@@ -154,15 +155,15 @@ contract BondPositionUnitTest is Test, IBondPositionEvents {
         bondPosition.adjustPosition(tokenId, -int256(amount), int256(epochs), new bytes(0));
         vm.revertTo(_snapshotId);
         Types.Coupon[] memory coupons = new Types.Coupon[](3);
-        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 3}), amount: expectedAmount});
-        coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 4}), amount: expectedAmount});
-        coupons[2] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 5}), amount: expectedAmount});
+        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 4}), amount: expectedAmount});
+        coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 5}), amount: expectedAmount});
+        coupons[2] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 6}), amount: expectedAmount});
         vm.expectCall(address(coupon), abi.encodeCall(INewCoupon.mintBatch, (address(this), coupons, new bytes(0))));
         bondPosition.adjustPosition(tokenId, -int256(amount), int256(epochs), new bytes(0));
         vm.revertTo(_snapshotId);
         coupons = new Types.Coupon[](2);
-        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 1}), amount: amount});
-        coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 2}), amount: amount});
+        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 2}), amount: amount});
+        coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 3}), amount: amount});
         vm.expectCall(address(coupon), abi.encodeCall(INewCoupon.burnBatch, (address(this), coupons)));
         bondPosition.adjustPosition(tokenId, -int256(amount), int256(epochs), new bytes(0));
 
@@ -170,7 +171,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents {
 
         assertEq(usdc.balanceOf(address(this)), beforeThisBalance + amount, "THIS_BALANCE");
         assertEq(afterBond.amount, beforeBond.amount - amount, "LOCKED_AMOUNT");
-        assertEq(afterBond.unlockedAt, coupon.epochEndTime(5), "UNLOCKED_AT");
+        assertEq(afterBond.unlockedAt, expectedUnlockedAt, "UNLOCKED_AT");
     }
 
     function testAdjustPositionDecreaseAmountAndEpochs() public {
@@ -179,7 +180,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents {
         uint256 amount = usdc.amount(70);
         uint256 epochs = 1;
         uint256 expectedAmount = _initialAmount - amount;
-        uint256 expectedUnlockedAt = coupon.epochEndTime(1);
+        uint256 expectedUnlockedAt = coupon.epochEndTime(2);
 
         uint256 beforeThisBalance = usdc.balanceOf(address(this));
         Types.Bond memory beforeBond = bondPosition.bonds(tokenId);
@@ -190,8 +191,8 @@ contract BondPositionUnitTest is Test, IBondPositionEvents {
         bondPosition.adjustPosition(tokenId, -int256(amount), -int256(epochs), new bytes(0));
         vm.revertTo(_snapshotId);
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
-        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 1}), amount: amount});
-        coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 2}), amount: _initialAmount});
+        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 2}), amount: amount});
+        coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 3}), amount: _initialAmount});
         vm.expectCall(address(coupon), abi.encodeCall(INewCoupon.burnBatch, (address(this), coupons)));
         bondPosition.adjustPosition(tokenId, -int256(amount), -int256(epochs), new bytes(0));
 
@@ -199,7 +200,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents {
 
         assertEq(usdc.balanceOf(address(this)), beforeThisBalance + amount, "THIS_BALANCE");
         assertEq(afterBond.amount, beforeBond.amount - amount, "LOCKED_AMOUNT");
-        assertEq(afterBond.unlockedAt, coupon.epochEndTime(1), "UNLOCKED_AT");
+        assertEq(afterBond.unlockedAt, expectedUnlockedAt, "UNLOCKED_AT");
     }
 
     function testAdjustPositionDecreaseAmountToZero() public {
@@ -215,8 +216,8 @@ contract BondPositionUnitTest is Test, IBondPositionEvents {
         bondPosition.adjustPosition(tokenId, -int256(_initialAmount), int256(1), new bytes(0));
         vm.revertTo(_snapshotId);
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
-        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 1}), amount: _initialAmount});
-        coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 2}), amount: _initialAmount});
+        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 2}), amount: _initialAmount});
+        coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 3}), amount: _initialAmount});
         vm.expectCall(address(coupon), abi.encodeCall(INewCoupon.burnBatch, (address(this), coupons)));
         bondPosition.adjustPosition(tokenId, -int256(_initialAmount), int256(1), new bytes(0));
 
@@ -225,12 +226,12 @@ contract BondPositionUnitTest is Test, IBondPositionEvents {
         assertEq(usdc.balanceOf(address(this)), beforeThisBalance + _initialAmount, "THIS_BALANCE");
         assertEq(bondPosition.balanceOf(address(this)), beforeBondPositionBalance - 1, "BOND_POSITION_BALANCE");
         assertEq(afterBond.amount, 0, "LOCKED_AMOUNT");
-        assertEq(afterBond.unlockedAt, 0, "UNLOCKED_AT");
+        assertEq(afterBond.unlockedAt, coupon.epochEndTime(1), "UNLOCKED_AT");
         vm.expectRevert("ERC721: invalid token ID");
         bondPosition.ownerOf(tokenId);
     }
 
-    function testAdjustPositionDecreaseEpochsToZero() public {
+    function testAdjustPositionDecreaseEpochsToCurrentEpoch() public {
         uint256 tokenId = _beforeAdjustPosition();
 
         uint256 beforeThisBalance = usdc.balanceOf(address(this));
@@ -243,8 +244,8 @@ contract BondPositionUnitTest is Test, IBondPositionEvents {
         bondPosition.adjustPosition(tokenId, int256(1231), -int256(2), new bytes(0));
         vm.revertTo(_snapshotId);
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
-        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 1}), amount: _initialAmount});
-        coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 2}), amount: _initialAmount});
+        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 2}), amount: _initialAmount});
+        coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 3}), amount: _initialAmount});
         vm.expectCall(address(coupon), abi.encodeCall(INewCoupon.burnBatch, (address(this), coupons)));
         bondPosition.adjustPosition(tokenId, int256(3242), -int256(2), new bytes(0));
 
@@ -253,7 +254,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents {
         assertEq(usdc.balanceOf(address(this)), beforeThisBalance, "THIS_BALANCE");
         assertEq(bondPosition.balanceOf(address(this)), beforeBondPositionBalance - 1, "BOND_POSITION_BALANCE");
         assertEq(afterBond.amount, 0, "LOCKED_AMOUNT");
-        assertEq(afterBond.unlockedAt, 0, "UNLOCKED_AT");
+        assertEq(afterBond.unlockedAt, coupon.epochEndTime(1), "UNLOCKED_AT");
         vm.expectRevert("ERC721: invalid token ID");
         bondPosition.ownerOf(tokenId);
     }
@@ -264,7 +265,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents {
         yieldFarmer.setWithdrawLimit(address(usdc), limitBalance);
 
         uint256 expectedAmount = limitBalance;
-        uint256 expectedUnlockedAt = coupon.epochEndTime(1);
+        uint256 expectedUnlockedAt = coupon.epochEndTime(2);
 
         uint256 beforeThisBalance = usdc.balanceOf(address(this));
         Types.Bond memory beforeBond = bondPosition.bonds(tokenId);
@@ -276,10 +277,10 @@ contract BondPositionUnitTest is Test, IBondPositionEvents {
         vm.revertTo(_snapshotId);
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
         coupons[0] = Types.Coupon({
-            key: Types.CouponKey({asset: address(usdc), epoch: 1}),
+            key: Types.CouponKey({asset: address(usdc), epoch: 2}),
             amount: _initialAmount - limitBalance
         });
-        coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 2}), amount: _initialAmount});
+        coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 3}), amount: _initialAmount});
         vm.expectCall(address(coupon), abi.encodeCall(INewCoupon.burnBatch, (address(this), coupons)));
         bondPosition.adjustPosition(tokenId, -int256(_initialAmount), -int256(2), new bytes(0));
 
@@ -287,7 +288,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents {
 
         assertEq(usdc.balanceOf(address(this)), beforeThisBalance + (_initialAmount - limitBalance), "THIS_BALANCE");
         assertEq(afterBond.amount, beforeBond.amount - (_initialAmount - limitBalance), "LOCKED_AMOUNT");
-        assertEq(afterBond.unlockedAt, coupon.epochEndTime(1), "UNLOCKED_AT");
+        assertEq(afterBond.unlockedAt, expectedUnlockedAt, "UNLOCKED_AT");
     }
 
     function testAdjustPositionOwnership() public {
