@@ -7,6 +7,7 @@ import "forge-std/Test.sol";
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 
+import {Errors} from "../../../contracts/Errors.sol";
 import {Types} from "../../../contracts/Types.sol";
 import {ILoanPosition, ILoanPositionEvents} from "../../../contracts/interfaces/ILoanPosition.sol";
 import {INewCoupon} from "../../../contracts/interfaces/INewCoupon.sol";
@@ -117,9 +118,43 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         assertEq(loan.expiredAt, expectedExpiredAt, "EXPIRED_AT");
     }
 
-    function testMintWithTooSmallDebtAmount() public {}
+    function testMintWithTooSmallDebtAmount() public {
+        Types.Coupon[] memory coupons = new Types.Coupon[](2);
+        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 1}), amount: _initialDebtAmount});
+        coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 2}), amount: _initialDebtAmount});
+        _mintCoupons(address(this), coupons);
 
-    function testMintWithInsufficientCollateralAmount() public {}
+        vm.expectRevert(Errors.TOO_SMALL_DEBT);
+        loanPosition.mint(
+            address(collateral),
+            address(usdc),
+            _initialCollateralAmount,
+            1,
+            2,
+            Constants.USER1,
+            new bytes(0)
+        );
+    }
+
+    function testMintWithInsufficientCollateralAmount() public {
+        uint256 collateralAmount = collateral.amount(1);
+        uint256 debtAmount = usdc.amount(10000);
+        Types.Coupon[] memory coupons = new Types.Coupon[](2);
+        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 1}), amount: debtAmount});
+        coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 2}), amount: debtAmount});
+        _mintCoupons(address(this), coupons);
+
+        vm.expectRevert(Errors.LIQUIDATION_THRESHOLD);
+        loanPosition.mint(
+            address(collateral),
+            address(usdc),
+            collateralAmount,
+            debtAmount,
+            2,
+            Constants.USER1,
+            new bytes(0)
+        );
+    }
 
     function testAdjustPositionIncreaseDebtAndEpochs() public {}
 
@@ -134,6 +169,8 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
     function testAdjustPositionIncreaseCollateral() public {}
 
     function testAdjustPositionDecreaseCollateral() public {}
+
+    function testAdjustPositionDecreaseDebtToTooSmallAmount() public {}
 
     function testAdjustPositionDecreaseEpochsToCurrent() public {}
 

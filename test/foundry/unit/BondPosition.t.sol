@@ -7,6 +7,7 @@ import "forge-std/Test.sol";
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 
+import {Errors} from "../../../contracts/Errors.sol";
 import {Types} from "../../../contracts/Types.sol";
 import {IBondPosition, IBondPositionEvents} from "../../../contracts/interfaces/IBondPosition.sol";
 import {INewCoupon} from "../../../contracts/interfaces/INewCoupon.sol";
@@ -69,7 +70,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
     }
 
     function testMintWithUnregisteredToken() public {
-        vm.expectRevert("Unregistered asset");
+        vm.expectRevert(Errors.UNREGISTERED_ASSET);
         bondPosition.mint(address(0x123), _initialAmount, 2, Constants.USER1, new bytes(0));
     }
 
