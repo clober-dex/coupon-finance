@@ -91,7 +91,13 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
             new bytes(0)
         );
         vm.revertTo(_snapshotId);
-        vm.expectCall(address(coupon), abi.encodeCall(INewCoupon.burnBatch, (address(this), coupons)));
+        vm.expectCall(
+            address(coupon),
+            abi.encodeCall(
+                INewCoupon.safeBatchTransferFrom,
+                (address(this), address(loanPosition), coupons, new bytes(0))
+            )
+        );
         uint256 tokenId = loanPosition.mint(
             address(collateral),
             address(usdc),
@@ -159,13 +165,180 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         );
     }
 
-    function testAdjustPositionIncreaseDebtAndEpochs() public {}
+    function _beforeAdjustPosition() internal returns (uint256 tokenId) {
+        Types.Coupon[] memory coupons = new Types.Coupon[](8);
+        for (uint256 i = 0; i < 8; i++) {
+            coupons[i] = Coupon.from(address(usdc), i + 1, _initialDebtAmount * 10);
+        }
+        _mintCoupons(address(this), coupons);
 
-    function testAdjustPositionIncreaseDebtAndDecreaseEpochs() public {}
+        tokenId = loanPosition.mint(
+            address(collateral),
+            address(usdc),
+            _initialCollateralAmount,
+            _initialDebtAmount,
+            3,
+            address(this),
+            new bytes(0)
+        );
+        vm.warp(block.timestamp + coupon.epochDuration());
+    }
 
-    function testAdjustPositionDecreaseDebtAndIncreaseEpochs() public {}
+    function testAdjustPositionIncreaseDebtAndEpochs() public {
+        uint256 tokenId = _beforeAdjustPosition();
+        uint256 debtAmount = usdc.amount(70);
+        uint256 loanEpochs = 2;
+        uint256 expectedDebtAmount = _initialDebtAmount + debtAmount;
+        uint256 expectedExpiredAt = coupon.epochEndTime(5);
 
-    function testAdjustPositionDecreaseDebtAndEpochs() public {}
+        uint256 beforeDebtBalance = usdc.balanceOf(address(this));
+
+        _snapshotId = vm.snapshot();
+        vm.expectEmit(true, true, true, true);
+        emit PositionUpdated(tokenId, 0, expectedDebtAmount, expectedExpiredAt);
+        loanPosition.adjustPosition(tokenId, 0, int256(debtAmount), int256(loanEpochs), new bytes(0));
+        vm.revertTo(_snapshotId);
+        Types.Coupon[] memory coupons = new Types.Coupon[](4);
+        coupons[0] = Coupon.from(address(usdc), 2, debtAmount);
+        coupons[1] = Coupon.from(address(usdc), 3, debtAmount);
+        coupons[2] = Coupon.from(address(usdc), 4, expectedDebtAmount);
+        coupons[3] = Coupon.from(address(usdc), 5, expectedDebtAmount);
+        vm.expectCall(
+            address(coupon),
+            abi.encodeCall(
+                INewCoupon.safeBatchTransferFrom,
+                (address(this), address(loanPosition), coupons, new bytes(0))
+            )
+        );
+        loanPosition.adjustPosition(tokenId, 0, int256(debtAmount), int256(loanEpochs), new bytes(0));
+
+        Types.Loan memory loan = loanPosition.loans(tokenId);
+
+        assertEq(usdc.balanceOf(address(this)), beforeDebtBalance + debtAmount, "DEBT_BALANCE");
+        assertEq(loan.debtAmount, expectedDebtAmount, "DEBT_AMOUNT");
+        assertEq(loan.expiredAt, expectedExpiredAt, "EXPIRED_AT");
+    }
+
+    function testAdjustPositionIncreaseDebtAndDecreaseEpochs() public {
+        uint256 tokenId = _beforeAdjustPosition();
+        uint256 debtAmount = usdc.amount(70);
+        uint256 loanEpochs = 1;
+        uint256 expectedDebtAmount = _initialDebtAmount + debtAmount;
+        uint256 expectedExpiredAt = coupon.epochEndTime(2);
+
+        uint256 beforeDebtBalance = usdc.balanceOf(address(this));
+
+        _snapshotId = vm.snapshot();
+        vm.expectEmit(true, true, true, true);
+        emit PositionUpdated(tokenId, 0, expectedDebtAmount, expectedExpiredAt);
+        loanPosition.adjustPosition(tokenId, 0, int256(debtAmount), -int256(loanEpochs), new bytes(0));
+        vm.revertTo(_snapshotId);
+        Types.Coupon[] memory coupons = new Types.Coupon[](1);
+        coupons[0] = Coupon.from(address(usdc), 2, debtAmount);
+        vm.expectCall(
+            address(coupon),
+            abi.encodeCall(
+                INewCoupon.safeBatchTransferFrom,
+                (address(this), address(loanPosition), coupons, new bytes(0))
+            )
+        );
+        loanPosition.adjustPosition(tokenId, 0, int256(debtAmount), -int256(loanEpochs), new bytes(0));
+        vm.revertTo(_snapshotId);
+        coupons = new Types.Coupon[](1);
+        coupons[0] = Coupon.from(address(usdc), 3, _initialDebtAmount);
+        vm.expectCall(
+            address(coupon),
+            abi.encodeCall(
+                INewCoupon.safeBatchTransferFrom,
+                (address(loanPosition), address(this), coupons, new bytes(0))
+            )
+        );
+        loanPosition.adjustPosition(tokenId, 0, int256(debtAmount), -int256(loanEpochs), new bytes(0));
+
+        Types.Loan memory loan = loanPosition.loans(tokenId);
+
+        assertEq(usdc.balanceOf(address(this)), beforeDebtBalance + debtAmount, "DEBT_BALANCE");
+        assertEq(loan.debtAmount, expectedDebtAmount, "DEBT_AMOUNT");
+        assertEq(loan.expiredAt, expectedExpiredAt, "EXPIRED_AT");
+    }
+
+    function testAdjustPositionDecreaseDebtAndIncreaseEpochs() public {
+        uint256 tokenId = _beforeAdjustPosition();
+        uint256 debtAmount = usdc.amount(30);
+        uint256 loanEpochs = 2;
+        uint256 expectedDebtAmount = _initialDebtAmount - debtAmount;
+        uint256 expectedExpiredAt = coupon.epochEndTime(5);
+
+        uint256 beforeDebtBalance = usdc.balanceOf(address(this));
+
+        _snapshotId = vm.snapshot();
+        vm.expectEmit(true, true, true, true);
+        emit PositionUpdated(tokenId, 0, expectedDebtAmount, expectedExpiredAt);
+        loanPosition.adjustPosition(tokenId, 0, -int256(debtAmount), int256(loanEpochs), new bytes(0));
+        vm.revertTo(_snapshotId);
+        Types.Coupon[] memory coupons = new Types.Coupon[](2);
+        coupons[0] = Coupon.from(address(usdc), 4, expectedDebtAmount);
+        coupons[1] = Coupon.from(address(usdc), 5, expectedDebtAmount);
+        vm.expectCall(
+            address(coupon),
+            abi.encodeCall(
+                INewCoupon.safeBatchTransferFrom,
+                (address(this), address(loanPosition), coupons, new bytes(0))
+            )
+        );
+        loanPosition.adjustPosition(tokenId, 0, -int256(debtAmount), int256(loanEpochs), new bytes(0));
+        vm.revertTo(_snapshotId);
+        coupons = new Types.Coupon[](2);
+        coupons[0] = Coupon.from(address(usdc), 2, debtAmount);
+        coupons[1] = Coupon.from(address(usdc), 3, debtAmount);
+        vm.expectCall(
+            address(coupon),
+            abi.encodeCall(
+                INewCoupon.safeBatchTransferFrom,
+                (address(loanPosition), address(this), coupons, new bytes(0))
+            )
+        );
+        loanPosition.adjustPosition(tokenId, 0, -int256(debtAmount), int256(loanEpochs), new bytes(0));
+
+        Types.Loan memory loan = loanPosition.loans(tokenId);
+
+        assertEq(usdc.balanceOf(address(this)), beforeDebtBalance - debtAmount, "DEBT_BALANCE");
+        assertEq(loan.debtAmount, expectedDebtAmount, "DEBT_AMOUNT");
+        assertEq(loan.expiredAt, expectedExpiredAt, "EXPIRED_AT");
+    }
+
+    function testAdjustPositionDecreaseDebtAndEpochs() public {
+        uint256 tokenId = _beforeAdjustPosition();
+        uint256 debtAmount = usdc.amount(30);
+        uint256 loanEpochs = 1;
+        uint256 expectedDebtAmount = _initialDebtAmount - debtAmount;
+        uint256 expectedExpiredAt = coupon.epochEndTime(2);
+
+        uint256 beforeDebtBalance = usdc.balanceOf(address(this));
+
+        _snapshotId = vm.snapshot();
+        vm.expectEmit(true, true, true, true);
+        emit PositionUpdated(tokenId, 0, expectedDebtAmount, expectedExpiredAt);
+        loanPosition.adjustPosition(tokenId, 0, -int256(debtAmount), -int256(loanEpochs), new bytes(0));
+        vm.revertTo(_snapshotId);
+        Types.Coupon[] memory coupons = new Types.Coupon[](2);
+        coupons[0] = Coupon.from(address(usdc), 2, debtAmount);
+        coupons[1] = Coupon.from(address(usdc), 3, _initialDebtAmount);
+        vm.expectCall(
+            address(coupon),
+            abi.encodeCall(
+                INewCoupon.safeBatchTransferFrom,
+                (address(loanPosition), address(this), coupons, new bytes(0))
+            )
+        );
+        loanPosition.adjustPosition(tokenId, 0, -int256(debtAmount), -int256(loanEpochs), new bytes(0));
+
+        Types.Loan memory loan = loanPosition.loans(tokenId);
+
+        assertEq(usdc.balanceOf(address(this)), beforeDebtBalance - debtAmount, "DEBT_BALANCE");
+        assertEq(loan.debtAmount, expectedDebtAmount, "DEBT_AMOUNT");
+        assertEq(loan.expiredAt, expectedExpiredAt, "EXPIRED_AT");
+    }
 
     function testAdjustPositionDecreaseDebtToZero() public {}
 

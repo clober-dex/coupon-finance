@@ -215,7 +215,6 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
 
         uint256 beforeThisBalance = usdc.balanceOf(address(this));
         uint256 beforeBondPositionBalance = bondPosition.balanceOf(address(this));
-        Types.Bond memory beforeBond = bondPosition.bonds(tokenId);
 
         _snapshotId = vm.snapshot();
         vm.expectEmit(true, true, true, true);
@@ -243,7 +242,6 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
 
         uint256 beforeThisBalance = usdc.balanceOf(address(this));
         uint256 beforeBondPositionBalance = bondPosition.balanceOf(address(this));
-        Types.Bond memory beforeBond = bondPosition.bonds(tokenId);
 
         _snapshotId = vm.snapshot();
         vm.expectEmit(true, true, true, true);
