@@ -6,23 +6,14 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import {IYieldFarmer} from "../../../contracts/interfaces/IYieldFarmer.sol";
-import {IWETH9} from "../../../contracts/external/weth/IWETH9.sol";
 
 contract MockYieldFarmer is IYieldFarmer {
     using SafeERC20 for IERC20;
-
-    IWETH9 private immutable _weth;
 
     address public override treasury;
     mapping(address asset => uint256) public override totalReservedAmount;
     mapping(address asset => uint256) public override reservedAmount;
     mapping(address => uint256) public withdrawLimit;
-
-    constructor(address weth) {
-        _weth = IWETH9(weth);
-    }
-
-    receive() external payable {}
 
     function withdrawable(address asset) external view returns (uint256 amount) {
         amount = totalReservedAmount[asset];
@@ -38,18 +29,8 @@ contract MockYieldFarmer is IYieldFarmer {
     }
 
     function withdraw(address asset, uint256 amount, address recipient) external {
-        bool isNative = asset == address(0);
-        if (isNative) {
-            asset = address(_weth);
-        }
         require(totalReservedAmount[asset] >= amount, "insufficient balance");
-        if (isNative) {
-            _weth.withdraw(amount);
-            (bool success, ) = recipient.call{value: amount}("");
-            require(success, "failed to send native");
-        } else {
-            IERC20(asset).safeTransfer(recipient, amount);
-        }
+        IERC20(asset).safeTransfer(recipient, amount);
         totalReservedAmount[asset] -= amount;
         reservedAmount[asset] -= amount;
     }
