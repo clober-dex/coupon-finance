@@ -120,4 +120,28 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
     function testMintWithTooSmallDebtAmount() public {}
 
     function testMintWithInsufficientCollateralAmount() public {}
+
+    function testAdjustPositionIncreaseDebtAndEpochs() public {}
+
+    function testAdjustPositionIncreaseDebtAndDecreaseEpochs() public {}
+
+    function testAdjustPositionDecreaseDebtAndIncreaseEpochs() public {}
+
+    function testAdjustPositionDecreaseDebtAndEpochs() public {}
+
+    function testAdjustPositionDecreaseDebtToZero() public {}
+
+    function testAdjustPositionIncreaseCollateral() public {}
+
+    function testAdjustPositionDecreaseCollateral() public {}
+
+    function testAdjustPositionDecreaseEpochsToCurrent() public {}
+
+    function testAdjustPositionDecreaseTooMuchCollateral() public {}
+
+    function testAdjustPositionIncreaseTooMuchDebt() public {}
+
+    function testAdjustPositionOwnership() public {}
+
+    function testAdjustPositionInvalidTokenId() public {}
 }
