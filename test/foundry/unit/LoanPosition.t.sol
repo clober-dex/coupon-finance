@@ -31,8 +31,8 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents {
         collateral = new MockERC20("Collateral Token", "COL", 18);
         usdc = new MockERC20("USD coin", "USDC", 6);
 
-        collateral.mint(address(this), collateral.amount(1_000_000_000));
-        usdc.mint(address(this), usdc.amount(1_000_000_000));
+        collateral.mint(address(this), collateral.amount(2_000_000_000));
+        usdc.mint(address(this), usdc.amount(2_000_000_000));
 
         yieldFarmer = new MockYieldFarmer();
         oracle = new MockOracle();
@@ -40,6 +40,10 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents {
 
         collateral.approve(address(loanPosition), type(uint256).max);
         usdc.approve(address(loanPosition), type(uint256).max);
+        collateral.approve(address(yieldFarmer), type(uint256).max);
+        usdc.approve(address(yieldFarmer), type(uint256).max);
+        yieldFarmer.deposit(address(collateral), collateral.amount(1_000_000_000));
+        yieldFarmer.deposit(address(usdc), collateral.amount(1_000_000_000));
 
         oracle.setAssetPrice(address(collateral), 1800 * 10 ** 8);
         oracle.setAssetPrice(address(usdc), 10 ** 8);
@@ -48,12 +52,24 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents {
         _initialDebtAmount = usdc.amount(100);
     }
 
+    function _mintCoupons(address to, Types.Coupon[] memory coupons) internal {
+        address minter = coupon.minter();
+        vm.startPrank(minter);
+        coupon.mintBatch(to, coupons, new bytes(0));
+        vm.stopPrank();
+    }
+
     function testMint() public {
         uint256 beforeCollateralBalance = collateral.balanceOf(address(this));
         uint256 beforeDebtBalance = usdc.balanceOf(Constants.USER1);
         uint256 beforeLoanPositionBalance = loanPosition.balanceOf(Constants.USER1);
         uint256 nextId = loanPosition.nextId();
         uint256 expectedExpiredAt = coupon.epochEndTime(2);
+
+        Types.Coupon[] memory coupons = new Types.Coupon[](2);
+        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 1}), amount: _initialDebtAmount});
+        coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 2}), amount: _initialDebtAmount});
+        _mintCoupons(address(this), coupons);
 
         _snapshotId = vm.snapshot();
         vm.expectEmit(true, true, true, true);
@@ -68,9 +84,6 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents {
             new bytes(0)
         );
         vm.revertTo(_snapshotId);
-        Types.Coupon[] memory coupons = new Types.Coupon[](2);
-        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 1}), amount: _initialDebtAmount});
-        coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 2}), amount: _initialDebtAmount});
         vm.expectCall(address(coupon), abi.encodeCall(INewCoupon.burnBatch, (address(this), coupons)));
         uint256 tokenId = loanPosition.mint(
             address(collateral),
