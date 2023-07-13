@@ -4,6 +4,9 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 
+import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
+import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
+
 import {Types} from "../../../contracts/Types.sol";
 import {ILoanPosition, ILoanPositionEvents} from "../../../contracts/interfaces/ILoanPosition.sol";
 import {INewCoupon} from "../../../contracts/interfaces/INewCoupon.sol";
@@ -12,7 +15,7 @@ import {MockYieldFarmer} from "../mocks/MockYieldFarmer.sol";
 import {MockOracle} from "../mocks/MockOracle.sol";
 import {Constants} from "./Constants.sol";
 
-contract LoanPositionUnitTest is Test, ILoanPositionEvents {
+contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC721Holder {
     MockERC20 public collateral;
     MockERC20 public usdc;
 

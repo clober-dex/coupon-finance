@@ -4,6 +4,9 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 
+import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
+import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
+
 import {Types} from "../../../contracts/Types.sol";
 import {IBondPosition, IBondPositionEvents} from "../../../contracts/interfaces/IBondPosition.sol";
 import {INewCoupon} from "../../../contracts/interfaces/INewCoupon.sol";
@@ -11,7 +14,7 @@ import {MockERC20} from "../mocks/MockERC20.sol";
 import {MockYieldFarmer} from "../mocks/MockYieldFarmer.sol";
 import {Constants} from "./Constants.sol";
 
-contract BondPositionUnitTest is Test, IBondPositionEvents {
+contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC721Holder {
     MockERC20 public usdc;
 
     MockYieldFarmer public yieldFarmer;
