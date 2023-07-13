@@ -201,6 +201,9 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
 
         require(liquidationAmount > 0, "LIQUIDATION_FAIL");
 
+        _loanMap[tokenId].collateralAmount = loan.collateralAmount - liquidationAmount;
+        _loanMap[tokenId].debtAmount = loan.debtAmount - repayAmount;
+
         IYieldFarmer(assetPool).withdraw(loan.collateralToken, liquidationAmount - protocolFeeAmount, msg.sender);
         IYieldFarmer(assetPool).withdraw(loan.collateralToken, protocolFeeAmount, treasury);
         if (data.length > 0) {
@@ -219,18 +222,6 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
             IERC20(loan.debtToken).safeTransferFrom(msg.sender, address(this), repayAmount);
         }
         IYieldFarmer(assetPool).deposit(loan.debtToken, repayAmount);
-
-        _loanMap[tokenId].collateralAmount = loan.collateralAmount - liquidationAmount;
-        _loanMap[tokenId].debtAmount = loan.debtAmount - repayAmount;
-
-        //            _loanMap[tokenId] = Types.Loan({
-        //                nonce: loan.nonce,
-        //                collateralToken: loan.collateralToken,
-        //                debtToken: loan.debtToken,
-        //                collateralAmount: loan.collateralAmount - liquidationAmount,
-        //                debtAmount: loan.debtAmount - repayAmount,
-        //                expiredAt: loan.expiredAt
-        //            });
 
         // Todo coupon has to be refund to ownerOf(tokenId)
     }
