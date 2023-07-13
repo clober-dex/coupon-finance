@@ -11,12 +11,15 @@ import {Errors} from "../../../contracts/Errors.sol";
 import {Types} from "../../../contracts/Types.sol";
 import {ILoanPosition, ILoanPositionEvents} from "../../../contracts/interfaces/ILoanPosition.sol";
 import {INewCoupon} from "../../../contracts/interfaces/INewCoupon.sol";
+import {Coupon} from "../../../contracts/libraries/Coupon.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {MockYieldFarmer} from "../mocks/MockYieldFarmer.sol";
 import {MockOracle} from "../mocks/MockOracle.sol";
 import {Constants} from "./Constants.sol";
 
 contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC721Holder {
+    using Coupon for Types.Coupon;
+
     MockERC20 public collateral;
     MockERC20 public usdc;
 
@@ -71,8 +74,8 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         uint256 expectedExpiredAt = coupon.epochEndTime(2);
 
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
-        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 1}), amount: _initialDebtAmount});
-        coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 2}), amount: _initialDebtAmount});
+        coupons[0] = Coupon.from(address(usdc), 1, _initialDebtAmount);
+        coupons[1] = Coupon.from(address(usdc), 2, _initialDebtAmount);
         _mintCoupons(address(this), coupons);
 
         _snapshotId = vm.snapshot();
@@ -120,8 +123,8 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
 
     function testMintWithTooSmallDebtAmount() public {
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
-        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 1}), amount: _initialDebtAmount});
-        coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 2}), amount: _initialDebtAmount});
+        coupons[0] = Coupon.from(address(usdc), 1, _initialDebtAmount);
+        coupons[1] = Coupon.from(address(usdc), 2, _initialDebtAmount);
         _mintCoupons(address(this), coupons);
 
         vm.expectRevert(Errors.TOO_SMALL_DEBT);
@@ -140,8 +143,8 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         uint256 collateralAmount = collateral.amount(1);
         uint256 debtAmount = usdc.amount(10000);
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
-        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 1}), amount: debtAmount});
-        coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 2}), amount: debtAmount});
+        coupons[0] = Coupon.from(address(usdc), 1, debtAmount);
+        coupons[1] = Coupon.from(address(usdc), 2, debtAmount);
         _mintCoupons(address(this), coupons);
 
         vm.expectRevert(Errors.LIQUIDATION_THRESHOLD);

@@ -11,11 +11,14 @@ import {Errors} from "../../../contracts/Errors.sol";
 import {Types} from "../../../contracts/Types.sol";
 import {IBondPosition, IBondPositionEvents} from "../../../contracts/interfaces/IBondPosition.sol";
 import {INewCoupon} from "../../../contracts/interfaces/INewCoupon.sol";
+import {Coupon} from "../../../contracts/libraries/Coupon.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {MockYieldFarmer} from "../mocks/MockYieldFarmer.sol";
 import {Constants} from "./Constants.sol";
 
 contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC721Holder {
+    using Coupon for Types.Coupon;
+
     MockERC20 public usdc;
 
     MockYieldFarmer public yieldFarmer;
@@ -52,8 +55,8 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
         bondPosition.mint(address(usdc), amount, 2, Constants.USER1, new bytes(0));
         vm.revertTo(_snapshotId);
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
-        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 1}), amount: amount});
-        coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 2}), amount: amount});
+        coupons[0] = Coupon.from(address(usdc), 1, amount);
+        coupons[1] = Coupon.from(address(usdc), 2, amount);
         vm.expectCall(address(coupon), abi.encodeCall(INewCoupon.mintBatch, (Constants.USER1, coupons, new bytes(0))));
         uint256 tokenId = bondPosition.mint(address(usdc), amount, 2, Constants.USER1, new bytes(0));
 
@@ -95,11 +98,11 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
         bondPosition.adjustPosition(tokenId, int256(amount), int256(epochs), new bytes(0));
         vm.revertTo(_snapshotId);
         Types.Coupon[] memory coupons = new Types.Coupon[](5);
-        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 2}), amount: amount});
-        coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 3}), amount: amount});
-        coupons[2] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 4}), amount: usdc.amount(170)});
-        coupons[3] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 5}), amount: usdc.amount(170)});
-        coupons[4] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 6}), amount: usdc.amount(170)});
+        coupons[0] = Coupon.from(address(usdc), 2, amount);
+        coupons[1] = Coupon.from(address(usdc), 3, amount);
+        coupons[2] = Coupon.from(address(usdc), 4, usdc.amount(170));
+        coupons[3] = Coupon.from(address(usdc), 5, usdc.amount(170));
+        coupons[4] = Coupon.from(address(usdc), 6, usdc.amount(170));
         vm.expectCall(address(coupon), abi.encodeCall(INewCoupon.mintBatch, (address(this), coupons, new bytes(0))));
         bondPosition.adjustPosition(tokenId, int256(amount), int256(epochs), new bytes(0));
 
@@ -126,12 +129,12 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
         bondPosition.adjustPosition(tokenId, int256(amount), -int256(epochs), new bytes(0));
         vm.revertTo(_snapshotId);
         Types.Coupon[] memory coupons = new Types.Coupon[](1);
-        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 2}), amount: amount});
+        coupons[0] = Coupon.from(address(usdc), 2, amount);
         vm.expectCall(address(coupon), abi.encodeCall(INewCoupon.mintBatch, (address(this), coupons, new bytes(0))));
         bondPosition.adjustPosition(tokenId, int256(amount), -int256(epochs), new bytes(0));
         vm.revertTo(_snapshotId);
         coupons = new Types.Coupon[](1);
-        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 3}), amount: _initialAmount});
+        coupons[0] = Coupon.from(address(usdc), 3, _initialAmount);
         vm.expectCall(address(coupon), abi.encodeCall(INewCoupon.burnBatch, (address(this), coupons)));
         bondPosition.adjustPosition(tokenId, int256(amount), -int256(epochs), new bytes(0));
 
@@ -159,15 +162,15 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
         bondPosition.adjustPosition(tokenId, -int256(amount), int256(epochs), new bytes(0));
         vm.revertTo(_snapshotId);
         Types.Coupon[] memory coupons = new Types.Coupon[](3);
-        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 4}), amount: expectedAmount});
-        coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 5}), amount: expectedAmount});
-        coupons[2] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 6}), amount: expectedAmount});
+        coupons[0] = Coupon.from(address(usdc), 4, expectedAmount);
+        coupons[1] = Coupon.from(address(usdc), 5, expectedAmount);
+        coupons[2] = Coupon.from(address(usdc), 6, expectedAmount);
         vm.expectCall(address(coupon), abi.encodeCall(INewCoupon.mintBatch, (address(this), coupons, new bytes(0))));
         bondPosition.adjustPosition(tokenId, -int256(amount), int256(epochs), new bytes(0));
         vm.revertTo(_snapshotId);
         coupons = new Types.Coupon[](2);
-        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 2}), amount: amount});
-        coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 3}), amount: amount});
+        coupons[0] = Coupon.from(address(usdc), 2, amount);
+        coupons[1] = Coupon.from(address(usdc), 3, amount);
         vm.expectCall(address(coupon), abi.encodeCall(INewCoupon.burnBatch, (address(this), coupons)));
         bondPosition.adjustPosition(tokenId, -int256(amount), int256(epochs), new bytes(0));
 
@@ -195,8 +198,8 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
         bondPosition.adjustPosition(tokenId, -int256(amount), -int256(epochs), new bytes(0));
         vm.revertTo(_snapshotId);
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
-        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 2}), amount: amount});
-        coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 3}), amount: _initialAmount});
+        coupons[0] = Coupon.from(address(usdc), 2, amount);
+        coupons[1] = Coupon.from(address(usdc), 3, _initialAmount);
         vm.expectCall(address(coupon), abi.encodeCall(INewCoupon.burnBatch, (address(this), coupons)));
         bondPosition.adjustPosition(tokenId, -int256(amount), -int256(epochs), new bytes(0));
 
@@ -220,8 +223,8 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
         bondPosition.adjustPosition(tokenId, -int256(_initialAmount), int256(1), new bytes(0));
         vm.revertTo(_snapshotId);
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
-        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 2}), amount: _initialAmount});
-        coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 3}), amount: _initialAmount});
+        coupons[0] = Coupon.from(address(usdc), 2, _initialAmount);
+        coupons[1] = Coupon.from(address(usdc), 3, _initialAmount);
         vm.expectCall(address(coupon), abi.encodeCall(INewCoupon.burnBatch, (address(this), coupons)));
         bondPosition.adjustPosition(tokenId, -int256(_initialAmount), int256(1), new bytes(0));
 
@@ -248,8 +251,8 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
         bondPosition.adjustPosition(tokenId, int256(1231), -int256(2), new bytes(0));
         vm.revertTo(_snapshotId);
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
-        coupons[0] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 2}), amount: _initialAmount});
-        coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 3}), amount: _initialAmount});
+        coupons[0] = Coupon.from(address(usdc), 2, _initialAmount);
+        coupons[1] = Coupon.from(address(usdc), 3, _initialAmount);
         vm.expectCall(address(coupon), abi.encodeCall(INewCoupon.burnBatch, (address(this), coupons)));
         bondPosition.adjustPosition(tokenId, int256(3242), -int256(2), new bytes(0));
 
@@ -280,11 +283,8 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
         bondPosition.adjustPosition(tokenId, -int256(_initialAmount), -int256(2), new bytes(0));
         vm.revertTo(_snapshotId);
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
-        coupons[0] = Types.Coupon({
-            key: Types.CouponKey({asset: address(usdc), epoch: 2}),
-            amount: _initialAmount - limitBalance
-        });
-        coupons[1] = Types.Coupon({key: Types.CouponKey({asset: address(usdc), epoch: 3}), amount: _initialAmount});
+        coupons[0] = Coupon.from(address(usdc), 2, _initialAmount - limitBalance);
+        coupons[1] = Coupon.from(address(usdc), 3, _initialAmount);
         vm.expectCall(address(coupon), abi.encodeCall(INewCoupon.burnBatch, (address(this), coupons)));
         bondPosition.adjustPosition(tokenId, -int256(_initialAmount), -int256(2), new bytes(0));
 
