@@ -7,18 +7,25 @@ import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/I
 import {Types} from "../Types.sol";
 import {IERC721Permit} from "./IERC721Permit.sol";
 
-interface ILoanPosition is IERC721Permit, IERC721Metadata {
+interface ILoanPositionEvents {
+    event AssetRegistered(address indexed asset);
+    event PositionUpdated(uint256 indexed tokenId, uint256 collateralAmount, uint256 debtAmount, uint256 unlockedAt);
+}
+
+interface ILoanPosition is IERC721Metadata, IERC721Permit, ILoanPositionEvents {
     function baseURI() external view returns (string memory);
+
+    function nextId() external view returns (uint256);
 
     function coupon() external view returns (address);
 
-    function nextId() external view returns (uint256);
+    function assetPool() external view returns (address);
 
     function loans(uint256 tokenId) external view returns (Types.Loan memory);
 
     function isAssetRegistered(address asset) external view returns (bool);
 
-    function getLoanConfiguration(address asset) external view returns (Types.LoanConfiguration memory);
+    function getLoanConfiguration(address asset) external view returns (Types.AssetLoanConfiguration memory);
 
     function getLiquidationStatus(uint256 tokenId) external view returns (Types.LiquidationStatus memory);
 
@@ -30,7 +37,7 @@ interface ILoanPosition is IERC721Permit, IERC721Metadata {
         uint256 debtAmount,
         address recipient,
         bytes calldata data
-    ) external payable returns (uint256);
+    ) external returns (uint256);
 
     function adjustPosition(
         uint256 tokenId,

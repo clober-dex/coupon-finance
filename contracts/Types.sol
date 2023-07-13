@@ -18,7 +18,7 @@ library Types {
         uint256 debtAmount;
         uint256 expiredAt;
     }
-    struct LoanConfiguration {
+    struct AssetLoanConfiguration {
         uint32 decimal;
         uint32 liquidationThreshold;
         uint32 liquidationBonus;
