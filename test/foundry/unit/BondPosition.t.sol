@@ -60,6 +60,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents {
         assertEq(bondPosition.balanceOf(Constants.USER1), beforeUserPositionBalance + 1, "USER_BALANCE");
         assertEq(bondPosition.nextId(), nextId + 1, "NEXT_ID");
         assertEq(bondPosition.ownerOf(tokenId), Constants.USER1, "OWNER");
+        assertEq(bond.asset, address(usdc), "ASSET");
         assertEq(bond.amount, amount, "LOCKED_AMOUNT");
         assertEq(bond.unlockedAt, expectedUnlockedAt, "UNLOCKED_AT");
     }
