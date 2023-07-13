@@ -25,6 +25,8 @@ interface ILoanPosition is IERC721Metadata, IERC721Permit, ILoanPositionEvents {
 
     function assetPool() external view returns (address);
 
+    function couponOwed(address user, uint256 couponId) external view returns (uint256);
+
     function loans(uint256 tokenId) external view returns (Types.Loan memory);
 
     function isAssetRegistered(address asset) external view returns (bool);
@@ -55,4 +57,6 @@ interface ILoanPosition is IERC721Metadata, IERC721Permit, ILoanPositionEvents {
     ) external;
 
     function liquidate(uint256 tokenId, uint256 maxRepayAmount, bytes calldata data) external;
+
+    function burn(uint256 tokenId) external;
 }

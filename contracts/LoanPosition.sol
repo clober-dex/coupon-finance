@@ -27,6 +27,7 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
     string public override baseURI;
     uint256 public override nextId;
 
+    mapping(address user => mapping(uint256 couponId => uint256)) public override couponOwed;
     mapping(address asset => Types.AssetLoanConfiguration) private _assetConfig;
     mapping(uint256 id => Types.Loan) private _loanMap;
 
@@ -236,6 +237,10 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
         //            });
 
         // Todo coupon has to be refund to ownerOf(tokenId)
+    }
+
+    function burn(uint256 tokenId) external {
+        revert("not implemented");
     }
 
     function _getAndIncrementNonce(uint256 tokenId) internal override returns (uint256) {
