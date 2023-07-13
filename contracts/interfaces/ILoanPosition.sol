@@ -15,6 +15,8 @@ interface ILoanPositionEvents {
 interface ILoanPosition is IERC721Metadata, IERC721Permit, ILoanPositionEvents {
     function baseURI() external view returns (string memory);
 
+    function oracle() external view returns (address);
+
     function nextId() external view returns (uint256);
 
     function coupon() external view returns (address);
@@ -27,7 +29,10 @@ interface ILoanPosition is IERC721Metadata, IERC721Permit, ILoanPositionEvents {
 
     function getLoanConfiguration(address asset) external view returns (Types.AssetLoanConfiguration memory);
 
-    function getLiquidationStatus(uint256 tokenId) external view returns (Types.LiquidationStatus memory);
+    function getLiquidationStatus(
+        uint256 tokenId,
+        uint256 maxRepayAmount
+    ) external view returns (Types.LiquidationStatus memory);
 
     function mint(
         address collateralToken,
