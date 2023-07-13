@@ -26,6 +26,13 @@ interface INewCoupon is IERC1155MetadataURI {
 
     function exists(uint256 id) external view returns (bool);
 
+    function safeBatchTransferFrom(
+        address from,
+        address to,
+        Types.Coupon[] calldata coupons,
+        bytes calldata data
+    ) external;
+
     // Admin Functions //
     function mintBatch(address to, Types.Coupon[] calldata coupons, bytes memory data) external;
 
