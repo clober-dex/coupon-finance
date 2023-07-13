@@ -8,6 +8,8 @@ import {Types} from "../Types.sol";
 
 interface INewCoupon is IERC1155MetadataURI {
     // View Functions //
+    function minter() external view returns (address);
+
     function startedAt() external view returns (uint256);
 
     function epochDuration() external view returns (uint256);
