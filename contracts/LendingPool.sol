@@ -160,8 +160,8 @@ contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard, Ownable {
         if (collateralAssetConfig.liquidationThreshold == 0) return deptAssetConfig;
         if (deptAssetConfig.liquidationThreshold == 0) return collateralAssetConfig;
 
-        if (deptAssetConfig.liquidationBonus > collateralAssetConfig.liquidationBonus) {
-            collateralAssetConfig.liquidationBonus = deptAssetConfig.liquidationBonus;
+        if (deptAssetConfig.liquidationFee > collateralAssetConfig.liquidationFee) {
+            collateralAssetConfig.liquidationFee = deptAssetConfig.liquidationFee;
         }
         if (deptAssetConfig.liquidationProtocolFee > collateralAssetConfig.liquidationProtocolFee) {
             collateralAssetConfig.liquidationProtocolFee = deptAssetConfig.liquidationProtocolFee;
@@ -190,45 +190,83 @@ contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard, Ownable {
         return (prices[0] * 10 ** (collateralDecimal - assetDecimal), prices[1]);
     }
 
-    function _getMaxLiquidationAmount(Types.LoanKey calldata loanKey) private view returns (uint256) {
+    function _getLiquidationAmount(
+        Types.LoanKey calldata loanKey,
+        uint256 maxRepayAmount
+    ) private view returns (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount) {
         Types.LoanId id = loanKey.toId();
+
+        Loan memory loan = _loanMap[id];
+        uint256 currentLoanLimit = _loanLimit[id][currentEpoch()];
 
         Types.AssetConfiguration memory assetConfig = _getAssetConfig(loanKey.asset, loanKey.collateral);
         (uint256 assetPrice, uint256 collateralPrice) = _getPriceWithPrecision(loanKey.asset, loanKey.collateral);
 
-        uint256 amount = _loanMap[id].amount;
-        uint256 collateralAmount = _loanMap[id].collateralAmount;
-
-        if (
-            collateralAmount * collateralPrice * assetConfig.liquidationThreshold <
-            amount * assetPrice * _RATE_PRECISION
-        ) {
-            return 0;
+        if (currentLoanLimit < loan.amount) {
+            repayAmount = loan.amount - currentLoanLimit;
+            if (repayAmount > maxRepayAmount) {
+                repayAmount = maxRepayAmount;
+            }
+            // Todo: round up liquidation amount
+            liquidationAmount =
+                (repayAmount * assetPrice * _RATE_PRECISION) /
+                collateralPrice /
+                (_RATE_PRECISION - assetConfig.liquidationFee);
+            protocolFeeAmount = (liquidationAmount * assetConfig.liquidationProtocolFee) / _RATE_PRECISION;
+            return (liquidationAmount, repayAmount, protocolFeeAmount);
         }
 
-        if (
-            collateralAmount * collateralPrice * (_RATE_PRECISION - assetConfig.liquidationThreshold) <=
-            amount * assetPrice * _RATE_PRECISION
-        ) {
-            return collateralAmount;
+        uint256 assetAmountInBaseCurrency = loan.amount * assetPrice * _RATE_PRECISION;
+        uint256 collateralAmountInBaseCurrency = loan.collateralAmount * collateralPrice * _RATE_PRECISION;
+
+        unchecked {
+            if (
+                (collateralAmountInBaseCurrency / _RATE_PRECISION) * assetConfig.liquidationThreshold >
+                assetAmountInBaseCurrency
+            ) {
+                return (0, 0, 0);
+            }
+
+            // Todo: round up liquidation amount
+            liquidationAmount =
+                (assetAmountInBaseCurrency -
+                    (collateralAmountInBaseCurrency / _RATE_PRECISION) *
+                    assetConfig.liquidationTargetLtv) /
+                collateralPrice /
+                (_RATE_PRECISION - assetConfig.liquidationFee - assetConfig.liquidationTargetLtv);
         }
 
-        return
-            (amount *
-                assetPrice *
-                _RATE_PRECISION -
-                collateralAmount *
-                collateralPrice *
-                assetConfig.liquidationTargetLtv) /
-            assetPrice /
-            (_RATE_PRECISION - assetConfig.liquidationTargetLtv * 1);
+        repayAmount =
+            (liquidationAmount * collateralPrice * _RATE_PRECISION) *
+            (_RATE_PRECISION - assetConfig.liquidationFee);
+
+        if (repayAmount > maxRepayAmount) {
+            repayAmount = maxRepayAmount;
+            liquidationAmount =
+                (repayAmount * assetPrice * _RATE_PRECISION) /
+                collateralPrice /
+                (_RATE_PRECISION - assetConfig.liquidationFee);
+        }
+
+        protocolFeeAmount = (liquidationAmount * assetConfig.liquidationProtocolFee) / _RATE_PRECISION;
+
+        return (liquidationAmount, repayAmount, protocolFeeAmount);
     }
 
     function getLiquidationStatus(
-        Types.LoanKey calldata loanKey
+        Types.LoanKey calldata loanKey,
+        uint256 maxRepayAmount
     ) external view returns (Types.LiquidationStatus memory) {
-        uint256 maxLiquidationAmount = _getMaxLiquidationAmount(loanKey);
-        return Types.LiquidationStatus({available: maxLiquidationAmount > 0, liquidationAmount: maxLiquidationAmount});
+        (uint256 liquidationAmount, uint256 repayAmount, ) = _getLiquidationAmount(
+            loanKey,
+            maxRepayAmount > 0 ? maxRepayAmount : type(uint256).max
+        );
+        return
+            Types.LiquidationStatus({
+                available: liquidationAmount > 0,
+                liquidationAmount: liquidationAmount,
+                repayAmount: repayAmount
+            });
     }
 
     function getLoanLimit(Types.LoanKey calldata loanKey, uint256 epoch) external view returns (uint256) {

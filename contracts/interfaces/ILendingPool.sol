@@ -46,7 +46,8 @@ interface ILendingPool is ILendingPoolEvents, ICoupon {
     function getLoanStatus(Types.LoanKey calldata loanKey) external view returns (Types.LoanStatus memory);
 
     function getLiquidationStatus(
-        Types.LoanKey calldata loanKey
+        Types.LoanKey calldata loanKey,
+        uint256 maxRepayAmount
     ) external view returns (Types.LiquidationStatus memory);
 
     function getLoanLimit(Types.LoanKey calldata loanKey, uint256 epoch) external view returns (uint256);

@@ -75,12 +75,13 @@ library Types {
     struct LiquidationStatus {
         bool available;
         uint256 liquidationAmount;
+        uint256 repayAmount;
     }
 
     struct AssetConfiguration {
         uint32 decimal;
         uint32 liquidationThreshold;
-        uint32 liquidationBonus;
+        uint32 liquidationFee;
         uint32 liquidationProtocolFee;
         uint32 liquidationTargetLtv;
     }

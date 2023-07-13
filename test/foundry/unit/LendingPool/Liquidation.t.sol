@@ -49,7 +49,7 @@ contract LendingPoolLiquidationUnitTest is Test, ILendingPoolEvents, ERC1155Hold
 
         r.oracle.setAssetPrice(address(r.weth), 1600 * 10 ** 8);
 
-        Types.LiquidationStatus memory liquidationStatus = r.lendingPool.getLiquidationStatus(loanKey);
+        Types.LiquidationStatus memory liquidationStatus = r.lendingPool.getLiquidationStatus(loanKey, 0);
 
         assertEq(liquidationStatus.available, true, "LIQUIDATION_AVAILABLE");
         assertEq(liquidationStatus.liquidationAmount, 1 ether / 2, "LIQUIDATION_AMOUNT");
@@ -99,7 +99,7 @@ contract LendingPoolLiquidationUnitTest is Test, ILendingPoolEvents, ERC1155Hold
 
         vm.warp(block.timestamp + r.lendingPool.epochDuration());
 
-        Types.LiquidationStatus memory liquidationStatus = r.lendingPool.getLiquidationStatus(loanKey);
+        Types.LiquidationStatus memory liquidationStatus = r.lendingPool.getLiquidationStatus(loanKey, 0);
 
         assertEq(liquidationStatus.available, true, "LIQUIDATION_AVAILABLE");
         assertEq(liquidationStatus.liquidationAmount, 1 ether, "LIQUIDATION_AMOUNT");
