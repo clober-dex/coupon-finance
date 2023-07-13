@@ -44,7 +44,6 @@ interface ILoanPosition is IERC721Metadata, IERC721Permit, ILoanPositionEvents {
         int256 collateralAmount,
         int256 debtAmount,
         int256 loanEpochs,
-        address recipient,
         bytes calldata data
     ) external;
 

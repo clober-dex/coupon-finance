@@ -56,7 +56,6 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
         int256 debtAmount,
         int256 collateralAmount,
         int256 loanEpochs,
-        address recipient,
         bytes calldata data
     ) external {
         revert("not implemented");
