@@ -22,6 +22,7 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
     address public immutable override coupon;
     address public immutable override assetPool;
     address public immutable override oracle;
+    address public immutable override treasury;
 
     string public override baseURI;
     uint256 public override nextId;
@@ -33,12 +34,14 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
         address coupon_,
         address assetPool_,
         address oracle_,
+        address treasury_,
         string memory baseURI_
     ) ERC721Permit("Loan Position", "LP", "1") {
         coupon = coupon_;
         assetPool = assetPool_;
         oracle = oracle_;
         baseURI = baseURI_;
+        treasury = treasury_;
     }
 
     function loans(uint256 tokenId) external view returns (Types.Loan memory) {
@@ -202,7 +205,7 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
         require(liquidationAmount > 0, "LIQUIDATION_FAIL");
 
         IYieldFarmer(assetPool).withdraw(loan.collateralToken, liquidationAmount - protocolFeeAmount, msg.sender);
-        IYieldFarmer(assetPool).withdraw(loan.collateralToken, protocolFeeAmount, address(this));
+        IYieldFarmer(assetPool).withdraw(loan.collateralToken, protocolFeeAmount, treasury);
         if (data.length > 0) {
             uint256 beforeDebtAmount = IERC20(loan.debtToken).balanceOf(address(this));
             ILiquidateCallbackReceiver(msg.sender).couponFinanceLiquidateCallback(

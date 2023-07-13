@@ -15,6 +15,8 @@ interface ILoanPositionEvents {
 interface ILoanPosition is IERC721Metadata, IERC721Permit, ILoanPositionEvents {
     function baseURI() external view returns (string memory);
 
+    function treasury() external view returns (address);
+
     function oracle() external view returns (address);
 
     function nextId() external view returns (uint256);
