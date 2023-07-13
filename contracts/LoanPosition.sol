@@ -3,12 +3,20 @@
 
 pragma solidity ^0.8.0;
 
+import {ERC721Permit} from "./libraries/ERC721Permit.sol";
+import {ReentrancyGuard} from "./libraries/ReentrancyGuard.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Types} from "./Types.sol";
 import {ILoanPosition} from "./interfaces/ILoanPosition.sol";
-import {ERC721Permit} from "./libraries/ERC721Permit.sol";
+import {IYieldFarmer} from "./interfaces/IYieldFarmer.sol";
+import {ILiquidateCallbackReceiver} from "./interfaces/ILiquidateCallbackReceiver.sol";
+
 import {IAaveOracle} from "./external/aave-v3/IAaveOracle.sol";
 
 contract LoanPosition is ILoanPosition, ERC721Permit {
+    using SafeERC20 for IERC20;
+
     uint256 private constant _RATE_PRECISION = 10 ** 6;
 
     address public immutable override coupon;
@@ -86,11 +94,9 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
     }
 
     function _getLiquidationAmount(
-        uint256 tokenId,
+        Types.Loan memory loan,
         uint256 maxRepayAmount
     ) private view returns (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount) {
-        Types.Loan memory loan = _loanMap[tokenId];
-
         Types.AssetLoanConfiguration memory assetConfig = _getAssetConfig(loan.debtToken, loan.collateralToken);
         (uint256 assetPrice, uint256 collateralPrice) = _getPriceWithPrecision(loan.debtToken, loan.collateralToken);
 
@@ -153,7 +159,7 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
         uint256 maxRepayAmount
     ) external view returns (Types.LiquidationStatus memory) {
         (uint256 liquidationAmount, uint256 repayAmount, ) = _getLiquidationAmount(
-            tokenId,
+            _loanMap[tokenId],
             maxRepayAmount > 0 ? maxRepayAmount : type(uint256).max
         );
         return
@@ -186,8 +192,47 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
         revert("not implemented");
     }
 
-    function liquidate(uint256 tokenId, uint256 maxRepayAmount) external {
-        revert("not implemented");
+    function liquidate(uint256 tokenId, uint256 maxRepayAmount, bytes calldata data) external {
+        Types.Loan memory loan = _loanMap[tokenId];
+        (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount) = _getLiquidationAmount(
+            loan,
+            maxRepayAmount > 0 ? maxRepayAmount : type(uint256).max
+        );
+
+        require(liquidationAmount > 0, "LIQUIDATION_FAIL");
+
+        IYieldFarmer(assetPool).withdraw(loan.collateralToken, liquidationAmount - protocolFeeAmount, msg.sender);
+        IYieldFarmer(assetPool).withdraw(loan.collateralToken, protocolFeeAmount, address(this));
+        if (data.length > 0) {
+            uint256 beforeDebtAmount = IERC20(loan.debtToken).balanceOf(address(this));
+            ILiquidateCallbackReceiver(msg.sender).couponFinanceLiquidateCallback(
+                tokenId,
+                loan.collateralToken,
+                loan.debtToken,
+                liquidationAmount - protocolFeeAmount,
+                repayAmount,
+                data
+            );
+            uint256 afterDebtAmount = IERC20(loan.debtToken).balanceOf(address(this));
+            require(afterDebtAmount - beforeDebtAmount >= repayAmount, "NOT_RECEIVED_DEBT");
+        } else {
+            IERC20(loan.debtToken).safeTransferFrom(msg.sender, address(this), repayAmount);
+        }
+        IYieldFarmer(assetPool).deposit(loan.debtToken, repayAmount);
+
+        _loanMap[tokenId].collateralAmount = loan.collateralAmount - liquidationAmount;
+        _loanMap[tokenId].debtAmount = loan.debtAmount - repayAmount;
+
+        //            _loanMap[tokenId] = Types.Loan({
+        //                nonce: loan.nonce,
+        //                collateralToken: loan.collateralToken,
+        //                debtToken: loan.debtToken,
+        //                collateralAmount: loan.collateralAmount - liquidationAmount,
+        //                debtAmount: loan.debtAmount - repayAmount,
+        //                expiredAt: loan.expiredAt
+        //            });
+
+        // Todo coupon has to be refund to ownerOf(tokenId)
     }
 
     function _getAndIncrementNonce(uint256 tokenId) internal override returns (uint256) {
