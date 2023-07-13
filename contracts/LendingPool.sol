@@ -207,6 +207,7 @@ contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard, Ownable {
             if (repayAmount > maxRepayAmount) {
                 repayAmount = maxRepayAmount;
             }
+
             // Todo: round up liquidation amount
             liquidationAmount =
                 (repayAmount * assetPrice * _RATE_PRECISION) /
@@ -237,11 +238,13 @@ contract LendingPool is ILendingPool, ERC1155Supply, ReentrancyGuard, Ownable {
         }
 
         repayAmount =
-            (liquidationAmount * collateralPrice * _RATE_PRECISION) *
-            (_RATE_PRECISION - assetConfig.liquidationFee);
+            (liquidationAmount * collateralPrice * (_RATE_PRECISION - assetConfig.liquidationFee)) /
+            _RATE_PRECISION;
 
         if (repayAmount > maxRepayAmount) {
             repayAmount = maxRepayAmount;
+
+            // Todo: round up liquidation amount
             liquidationAmount =
                 (repayAmount * assetPrice * _RATE_PRECISION) /
                 collateralPrice /
