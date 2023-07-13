@@ -7,7 +7,6 @@ import "forge-std/Test.sol";
 import {Types} from "../../../contracts/Types.sol";
 import {IBondPosition, IBondPositionEvents} from "../../../contracts/interfaces/IBondPosition.sol";
 import {INewCoupon} from "../../../contracts/interfaces/INewCoupon.sol";
-import {MockWETH} from "../mocks/MockWETH.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {MockYieldFarmer} from "../mocks/MockYieldFarmer.sol";
 import {Constants} from "./Constants.sol";
