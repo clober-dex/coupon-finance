@@ -126,9 +126,7 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
             if (
                 (collateralAmountInBaseCurrency / _RATE_PRECISION) * assetConfig.liquidationThreshold >
                 assetAmountInBaseCurrency
-            ) {
-                return (0, 0, 0);
-            }
+            ) return (0, 0, 0);
 
             // Todo: round up liquidation amount
             liquidationAmount =
@@ -137,25 +135,23 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
                     assetConfig.liquidationTargetLtv) /
                 collateralPrice /
                 (_RATE_PRECISION - assetConfig.liquidationFee - assetConfig.liquidationTargetLtv);
+
+            repayAmount =
+                (liquidationAmount * collateralPrice * (_RATE_PRECISION - assetConfig.liquidationFee)) /
+                _RATE_PRECISION;
+
+            if (repayAmount > maxRepayAmount) {
+                repayAmount = maxRepayAmount;
+
+                // Todo: round up liquidation amount
+                liquidationAmount =
+                    (repayAmount * assetPrice * _RATE_PRECISION) /
+                    collateralPrice /
+                    (_RATE_PRECISION - assetConfig.liquidationFee);
+            }
+
+            protocolFeeAmount = (liquidationAmount * assetConfig.liquidationProtocolFee) / _RATE_PRECISION;
         }
-
-        repayAmount =
-            (liquidationAmount * collateralPrice * (_RATE_PRECISION - assetConfig.liquidationFee)) /
-            _RATE_PRECISION;
-
-        if (repayAmount > maxRepayAmount) {
-            repayAmount = maxRepayAmount;
-
-            // Todo: round up liquidation amount
-            liquidationAmount =
-                (repayAmount * assetPrice * _RATE_PRECISION) /
-                collateralPrice /
-                (_RATE_PRECISION - assetConfig.liquidationFee);
-        }
-
-        protocolFeeAmount = (liquidationAmount * assetConfig.liquidationProtocolFee) / _RATE_PRECISION;
-
-        return (liquidationAmount, repayAmount, protocolFeeAmount);
     }
 
     function getLiquidationStatus(
