@@ -49,23 +49,23 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
         address asset,
         address collateral
     ) private view returns (Types.AssetLoanConfiguration memory) {
-        Types.AssetLoanConfiguration memory deptAssetConfig = _assetConfig[asset];
+        Types.AssetLoanConfiguration memory debtAssetConfig = _assetConfig[asset];
         Types.AssetLoanConfiguration memory collateralAssetConfig = _assetConfig[collateral];
 
-        if (collateralAssetConfig.liquidationThreshold == 0) return deptAssetConfig;
-        if (deptAssetConfig.liquidationThreshold == 0) return collateralAssetConfig;
+        if (collateralAssetConfig.liquidationThreshold == 0) return debtAssetConfig;
+        if (debtAssetConfig.liquidationThreshold == 0) return collateralAssetConfig;
 
-        if (deptAssetConfig.liquidationFee > collateralAssetConfig.liquidationFee) {
-            collateralAssetConfig.liquidationFee = deptAssetConfig.liquidationFee;
+        if (debtAssetConfig.liquidationFee > collateralAssetConfig.liquidationFee) {
+            collateralAssetConfig.liquidationFee = debtAssetConfig.liquidationFee;
         }
-        if (deptAssetConfig.liquidationProtocolFee > collateralAssetConfig.liquidationProtocolFee) {
-            collateralAssetConfig.liquidationProtocolFee = deptAssetConfig.liquidationProtocolFee;
+        if (debtAssetConfig.liquidationProtocolFee > collateralAssetConfig.liquidationProtocolFee) {
+            collateralAssetConfig.liquidationProtocolFee = debtAssetConfig.liquidationProtocolFee;
         }
-        if (deptAssetConfig.liquidationThreshold < collateralAssetConfig.liquidationThreshold) {
-            collateralAssetConfig.liquidationThreshold = deptAssetConfig.liquidationThreshold;
+        if (debtAssetConfig.liquidationThreshold < collateralAssetConfig.liquidationThreshold) {
+            collateralAssetConfig.liquidationThreshold = debtAssetConfig.liquidationThreshold;
         }
-        if (deptAssetConfig.liquidationTargetLtv < collateralAssetConfig.liquidationTargetLtv) {
-            collateralAssetConfig.liquidationTargetLtv = deptAssetConfig.liquidationTargetLtv;
+        if (debtAssetConfig.liquidationTargetLtv < collateralAssetConfig.liquidationTargetLtv) {
+            collateralAssetConfig.liquidationTargetLtv = debtAssetConfig.liquidationTargetLtv;
         }
         return collateralAssetConfig;
     }
