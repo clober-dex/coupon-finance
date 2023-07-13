@@ -32,17 +32,17 @@ interface ILoanPosition is IERC721Metadata, IERC721Permit, ILoanPositionEvents {
     function mint(
         address collateralToken,
         address debtToken,
-        uint256 loanEpochs,
         uint256 collateralAmount,
         uint256 debtAmount,
+        uint256 loanEpochs,
         address recipient,
         bytes calldata data
     ) external returns (uint256);
 
     function adjustPosition(
         uint256 tokenId,
-        int256 debtAmount,
         int256 collateralAmount,
+        int256 debtAmount,
         int256 loanEpochs,
         address recipient,
         bytes calldata data
