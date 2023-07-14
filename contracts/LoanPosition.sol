@@ -83,19 +83,25 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
         return collateralAssetConfig;
     }
 
-    function _getPriceWithPrecision(address asset, address collateral) private view returns (uint256, uint256) {
-        address[] memory assets = new address[](2);
-        assets[0] = asset;
+    function _getPriceWithPrecisionAndEthAmount(
+        address debt,
+        address collateral,
+        uint256 ethAmount
+    ) private view returns (uint256, uint256, uint256) {
+        address[] memory assets = new address[](3);
+        assets[0] = debt;
         assets[1] = collateral;
+        debt[2] = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
 
-        uint256 assetDecimal = _assetConfig[asset].decimal;
+        uint256 assetDecimal = _assetConfig[debt].decimal;
         uint256 collateralDecimal = _assetConfig[collateral].decimal;
 
         uint256[] memory prices = IAaveOracle(oracle).getAssetsPrices(assets);
+        ethAmount = (ethAmount * prices[2]) / prices[0];
         if (assetDecimal > collateralDecimal) {
-            return (prices[0], prices[1] * 10 ** (assetDecimal - collateralDecimal));
+            return (prices[0], prices[1] * 10 ** (assetDecimal - collateralDecimal), ethAmount);
         }
-        return (prices[0] * 10 ** (collateralDecimal - assetDecimal), prices[1]);
+        return (prices[0] * 10 ** (collateralDecimal - assetDecimal), prices[1], ethAmount);
     }
 
     function _getLiquidationAmount(
@@ -103,7 +109,11 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
         uint256 maxRepayAmount
     ) private view returns (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount) {
         Types.AssetLoanConfiguration memory assetConfig = _getAssetConfig(loan.debtToken, loan.collateralToken);
-        (uint256 assetPrice, uint256 collateralPrice) = _getPriceWithPrecision(loan.debtToken, loan.collateralToken);
+        (uint256 assetPrice, uint256 collateralPrice, uint256 ethAmount) = _getPriceWithPrecisionAndEthAmount(
+            loan.debtToken,
+            loan.collateralToken,
+            10 ** 17
+        );
 
         if (block.timestamp > loan.expiredAt) {
             repayAmount = loan.debtAmount;
