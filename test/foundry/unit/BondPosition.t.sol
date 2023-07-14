@@ -240,12 +240,13 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
     function testAdjustPositionDecreaseEpochsToCurrentEpoch() public {
         uint256 tokenId = _beforeAdjustPosition();
 
+        uint256 expectedUnlockedAt = coupon.epochEndTime(1);
         uint256 beforeThisBalance = usdc.balanceOf(address(this));
         uint256 beforeBondPositionBalance = bondPosition.balanceOf(address(this));
 
         _snapshotId = vm.snapshot();
         vm.expectEmit(true, true, true, true);
-        emit PositionUpdated(tokenId, 0, 0);
+        emit PositionUpdated(tokenId, 0, expectedUnlockedAt);
         bondPosition.adjustPosition(tokenId, int256(1231), -int256(2), new bytes(0));
         vm.revertTo(_snapshotId);
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
@@ -259,7 +260,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
         assertEq(usdc.balanceOf(address(this)), beforeThisBalance, "THIS_BALANCE");
         assertEq(bondPosition.balanceOf(address(this)), beforeBondPositionBalance - 1, "BOND_POSITION_BALANCE");
         assertEq(afterBond.amount, 0, "LOCKED_AMOUNT");
-        assertEq(afterBond.unlockedAt, coupon.epochEndTime(1), "UNLOCKED_AT");
+        assertEq(afterBond.unlockedAt, expectedUnlockedAt, "UNLOCKED_AT");
         vm.expectRevert("ERC721: invalid token ID");
         bondPosition.ownerOf(tokenId);
     }
@@ -295,9 +296,10 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
 
     function testAdjustPositionOwnership() public {
         uint256 tokenId = _beforeAdjustPosition();
-
-        vm.expectRevert("ERC721: transfer caller is not owner nor approved");
+        vm.startPrank(address(0x123));
+        vm.expectRevert("ERC721: caller is not token owner or approved");
         bondPosition.adjustPosition(tokenId, int256(12412), int256(2), new bytes(0));
+        vm.stopPrank();
     }
 
     function testAdjustPositionWithInvalidTokenId() public {
