@@ -64,26 +64,40 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
     function _getAssetConfig(
         address asset,
         address collateral
-    ) private view returns (Types.AssetLoanConfiguration memory) {
+    )
+        private
+        view
+        returns (
+            uint256 liquidationThreshold,
+            uint256 liquidationFee,
+            uint256 liquidationProtocolFee,
+            uint256 liquidationTargetLtv
+        )
+    {
         Types.AssetLoanConfiguration memory debtAssetConfig = _assetConfig[asset];
         Types.AssetLoanConfiguration memory collateralAssetConfig = _assetConfig[collateral];
 
-        if (collateralAssetConfig.liquidationThreshold == 0) return debtAssetConfig;
-        if (debtAssetConfig.liquidationThreshold == 0) return collateralAssetConfig;
+        if (collateralAssetConfig.liquidationThreshold == 0)
+            return (
+                debtAssetConfig.liquidationFee,
+                debtAssetConfig.liquidationProtocolFee,
+                debtAssetConfig.liquidationThreshold,
+                debtAssetConfig.liquidationTargetLtv
+            );
+        if (debtAssetConfig.liquidationThreshold == 0)
+            return (
+                collateralAssetConfig.liquidationFee,
+                collateralAssetConfig.liquidationProtocolFee,
+                collateralAssetConfig.liquidationThreshold,
+                collateralAssetConfig.liquidationTargetLtv
+            );
 
-        if (debtAssetConfig.liquidationFee > collateralAssetConfig.liquidationFee) {
-            collateralAssetConfig.liquidationFee = debtAssetConfig.liquidationFee;
-        }
-        if (debtAssetConfig.liquidationProtocolFee > collateralAssetConfig.liquidationProtocolFee) {
-            collateralAssetConfig.liquidationProtocolFee = debtAssetConfig.liquidationProtocolFee;
-        }
-        if (debtAssetConfig.liquidationThreshold < collateralAssetConfig.liquidationThreshold) {
-            collateralAssetConfig.liquidationThreshold = debtAssetConfig.liquidationThreshold;
-        }
-        if (debtAssetConfig.liquidationTargetLtv < collateralAssetConfig.liquidationTargetLtv) {
-            collateralAssetConfig.liquidationTargetLtv = debtAssetConfig.liquidationTargetLtv;
-        }
-        return collateralAssetConfig;
+        return (
+            Math.max(debtAssetConfig.liquidationFee, collateralAssetConfig.liquidationFee),
+            Math.max(debtAssetConfig.liquidationProtocolFee, collateralAssetConfig.liquidationProtocolFee),
+            Math.min(debtAssetConfig.liquidationThreshold, collateralAssetConfig.liquidationThreshold),
+            Math.min(debtAssetConfig.liquidationTargetLtv, collateralAssetConfig.liquidationTargetLtv)
+        );
     }
 
     function _getPriceWithPrecisionAndEthAmount(
@@ -111,7 +125,12 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
         Types.Loan memory loan,
         uint256 maxRepayAmount
     ) private view returns (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount) {
-        Types.AssetLoanConfiguration memory assetConfig = _getAssetConfig(loan.debtToken, loan.collateralToken);
+        (
+            uint256 liquidationThreshold,
+            uint256 liquidationFee,
+            uint256 liquidationProtocolFee,
+            uint256 liquidationTargetLtv
+        ) = _getAssetConfig(loan.debtToken, loan.collateralToken);
         (uint256 assetPrice, uint256 collateralPrice, uint256 ethAmount) = _getPriceWithPrecisionAndEthAmount(
             loan.debtToken,
             loan.collateralToken,
@@ -128,8 +147,8 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
             liquidationAmount =
                 (repayAmount * assetPrice * _RATE_PRECISION) /
                 collateralPrice /
-                (_RATE_PRECISION - assetConfig.liquidationFee);
-            protocolFeeAmount = (liquidationAmount * assetConfig.liquidationProtocolFee) / _RATE_PRECISION;
+                (_RATE_PRECISION - liquidationFee);
+            protocolFeeAmount = (liquidationAmount * liquidationProtocolFee) / _RATE_PRECISION;
             return (liquidationAmount, repayAmount, protocolFeeAmount);
         }
 
@@ -137,22 +156,18 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
         uint256 collateralAmountInBaseCurrency = loan.collateralAmount * collateralPrice * _RATE_PRECISION;
 
         unchecked {
-            if (
-                (collateralAmountInBaseCurrency / _RATE_PRECISION) * assetConfig.liquidationThreshold >
-                assetAmountInBaseCurrency
-            ) return (0, 0, 0);
+            if ((collateralAmountInBaseCurrency / _RATE_PRECISION) * liquidationThreshold > assetAmountInBaseCurrency)
+                return (0, 0, 0);
 
             // Todo: round up liquidation amount
             liquidationAmount =
                 (assetAmountInBaseCurrency -
                     (collateralAmountInBaseCurrency / _RATE_PRECISION) *
-                    assetConfig.liquidationTargetLtv) /
+                    liquidationTargetLtv) /
                 collateralPrice /
-                (_RATE_PRECISION - assetConfig.liquidationFee - assetConfig.liquidationTargetLtv);
+                (_RATE_PRECISION - liquidationFee - liquidationTargetLtv);
 
-            repayAmount =
-                (liquidationAmount * collateralPrice * (_RATE_PRECISION - assetConfig.liquidationFee)) /
-                _RATE_PRECISION;
+            repayAmount = (liquidationAmount * collateralPrice * (_RATE_PRECISION - liquidationFee)) / _RATE_PRECISION;
 
             uint256 newRepayAmount = Math.min(repayAmount, maxRepayAmount);
             if (loan.debtAmount <= newRepayAmount + ethAmount) {
@@ -165,10 +180,10 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
                 liquidationAmount =
                     (newRepayAmount * assetPrice * _RATE_PRECISION) /
                     collateralPrice /
-                    (_RATE_PRECISION - assetConfig.liquidationFee);
+                    (_RATE_PRECISION - liquidationFee);
             }
             repayAmount = newRepayAmount;
-            protocolFeeAmount = (liquidationAmount * assetConfig.liquidationProtocolFee) / _RATE_PRECISION;
+            protocolFeeAmount = (liquidationAmount * liquidationProtocolFee) / _RATE_PRECISION;
         }
     }
 
