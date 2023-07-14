@@ -2,9 +2,9 @@
 pragma solidity ^0.8.0;
 
 interface ICouponOracle {
-    function aaveOracle() external returns (address);
+    function oracle() external view returns (address);
 
-    function wethAddress() external returns (address);
+    function weth() external view returns (address);
 
     /**
      * @notice Returns the asset price in the base currency
@@ -19,15 +19,4 @@ interface ICouponOracle {
      * @return The prices of the given assets
      */
     function getAssetsPrices(address[] calldata assets) external view returns (uint256[] memory);
-
-    /**
-     * @notice Returns a list of prices from a list of assets addresses
-     * @param asset1 The address of the first asset
-     * @param asset2 The address of the second asset
-     * @return The prices of the given assets with eth price
-     */
-    function getTwoAssetsPricesWithEthPrice(
-        address asset1,
-        address asset2
-    ) external view returns (uint256, uint256, uint256);
 }

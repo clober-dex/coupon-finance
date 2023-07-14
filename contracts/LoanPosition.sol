@@ -45,7 +45,7 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
         oracle = oracle_;
         baseURI = baseURI_;
         treasury = treasury_;
-        minTransactionEthAmount = minTransactionEthAmount_;
+        minDebtEthAmount = minDebtEthAmount_;
     }
 
     function loans(uint256 tokenId) external view returns (Types.Loan memory) {
@@ -107,13 +107,17 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
         uint256 assetDecimal = _assetConfig[debt].decimal;
         uint256 collateralDecimal = _assetConfig[collateral].decimal;
 
-        (uint256 debtPrice, uint256 collateralPrice, uint256 ethPrice) = ICouponOracle(oracle)
-            .getTwoAssetsPricesWithEthPrice(debt, collateral);
-        ethAmount = (ethAmount * ethPrice) / debtPrice;
+        address[] memory assets = new address[](3);
+        assets[0] = debt;
+        assets[1] = collateral;
+        assets[2] = address(0);
+
+        uint256[] memory prices = ICouponOracle(oracle).getAssetsPrices(assets);
+        ethAmount = (ethAmount * prices[2]) / prices[0];
         if (assetDecimal > collateralDecimal) {
-            return (debtPrice, collateralPrice * 10 ** (assetDecimal - collateralDecimal), ethAmount);
+            return (prices[0], prices[1] * 10 ** (assetDecimal - collateralDecimal), ethAmount);
         }
-        return (debtPrice * 10 ** (collateralDecimal - assetDecimal), collateralPrice, ethAmount);
+        return (prices[0] * 10 ** (collateralDecimal - assetDecimal), prices[1], ethAmount);
     }
 
     function _getLiquidationAmount(
@@ -179,6 +183,11 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
             protocolFeeAmount = (liquidationAmount * liquidationProtocolFee) / _RATE_PRECISION;
             liquidationAmount -= protocolFeeAmount;
         }
+    }
+
+    // Todo remove
+    function setLoanMap(uint256 tokenId, Types.Loan calldata loan) external {
+        _loanMap[tokenId] = loan;
     }
 
     function getLiquidationStatus(
