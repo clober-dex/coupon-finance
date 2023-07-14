@@ -24,6 +24,7 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
     address public immutable override assetPool;
     address public immutable override oracle;
     address public immutable override treasury;
+    uint256 public immutable override minTransactionEthAmount;
 
     string public override baseURI;
     uint256 public override nextId;
@@ -37,6 +38,7 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
         address assetPool_,
         address oracle_,
         address treasury_,
+        uint256 minTransactionEthAmount_,
         string memory baseURI_
     ) ERC721Permit("Loan Position", "LP", "1") {
         coupon = coupon_;
@@ -44,6 +46,7 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
         oracle = oracle_;
         baseURI = baseURI_;
         treasury = treasury_;
+        minTransactionEthAmount = minTransactionEthAmount_;
     }
 
     function loans(uint256 tokenId) external view returns (Types.Loan memory) {
@@ -112,7 +115,7 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
         (uint256 assetPrice, uint256 collateralPrice, uint256 ethAmount) = _getPriceWithPrecisionAndEthAmount(
             loan.debtToken,
             loan.collateralToken,
-            10 ** 17
+            minTransactionEthAmount
         );
 
         if (block.timestamp > loan.expiredAt) {
