@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-interface IYieldFarmer {
+interface IAssetPool {
     function treasury() external view returns (address);
 
     function totalReservedAmount(address asset) external view returns (uint256);

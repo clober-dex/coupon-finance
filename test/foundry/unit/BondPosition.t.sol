@@ -13,7 +13,7 @@ import {IBondPosition, IBondPositionEvents} from "../../../contracts/interfaces/
 import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
 import {Coupon} from "../../../contracts/libraries/Coupon.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
-import {MockYieldFarmer} from "../mocks/MockYieldFarmer.sol";
+import {MockAssetPool} from "../mocks/MockAssetPool.sol";
 import {Constants} from "./Constants.sol";
 
 contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC721Holder {
@@ -21,7 +21,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
 
     MockERC20 public usdc;
 
-    MockYieldFarmer public yieldFarmer;
+    MockAssetPool public assetPool;
     ICouponManager public coupon;
     IBondPosition public bondPosition;
 
@@ -34,7 +34,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
         usdc.mint(address(this), usdc.amount(1_000_000_000));
 
         _initialAmount = usdc.amount(100);
-        yieldFarmer = new MockYieldFarmer();
+        assetPool = new MockAssetPool();
         // bondPosition = new BondPosition();
 
         usdc.approve(address(bondPosition), type(uint256).max);
@@ -278,7 +278,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
     function testAdjustPositionWhenProtocolHasInsufficientAmount() public {
         uint256 tokenId = _beforeAdjustPosition();
         uint256 limitBalance = usdc.amount(20);
-        yieldFarmer.setWithdrawLimit(address(usdc), limitBalance);
+        assetPool.setWithdrawLimit(address(usdc), limitBalance);
 
         uint256 expectedAmount = limitBalance;
         uint256 expectedUnlockedAt = coupon.epochEndTime(2);

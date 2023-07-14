@@ -13,7 +13,7 @@ import {ILoanPosition, ILoanPositionEvents} from "../../../contracts/interfaces/
 import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
 import {Coupon} from "../../../contracts/libraries/Coupon.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
-import {MockYieldFarmer} from "../mocks/MockYieldFarmer.sol";
+import {MockAssetPool} from "../mocks/MockAssetPool.sol";
 import {MockOracle} from "../mocks/MockOracle.sol";
 import {Constants} from "./Constants.sol";
 
@@ -24,7 +24,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
     MockERC20 public usdc;
 
     MockOracle public oracle;
-    MockYieldFarmer public yieldFarmer;
+    MockAssetPool public assetPool;
     ICouponManager public coupon;
     ILoanPosition public loanPosition;
 
@@ -39,16 +39,16 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         collateral.mint(address(this), collateral.amount(2_000_000_000));
         usdc.mint(address(this), usdc.amount(2_000_000_000));
 
-        yieldFarmer = new MockYieldFarmer();
+        assetPool = new MockAssetPool();
         oracle = new MockOracle();
         // loanPosition = new LoanPosition();
 
         collateral.approve(address(loanPosition), type(uint256).max);
         usdc.approve(address(loanPosition), type(uint256).max);
-        collateral.approve(address(yieldFarmer), type(uint256).max);
-        usdc.approve(address(yieldFarmer), type(uint256).max);
-        yieldFarmer.deposit(address(collateral), collateral.amount(1_000_000_000));
-        yieldFarmer.deposit(address(usdc), collateral.amount(1_000_000_000));
+        collateral.approve(address(assetPool), type(uint256).max);
+        usdc.approve(address(assetPool), type(uint256).max);
+        assetPool.deposit(address(collateral), collateral.amount(1_000_000_000));
+        assetPool.deposit(address(usdc), collateral.amount(1_000_000_000));
 
         oracle.setAssetPrice(address(collateral), 1800 * 10 ** 8);
         oracle.setAssetPrice(address(usdc), 10 ** 8);

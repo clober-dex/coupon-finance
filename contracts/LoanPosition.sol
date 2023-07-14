@@ -9,7 +9,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Types} from "./Types.sol";
 import {ILoanPosition} from "./interfaces/ILoanPosition.sol";
-import {IYieldFarmer} from "./interfaces/IYieldFarmer.sol";
+import {IAssetPool} from "./interfaces/IAssetPool.sol";
 import {ILiquidateCallbackReceiver} from "./interfaces/ILiquidateCallbackReceiver.sol";
 
 import {IAaveOracle} from "./external/aave-v3/IAaveOracle.sol";
@@ -204,8 +204,8 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
         _loanMap[tokenId].collateralAmount = loan.collateralAmount - liquidationAmount;
         _loanMap[tokenId].debtAmount = loan.debtAmount - repayAmount;
 
-        IYieldFarmer(assetPool).withdraw(loan.collateralToken, liquidationAmount - protocolFeeAmount, msg.sender);
-        IYieldFarmer(assetPool).withdraw(loan.collateralToken, protocolFeeAmount, treasury);
+        IAssetPool(assetPool).withdraw(loan.collateralToken, liquidationAmount - protocolFeeAmount, msg.sender);
+        IAssetPool(assetPool).withdraw(loan.collateralToken, protocolFeeAmount, treasury);
         if (data.length > 0) {
             uint256 beforeDebtAmount = IERC20(loan.debtToken).balanceOf(address(this));
             ILiquidateCallbackReceiver(msg.sender).couponFinanceLiquidateCallback(
@@ -221,7 +221,7 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
         } else {
             IERC20(loan.debtToken).safeTransferFrom(msg.sender, address(this), repayAmount);
         }
-        IYieldFarmer(assetPool).deposit(loan.debtToken, repayAmount);
+        IAssetPool(assetPool).deposit(loan.debtToken, repayAmount);
 
         // Todo coupon has to be refund to ownerOf(tokenId)
     }
