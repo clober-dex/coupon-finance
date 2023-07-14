@@ -10,7 +10,7 @@ import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Hol
 import {Errors} from "../../../contracts/Errors.sol";
 import {Types} from "../../../contracts/Types.sol";
 import {ILoanPosition, ILoanPositionEvents} from "../../../contracts/interfaces/ILoanPosition.sol";
-import {INewCoupon} from "../../../contracts/interfaces/INewCoupon.sol";
+import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
 import {Coupon} from "../../../contracts/libraries/Coupon.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {MockYieldFarmer} from "../mocks/MockYieldFarmer.sol";
@@ -25,12 +25,10 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
 
     MockOracle public oracle;
     MockYieldFarmer public yieldFarmer;
-    INewCoupon public coupon;
+    ICouponManager public coupon;
     ILoanPosition public loanPosition;
 
     uint256 private _snapshotId;
-    Types.PermitParams private _permitParams;
-
     uint256 private _initialCollateralAmount;
     uint256 private _initialDebtAmount;
 
@@ -94,7 +92,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         vm.expectCall(
             address(coupon),
             abi.encodeCall(
-                INewCoupon.safeBatchTransferFrom,
+                ICouponManager.safeBatchTransferFrom,
                 (address(this), address(loanPosition), coupons, new bytes(0))
             )
         );
@@ -184,6 +182,8 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         vm.warp(block.timestamp + coupon.epochDuration());
     }
 
+    // TODO: flash adjust position tests
+
     function testAdjustPositionIncreaseDebtAndEpochs() public {
         uint256 tokenId = _beforeAdjustPosition();
         uint256 debtAmount = usdc.amount(70);
@@ -206,7 +206,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         vm.expectCall(
             address(coupon),
             abi.encodeCall(
-                INewCoupon.safeBatchTransferFrom,
+                ICouponManager.safeBatchTransferFrom,
                 (address(this), address(loanPosition), coupons, new bytes(0))
             )
         );
@@ -238,7 +238,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         vm.expectCall(
             address(coupon),
             abi.encodeCall(
-                INewCoupon.safeBatchTransferFrom,
+                ICouponManager.safeBatchTransferFrom,
                 (address(this), address(loanPosition), coupons, new bytes(0))
             )
         );
@@ -249,7 +249,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         vm.expectCall(
             address(coupon),
             abi.encodeCall(
-                INewCoupon.safeBatchTransferFrom,
+                ICouponManager.safeBatchTransferFrom,
                 (address(loanPosition), address(this), coupons, new bytes(0))
             )
         );
@@ -282,7 +282,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         vm.expectCall(
             address(coupon),
             abi.encodeCall(
-                INewCoupon.safeBatchTransferFrom,
+                ICouponManager.safeBatchTransferFrom,
                 (address(this), address(loanPosition), coupons, new bytes(0))
             )
         );
@@ -294,7 +294,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         vm.expectCall(
             address(coupon),
             abi.encodeCall(
-                INewCoupon.safeBatchTransferFrom,
+                ICouponManager.safeBatchTransferFrom,
                 (address(loanPosition), address(this), coupons, new bytes(0))
             )
         );
@@ -327,7 +327,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         vm.expectCall(
             address(coupon),
             abi.encodeCall(
-                INewCoupon.safeBatchTransferFrom,
+                ICouponManager.safeBatchTransferFrom,
                 (address(loanPosition), address(this), coupons, new bytes(0))
             )
         );
@@ -362,7 +362,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         vm.expectCall(
             address(coupon),
             abi.encodeCall(
-                INewCoupon.safeBatchTransferFrom,
+                ICouponManager.safeBatchTransferFrom,
                 (address(loanPosition), address(this), coupons, new bytes(0))
             )
         );

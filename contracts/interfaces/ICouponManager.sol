@@ -6,7 +6,7 @@ import {IERC1155MetadataURI} from "@openzeppelin/contracts/token/ERC1155/extensi
 
 import {Types} from "../Types.sol";
 
-interface INewCoupon is IERC1155MetadataURI {
+interface ICouponManager is IERC1155MetadataURI {
     // View Functions //
     function minter() external view returns (address);
 
