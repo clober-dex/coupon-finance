@@ -25,7 +25,7 @@ interface ILoanPosition is IERC721Metadata, IERC721Permit, ILoanPositionEvents {
 
     function assetPool() external view returns (address);
 
-    function minTransactionEthAmount() external view returns (uint256);
+    function minDebtValueInEth() external view returns (uint256);
 
     function couponOwed(address user, uint256 couponId) external view returns (uint256);
 
