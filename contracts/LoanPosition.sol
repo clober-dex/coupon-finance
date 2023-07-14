@@ -91,7 +91,7 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
         address[] memory assets = new address[](3);
         assets[0] = debt;
         assets[1] = collateral;
-        debt[2] = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+        assets[2] = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
 
         uint256 assetDecimal = _assetConfig[debt].decimal;
         uint256 collateralDecimal = _assetConfig[collateral].decimal;
