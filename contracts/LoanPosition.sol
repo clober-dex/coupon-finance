@@ -12,8 +12,7 @@ import {Types} from "./Types.sol";
 import {ILoanPosition} from "./interfaces/ILoanPosition.sol";
 import {IAssetPool} from "./interfaces/IAssetPool.sol";
 import {ILiquidateCallbackReceiver} from "./interfaces/ILiquidateCallbackReceiver.sol";
-
-import {IAaveOracle} from "./external/aave-v3/IAaveOracle.sol";
+import {ICouponOracle} from "./interfaces/ICouponOracle.sol";
 
 contract LoanPosition is ILoanPosition, ERC721Permit {
     using SafeERC20 for IERC20;
@@ -100,25 +99,21 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
         );
     }
 
-    function _getPriceWithPrecisionAndEthAmount(
+    function _getPriceWithPrecisionAndEthAmountPerDebt(
         address debt,
         address collateral,
         uint256 ethAmount
     ) private view returns (uint256, uint256, uint256) {
-        address[] memory assets = new address[](3);
-        assets[0] = debt;
-        assets[1] = collateral;
-        assets[2] = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
-
         uint256 assetDecimal = _assetConfig[debt].decimal;
         uint256 collateralDecimal = _assetConfig[collateral].decimal;
 
-        uint256[] memory prices = IAaveOracle(oracle).getAssetsPrices(assets);
-        ethAmount = (ethAmount * prices[2]) / prices[0];
+        (uint256 debtPrice, uint256 collateralPrice, uint256 ethPrice) = ICouponOracle(oracle)
+            .getTwoAssetsPricesWithEthPrice(debt, collateral);
+        ethAmount = (ethAmount * ethPrice) / debtPrice;
         if (assetDecimal > collateralDecimal) {
-            return (prices[0], prices[1] * 10 ** (assetDecimal - collateralDecimal), ethAmount);
+            return (debtPrice, collateralPrice * 10 ** (assetDecimal - collateralDecimal), ethAmount);
         }
-        return (prices[0] * 10 ** (collateralDecimal - assetDecimal), prices[1], ethAmount);
+        return (debtPrice * 10 ** (collateralDecimal - assetDecimal), collateralPrice, ethAmount);
     }
 
     function _getLiquidationAmount(
@@ -131,7 +126,7 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
             uint256 liquidationProtocolFee,
             uint256 liquidationTargetLtv
         ) = _getAssetConfig(loan.debtToken, loan.collateralToken);
-        (uint256 assetPrice, uint256 collateralPrice, uint256 ethAmount) = _getPriceWithPrecisionAndEthAmount(
+        (uint256 assetPrice, uint256 collateralPrice, uint256 ethAmount) = _getPriceWithPrecisionAndEthAmountPerDebt(
             loan.debtToken,
             loan.collateralToken,
             minTransactionEthAmount
