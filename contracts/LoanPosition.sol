@@ -138,11 +138,10 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
                 repayAmount = maxRepayAmount;
             }
 
-            // Todo: round up liquidation amount
-            liquidationAmount =
-                (repayAmount * assetPrice * _RATE_PRECISION) /
-                collateralPrice /
-                (_RATE_PRECISION - liquidationFee);
+            liquidationAmount = Math.ceilDiv(
+                repayAmount * assetPrice * _RATE_PRECISION,
+                collateralPrice * (_RATE_PRECISION - liquidationFee)
+            );
             unchecked {
                 protocolFeeAmount = (liquidationAmount * liquidationProtocolFee) / _RATE_PRECISION;
                 liquidationAmount -= protocolFeeAmount;
@@ -157,13 +156,10 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
             if ((collateralAmountInBaseCurrency / _RATE_PRECISION) * liquidationThreshold > assetAmountInBaseCurrency)
                 return (0, 0, 0);
 
-            // Todo: round up liquidation amount
-            liquidationAmount =
-                (assetAmountInBaseCurrency -
-                    (collateralAmountInBaseCurrency / _RATE_PRECISION) *
-                    liquidationTargetLtv) /
-                collateralPrice /
-                (_RATE_PRECISION - liquidationFee - liquidationTargetLtv);
+            liquidationAmount = Math.ceilDiv(
+                assetAmountInBaseCurrency - (collateralAmountInBaseCurrency / _RATE_PRECISION) * liquidationTargetLtv,
+                collateralPrice * (_RATE_PRECISION - liquidationFee - liquidationTargetLtv)
+            );
 
             repayAmount = (liquidationAmount * collateralPrice * (_RATE_PRECISION - liquidationFee)) / _RATE_PRECISION;
 
@@ -174,11 +170,10 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
             }
 
             if (newRepayAmount != repayAmount) {
-                // Todo: round up liquidation amount
-                liquidationAmount =
-                    (newRepayAmount * assetPrice * _RATE_PRECISION) /
-                    collateralPrice /
-                    (_RATE_PRECISION - liquidationFee);
+                liquidationAmount = Math.ceilDiv(
+                    newRepayAmount * assetPrice * _RATE_PRECISION,
+                    _RATE_PRECISION - liquidationFee
+                );
             }
             repayAmount = newRepayAmount;
             protocolFeeAmount = (liquidationAmount * liquidationProtocolFee) / _RATE_PRECISION;
