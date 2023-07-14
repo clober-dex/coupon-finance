@@ -7,6 +7,7 @@ import {ERC721Permit} from "./libraries/ERC721Permit.sol";
 import {ReentrancyGuard} from "./libraries/ReentrancyGuard.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {Types} from "./Types.sol";
 import {ILoanPosition} from "./interfaces/ILoanPosition.sol";
 import {IAssetPool} from "./interfaces/IAssetPool.sol";
