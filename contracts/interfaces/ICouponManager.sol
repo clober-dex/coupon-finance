@@ -26,12 +26,15 @@ interface ICouponManager is IERC1155MetadataURI {
 
     function exists(uint256 id) external view returns (bool);
 
+    // User Functions
     function safeBatchTransferFrom(
         address from,
         address to,
         Types.Coupon[] calldata coupons,
         bytes calldata data
     ) external;
+
+    function burnExpiredCoupons(Types.CouponKey[] calldata couponKeys) external;
 
     // Admin Functions //
     function mintBatch(address to, Types.Coupon[] calldata coupons, bytes memory data) external;
