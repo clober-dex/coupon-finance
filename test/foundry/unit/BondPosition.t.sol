@@ -14,7 +14,7 @@ import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
 import {Coupon} from "../../../contracts/libraries/Coupon.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {MockAssetPool} from "../mocks/MockAssetPool.sol";
-import {Constants} from "./Constants.sol";
+import {Constants} from "../Constants.sol";
 
 contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC721Holder {
     using Coupon for Types.Coupon;

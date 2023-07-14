@@ -15,7 +15,7 @@ import {Coupon} from "../../../contracts/libraries/Coupon.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {MockAssetPool} from "../mocks/MockAssetPool.sol";
 import {MockOracle} from "../mocks/MockOracle.sol";
-import {Constants} from "./Constants.sol";
+import {Constants} from "../Constants.sol";
 
 contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC721Holder {
     using Coupon for Types.Coupon;
