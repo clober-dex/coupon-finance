@@ -140,16 +140,20 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
                 (liquidationAmount * collateralPrice * (_RATE_PRECISION - assetConfig.liquidationFee)) /
                 _RATE_PRECISION;
 
-            if (repayAmount > maxRepayAmount) {
-                repayAmount = maxRepayAmount;
+            uint256 newRepayAmount = Math.min(repayAmount, maxRepayAmount);
+            if (loan.debtAmount <= newRepayAmount + ethAmount) {
+                newRepayAmount = loan.debtAmount;
+                require(newRepayAmount <= maxRepayAmount, "SMALL_LIQUIDATION");
+            }
 
+            if (newRepayAmount != repayAmount) {
                 // Todo: round up liquidation amount
                 liquidationAmount =
-                    (repayAmount * assetPrice * _RATE_PRECISION) /
+                    (newRepayAmount * assetPrice * _RATE_PRECISION) /
                     collateralPrice /
                     (_RATE_PRECISION - assetConfig.liquidationFee);
             }
-
+            repayAmount = newRepayAmount;
             protocolFeeAmount = (liquidationAmount * assetConfig.liquidationProtocolFee) / _RATE_PRECISION;
         }
     }
