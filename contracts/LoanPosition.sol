@@ -148,7 +148,10 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
                 (repayAmount * assetPrice * _RATE_PRECISION) /
                 collateralPrice /
                 (_RATE_PRECISION - liquidationFee);
-            protocolFeeAmount = (liquidationAmount * liquidationProtocolFee) / _RATE_PRECISION;
+            unchecked {
+                protocolFeeAmount = (liquidationAmount * liquidationProtocolFee) / _RATE_PRECISION;
+                liquidationAmount -= protocolFeeAmount;
+            }
             return (liquidationAmount, repayAmount, protocolFeeAmount);
         }
 
@@ -184,6 +187,7 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
             }
             repayAmount = newRepayAmount;
             protocolFeeAmount = (liquidationAmount * liquidationProtocolFee) / _RATE_PRECISION;
+            liquidationAmount -= protocolFeeAmount;
         }
     }
 
@@ -234,10 +238,12 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
 
         require(liquidationAmount > 0, "LIQUIDATION_FAIL");
 
-        _loanMap[tokenId].collateralAmount = loan.collateralAmount - liquidationAmount;
-        _loanMap[tokenId].debtAmount = loan.debtAmount - repayAmount;
+        unchecked {
+            _loanMap[tokenId].collateralAmount = loan.collateralAmount - liquidationAmount - protocolFeeAmount;
+            _loanMap[tokenId].debtAmount = loan.debtAmount - repayAmount;
+        }
 
-        IAssetPool(assetPool).withdraw(loan.collateralToken, liquidationAmount - protocolFeeAmount, msg.sender);
+        IAssetPool(assetPool).withdraw(loan.collateralToken, liquidationAmount, msg.sender);
         IAssetPool(assetPool).withdraw(loan.collateralToken, protocolFeeAmount, treasury);
         if (data.length > 0) {
             uint256 beforeDebtAmount = IERC20(loan.debtToken).balanceOf(address(this));
@@ -245,7 +251,7 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
                 tokenId,
                 loan.collateralToken,
                 loan.debtToken,
-                liquidationAmount - protocolFeeAmount,
+                liquidationAmount,
                 repayAmount,
                 data
             );
