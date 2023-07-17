@@ -12,7 +12,7 @@ contract BondPosition is IBondPosition, ERC721Permit {
     address public immutable override assetPool;
 
     string public override baseURI;
-    uint256 public override nextId;
+    uint256 public override nextId = 1;
 
     mapping(address asset => bool) public override isAssetRegistered;
     mapping(uint256 id => Types.Bond) private _bondMap;

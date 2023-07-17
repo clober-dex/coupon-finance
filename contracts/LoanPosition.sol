@@ -26,7 +26,7 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
     uint256 public immutable override minDebtValueInEth;
 
     string public override baseURI;
-    uint256 public override nextId;
+    uint256 public override nextId = 1;
 
     mapping(address user => mapping(uint256 couponId => uint256)) public override couponOwed;
     mapping(address asset => Types.AssetLoanConfiguration) private _assetConfig;
