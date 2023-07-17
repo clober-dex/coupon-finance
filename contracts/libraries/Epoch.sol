@@ -46,4 +46,15 @@ library Epoch {
     function unwrap(Types.Epoch epoch) internal pure returns (uint16) {
         return Types.Epoch.unwrap(epoch);
     }
+
+    function compare(Types.Epoch a, Types.Epoch b) internal pure returns (int256) {
+        unchecked {
+            return
+                Types.Epoch.unwrap(a) > Types.Epoch.unwrap(b)
+                    ? int256(1)
+                    : Types.Epoch.unwrap(a) < Types.Epoch.unwrap(b)
+                    ? int256(-1)
+                    : int256(0);
+        }
+    }
 }

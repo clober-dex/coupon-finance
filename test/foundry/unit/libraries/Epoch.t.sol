@@ -74,4 +74,13 @@ contract EpochUnitTest is Test {
         Types.Epoch a = Epoch.fromMonths(1234);
         assertEq(a.add(324).unwrap(), 1558);
     }
+
+    function testCompare() public {
+        Types.Epoch a = Epoch.fromMonths(1234);
+        Types.Epoch b = Epoch.fromMonths(1234);
+        Types.Epoch c = Epoch.fromMonths(1235);
+        assertEq(a.compare(b), 0);
+        assertEq(a.compare(c), -1);
+        assertEq(c.compare(a), 1);
+    }
 }
