@@ -167,7 +167,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
 
     function _beforeAdjustPosition() internal returns (uint256 tokenId) {
         Types.Coupon[] memory coupons = new Types.Coupon[](8);
-        for (uint256 i = 0; i < 8; i++) {
+        for (uint16 i = 0; i < 8; i++) {
             coupons[i] = Coupon.from(address(usdc), i + 1, _initialDebtAmount * 10);
         }
         _mintCoupons(address(this), coupons);

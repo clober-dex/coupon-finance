@@ -31,7 +31,7 @@ library Types {
 
     struct CouponKey {
         address asset;
-        uint256 epoch;
+        Epoch epoch;
     }
 
     struct Coupon {

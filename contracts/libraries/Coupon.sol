@@ -9,7 +9,11 @@ import {CouponKeyLibrary} from "./Keys.sol";
 library Coupon {
     using CouponKeyLibrary for Types.CouponKey;
 
-    function from(address asset, uint256 epoch, uint256 amount) internal pure returns (Types.Coupon memory) {
+    function from(address asset, uint16 epoch, uint256 amount) internal pure returns (Types.Coupon memory) {
+        return Types.Coupon({key: Types.CouponKey({asset: asset, epoch: Types.Epoch.wrap(epoch)}), amount: amount});
+    }
+
+    function from(address asset, Types.Epoch epoch, uint256 amount) internal pure returns (Types.Coupon memory) {
         return Types.Coupon({key: Types.CouponKey({asset: asset, epoch: epoch}), amount: amount});
     }
 
