@@ -76,7 +76,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
     }
 
     function testMintWithUnregisteredToken() public {
-        vm.expectRevert(Errors.UNREGISTERED_ASSET);
+        vm.expectRevert(bytes(Errors.UNREGISTERED_ASSET));
         bondPosition.mint(address(0x123), _initialAmount, 2, Constants.USER1, new bytes(0));
     }
 

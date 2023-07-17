@@ -10,11 +10,13 @@ import {Errors} from "../../../contracts/Errors.sol";
 import {Types} from "../../../contracts/Types.sol";
 import {CouponManager} from "../../../contracts/CouponManager.sol";
 import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
+import {CouponKey} from "../../../contracts/libraries/CouponKey.sol";
 import {Coupon} from "../../../contracts/libraries/Coupon.sol";
 import {Epoch} from "../../../contracts/libraries/Epoch.sol";
 import {Constants} from "../Constants.sol";
 
 contract CouponManagerUnitTest is Test, ERC1155Holder {
+    using CouponKey for Types.CouponKey;
     using Coupon for Types.Coupon;
     using Epoch for Types.Epoch;
 
@@ -45,7 +47,7 @@ contract CouponManagerUnitTest is Test, ERC1155Holder {
         Types.Coupon[] memory coupons = new Types.Coupon[](1);
         coupons[0] = Coupon.from(Constants.USDC, 0, 100);
 
-        vm.expectRevert(Errors.EXPIRED_EPOCH);
+        vm.expectRevert(bytes(Errors.EXPIRED_EPOCH));
         couponManager.mintBatch(Constants.USER1, coupons, new bytes(0));
 
         vm.warp(Epoch.current().add(2).startTime());
@@ -53,14 +55,14 @@ contract CouponManagerUnitTest is Test, ERC1155Holder {
         coupons[0] = Coupon.from(Constants.USDC, 1, 100);
         coupons[1] = Coupon.from(Constants.USDC, 2, 70);
 
-        vm.expectRevert(Errors.EXPIRED_EPOCH);
+        vm.expectRevert(bytes(Errors.EXPIRED_EPOCH));
         couponManager.mintBatch(Constants.USER1, coupons, new bytes(0));
 
         coupons = new Types.Coupon[](2);
         coupons[0] = Coupon.from(Constants.USDC, 0, 100);
         coupons[1] = Coupon.from(Constants.USDC, 4, 70);
 
-        vm.expectRevert(Errors.EXPIRED_EPOCH);
+        vm.expectRevert(bytes(Errors.EXPIRED_EPOCH));
         couponManager.mintBatch(Constants.USER1, coupons, new bytes(0));
     }
 
@@ -69,7 +71,7 @@ contract CouponManagerUnitTest is Test, ERC1155Holder {
         coupons[0] = Coupon.from(Constants.USDC, 1, 100);
         coupons[1] = Coupon.from(Constants.USDC, 2, 70);
 
-        vm.expectRevert(Errors.ACCESS);
+        vm.expectRevert(bytes(Errors.ACCESS));
         couponManager.mintBatch(Constants.USER1, coupons, new bytes(0));
     }
 
@@ -97,16 +99,18 @@ contract CouponManagerUnitTest is Test, ERC1155Holder {
 
         vm.warp(Epoch.current().add(1).startTime());
 
-        Types.CouponKey[] memory couponKeys = new Types.CouponKey[](2);
+        Types.CouponKey[] memory couponKeys = new Types.CouponKey[](3);
         couponKeys[0] = coupons[0].key;
         couponKeys[1] = coupons[1].key;
+        couponKeys[2] = Types.CouponKey({asset: Constants.USDC, epoch: Types.Epoch.wrap(1242)});
         vm.prank(Constants.USER1);
         couponManager.burnExpiredCoupons(couponKeys);
 
-        assertEq(couponManager.totalSupply(coupons[0].id()), 0);
-        assertEq(couponManager.totalSupply(coupons[1].id()), 70);
-        assertEq(couponManager.balanceOf(Constants.USER1, coupons[0].id()), 0);
-        assertEq(couponManager.balanceOf(Constants.USER1, coupons[1].id()), 70);
+        assertEq(couponManager.totalSupply(couponKeys[0].toId()), 0);
+        assertEq(couponManager.totalSupply(couponKeys[1].toId()), 70);
+        assertEq(couponManager.balanceOf(Constants.USER1, couponKeys[0].toId()), 0);
+        assertEq(couponManager.balanceOf(Constants.USER1, couponKeys[1].toId()), 70);
+        assertEq(couponManager.balanceOf(Constants.USER1, couponKeys[2].toId()), 0);
     }
 
     function testBurnExpiredCouponsOwnership() public {
@@ -121,7 +125,7 @@ contract CouponManagerUnitTest is Test, ERC1155Holder {
         Types.CouponKey[] memory couponKeys = new Types.CouponKey[](2);
         couponKeys[0] = coupons[0].key;
         couponKeys[1] = coupons[1].key;
-        vm.expectRevert(Errors.ACCESS);
+        vm.expectRevert(bytes(Errors.ACCESS));
         couponManager.burnExpiredCoupons(couponKeys);
     }
 
@@ -163,7 +167,7 @@ contract CouponManagerUnitTest is Test, ERC1155Holder {
         Types.Coupon[] memory couponsToBurn = new Types.Coupon[](2);
         couponsToBurn[0] = Coupon.from(Constants.USDC, 1, 50);
         couponsToBurn[1] = Coupon.from(Constants.USDC, 2, 30);
-        vm.expectRevert(Errors.ACCESS);
+        vm.expectRevert(bytes(Errors.ACCESS));
         vm.prank(Constants.USER2);
         couponManager.burnBatch(Constants.USER1, couponsToBurn);
     }

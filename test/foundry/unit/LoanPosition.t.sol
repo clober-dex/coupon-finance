@@ -133,7 +133,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         coupons[1] = Coupon.from(address(usdc), 2, _initialDebtAmount);
         _mintCoupons(address(this), coupons);
 
-        vm.expectRevert(Errors.TOO_SMALL_DEBT);
+        vm.expectRevert(bytes(Errors.TOO_SMALL_DEBT));
         loanPosition.mint(
             address(collateral),
             address(usdc),
@@ -153,7 +153,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         coupons[1] = Coupon.from(address(usdc), 2, debtAmount);
         _mintCoupons(address(this), coupons);
 
-        vm.expectRevert(Errors.LIQUIDATION_THRESHOLD);
+        vm.expectRevert(bytes(Errors.LIQUIDATION_THRESHOLD));
         loanPosition.mint(
             address(collateral),
             address(usdc),
@@ -423,26 +423,26 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
 
     function testAdjustPositionDecreaseDebtToTooSmallAmount() public {
         uint256 tokenId = _beforeAdjustPosition();
-        vm.expectRevert(Errors.TOO_SMALL_DEBT);
+        vm.expectRevert(bytes(Errors.TOO_SMALL_DEBT));
         loanPosition.adjustPosition(tokenId, 0, -int256(_initialDebtAmount) + 1, 0, new bytes(0));
     }
 
     function testAdjustPositionDecreaseEpochsToCurrent() public {
         uint256 tokenId = _beforeAdjustPosition();
-        vm.expectRevert(Errors.UNPAID_DEBT);
+        vm.expectRevert(bytes(Errors.UNPAID_DEBT));
         loanPosition.adjustPosition(tokenId, 0, 0, -2, new bytes(0));
     }
 
     function testAdjustPositionDecreaseTooMuchCollateral() public {
         uint256 tokenId = _beforeAdjustPosition();
-        vm.expectRevert(Errors.LIQUIDATION_THRESHOLD);
+        vm.expectRevert(bytes(Errors.LIQUIDATION_THRESHOLD));
         loanPosition.adjustPosition(tokenId, -int256(_initialCollateralAmount) + 1, 0, 0, new bytes(0));
     }
 
     function testAdjustPositionIncreaseTooMuchDebt() public {
         uint256 tokenId = _beforeAdjustPosition();
         uint256 debtAmount = usdc.amount(18000);
-        vm.expectRevert(Errors.LIQUIDATION_THRESHOLD);
+        vm.expectRevert(bytes(Errors.LIQUIDATION_THRESHOLD));
         loanPosition.adjustPosition(tokenId, 0, int256(debtAmount), 0, new bytes(0));
     }
 
