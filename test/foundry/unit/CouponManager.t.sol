@@ -8,6 +8,7 @@ import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155
 
 import {Errors} from "../../../contracts/Errors.sol";
 import {Types} from "../../../contracts/Types.sol";
+import {CouponManager} from "../../../contracts/CouponManager.sol";
 import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
 import {Coupon} from "../../../contracts/libraries/Coupon.sol";
 import {Epoch} from "../../../contracts/libraries/Epoch.sol";
@@ -20,7 +21,11 @@ contract CouponManagerUnitTest is Test, ERC1155Holder {
     ICouponManager public couponManager;
 
     function setUp() public {
-        // couponManager = new CouponManager();
+        couponManager = new CouponManager(address(this), "URI/");
+    }
+
+    function testBaseURI() public {
+        assertEq(couponManager.baseURI(), "URI/");
     }
 
     function testMintBatch() public {
