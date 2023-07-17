@@ -10,8 +10,6 @@ interface ICouponManager is IERC1155MetadataURI {
     // View Functions //
     function minter() external view returns (address);
 
-    function epochDuration() external view returns (uint256);
-
     function currentEpoch() external view returns (Types.Epoch);
 
     function epochEndTime(Types.Epoch epoch) external pure returns (uint256);
