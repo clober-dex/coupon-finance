@@ -12,6 +12,7 @@ import {Types} from "../../../contracts/Types.sol";
 import {ILoanPosition, ILoanPositionEvents} from "../../../contracts/interfaces/ILoanPosition.sol";
 import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
 import {Coupon} from "../../../contracts/libraries/Coupon.sol";
+import {Epoch} from "../../../contracts/libraries/Epoch.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {MockAssetPool} from "../mocks/MockAssetPool.sol";
 import {MockOracle} from "../mocks/MockOracle.sol";
@@ -19,6 +20,7 @@ import {Constants} from "../Constants.sol";
 
 contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC721Holder {
     using Coupon for Types.Coupon;
+    using Epoch for Types.Epoch;
 
     MockERC20 public collateral;
     MockERC20 public usdc;
@@ -69,7 +71,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         uint256 beforeDebtBalance = usdc.balanceOf(Constants.USER1);
         uint256 beforeLoanPositionBalance = loanPosition.balanceOf(Constants.USER1);
         uint256 nextId = loanPosition.nextId();
-        uint256 expectedExpiredAt = coupon.epochEndTime(2);
+        uint256 expectedExpiredAt = coupon.epochEndTime(Types.Epoch.wrap(2));
 
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
         coupons[0] = Coupon.from(address(usdc), 1, _initialDebtAmount);
@@ -179,7 +181,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
             address(this),
             new bytes(0)
         );
-        vm.warp(block.timestamp + coupon.epochDuration());
+        vm.warp(Epoch.current().add(1).startTime());
     }
 
     // TODO: flash adjust position tests
@@ -189,7 +191,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         uint256 debtAmount = usdc.amount(70);
         uint256 loanEpochs = 2;
         uint256 expectedDebtAmount = _initialDebtAmount + debtAmount;
-        uint256 expectedExpiredAt = coupon.epochEndTime(5);
+        uint256 expectedExpiredAt = coupon.epochEndTime(Types.Epoch.wrap(5));
 
         uint256 beforeDebtBalance = usdc.balanceOf(address(this));
 
@@ -224,7 +226,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         uint256 debtAmount = usdc.amount(70);
         uint256 loanEpochs = 1;
         uint256 expectedDebtAmount = _initialDebtAmount + debtAmount;
-        uint256 expectedExpiredAt = coupon.epochEndTime(2);
+        uint256 expectedExpiredAt = coupon.epochEndTime(Types.Epoch.wrap(2));
 
         uint256 beforeDebtBalance = usdc.balanceOf(address(this));
 
@@ -267,7 +269,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         uint256 debtAmount = usdc.amount(30);
         uint256 loanEpochs = 2;
         uint256 expectedDebtAmount = _initialDebtAmount - debtAmount;
-        uint256 expectedExpiredAt = coupon.epochEndTime(5);
+        uint256 expectedExpiredAt = coupon.epochEndTime(Types.Epoch.wrap(5));
 
         uint256 beforeDebtBalance = usdc.balanceOf(address(this));
 
@@ -312,7 +314,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         uint256 debtAmount = usdc.amount(30);
         uint256 loanEpochs = 1;
         uint256 expectedDebtAmount = _initialDebtAmount - debtAmount;
-        uint256 expectedExpiredAt = coupon.epochEndTime(2);
+        uint256 expectedExpiredAt = coupon.epochEndTime(Types.Epoch.wrap(2));
 
         uint256 beforeDebtBalance = usdc.balanceOf(address(this));
 
@@ -345,7 +347,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         uint256 debtAmount = _initialDebtAmount;
         uint256 loanEpochs = 2;
         uint256 expectedDebtAmount = 0;
-        uint256 expectedExpiredAt = coupon.epochEndTime(1);
+        uint256 expectedExpiredAt = coupon.epochEndTime(Types.Epoch.wrap(1));
 
         uint256 beforeDebtBalance = usdc.balanceOf(address(this));
         uint256 beforeCollateralBalance = collateral.balanceOf(address(this));
@@ -387,7 +389,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         uint256 tokenId = _beforeAdjustPosition();
         uint256 collateralAmount = collateral.amount(1);
         uint256 expectedCollateralAmount = _initialCollateralAmount + collateralAmount;
-        uint256 expectedExpiredAt = coupon.epochEndTime(2);
+        uint256 expectedExpiredAt = coupon.epochEndTime(Types.Epoch.wrap(2));
 
         uint256 beforeCollateralBalance = collateral.balanceOf(address(this));
 
@@ -405,7 +407,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         uint256 tokenId = _beforeAdjustPosition();
         uint256 collateralAmount = collateral.amount(1);
         uint256 expectedCollateralAmount = _initialCollateralAmount - collateralAmount;
-        uint256 expectedExpiredAt = coupon.epochEndTime(2);
+        uint256 expectedExpiredAt = coupon.epochEndTime(Types.Epoch.wrap(2));
 
         uint256 beforeCollateralBalance = collateral.balanceOf(address(this));
 

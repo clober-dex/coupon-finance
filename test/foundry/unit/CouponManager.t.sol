@@ -10,10 +10,12 @@ import {Errors} from "../../../contracts/Errors.sol";
 import {Types} from "../../../contracts/Types.sol";
 import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
 import {Coupon} from "../../../contracts/libraries/Coupon.sol";
+import {Epoch} from "../../../contracts/libraries/Epoch.sol";
 import {Constants} from "../Constants.sol";
 
 contract CouponManagerUnitTest is Test, ERC1155Holder {
     using Coupon for Types.Coupon;
+    using Epoch for Types.Epoch;
 
     ICouponManager public couponManager;
 
@@ -41,7 +43,7 @@ contract CouponManagerUnitTest is Test, ERC1155Holder {
         vm.expectRevert(Errors.EXPIRED_EPOCH);
         couponManager.mintBatch(Constants.USER1, coupons, new bytes(0));
 
-        vm.warp(block.timestamp + couponManager.epochDuration() * 2);
+        vm.warp(Epoch.current().add(2).startTime());
         coupons = new Types.Coupon[](2);
         coupons[0] = Coupon.from(Constants.USDC, 1, 100);
         coupons[1] = Coupon.from(Constants.USDC, 2, 70);
@@ -88,7 +90,7 @@ contract CouponManagerUnitTest is Test, ERC1155Holder {
 
         couponManager.mintBatch(Constants.USER1, coupons, new bytes(0));
 
-        vm.warp(block.timestamp + couponManager.epochDuration());
+        vm.warp(Epoch.current().add(1).startTime());
 
         Types.CouponKey[] memory couponKeys = new Types.CouponKey[](2);
         couponKeys[0] = coupons[0].key;
@@ -109,7 +111,7 @@ contract CouponManagerUnitTest is Test, ERC1155Holder {
 
         couponManager.mintBatch(Constants.USER1, coupons, new bytes(0));
 
-        vm.warp(block.timestamp + couponManager.epochDuration());
+        vm.warp(Epoch.current().add(1).startTime());
 
         Types.CouponKey[] memory couponKeys = new Types.CouponKey[](2);
         couponKeys[0] = coupons[0].key;

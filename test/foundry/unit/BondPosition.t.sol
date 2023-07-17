@@ -12,12 +12,14 @@ import {Types} from "../../../contracts/Types.sol";
 import {IBondPosition, IBondPositionEvents} from "../../../contracts/interfaces/IBondPosition.sol";
 import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
 import {Coupon} from "../../../contracts/libraries/Coupon.sol";
+import {Epoch} from "../../../contracts/libraries/Epoch.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {MockAssetPool} from "../mocks/MockAssetPool.sol";
 import {Constants} from "../Constants.sol";
 
 contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC721Holder {
     using Coupon for Types.Coupon;
+    using Epoch for Types.Epoch;
 
     MockERC20 public usdc;
 
@@ -45,7 +47,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
         uint256 beforeThisBalance = usdc.balanceOf(address(this));
         uint256 beforeUserPositionBalance = bondPosition.balanceOf(Constants.USER1);
         uint256 nextId = bondPosition.nextId();
-        uint256 expectedUnlockedAt = coupon.epochEndTime(2);
+        uint256 expectedUnlockedAt = coupon.epochEndTime(Types.Epoch.wrap(2));
 
         _snapshotId = vm.snapshot();
         vm.expectEmit(true, true, true, true);
@@ -80,7 +82,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
 
     function _beforeAdjustPosition() internal returns (uint256 tokenId) {
         tokenId = bondPosition.mint(address(usdc), _initialAmount, 3, address(this), new bytes(0));
-        vm.warp(block.timestamp + coupon.epochDuration());
+        vm.warp(Epoch.current().add(1).startTime());
     }
 
     function testAdjustPositionIncreaseAmountAndEpochs() public {
@@ -88,7 +90,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
 
         uint256 amount = usdc.amount(70);
         uint256 epochs = 3;
-        uint256 expectedUnlockedAt = coupon.epochEndTime(6);
+        uint256 expectedUnlockedAt = coupon.epochEndTime(Types.Epoch.wrap(6));
 
         uint256 beforeThisBalance = usdc.balanceOf(address(this));
         Types.Bond memory beforeBond = bondPosition.bonds(tokenId);
@@ -122,7 +124,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
 
         uint256 amount = usdc.amount(70);
         uint256 epochs = 1;
-        uint256 expectedUnlockedAt = coupon.epochEndTime(2);
+        uint256 expectedUnlockedAt = coupon.epochEndTime(Types.Epoch.wrap(2));
 
         uint256 beforeThisBalance = usdc.balanceOf(address(this));
         Types.Bond memory beforeBond = bondPosition.bonds(tokenId);
@@ -158,7 +160,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
         uint256 amount = usdc.amount(70);
         uint256 epochs = 3;
         uint256 expectedAmount = _initialAmount - amount;
-        uint256 expectedUnlockedAt = coupon.epochEndTime(6);
+        uint256 expectedUnlockedAt = coupon.epochEndTime(Types.Epoch.wrap(6));
 
         uint256 beforeThisBalance = usdc.balanceOf(address(this));
         Types.Bond memory beforeBond = bondPosition.bonds(tokenId);
@@ -197,7 +199,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
         uint256 amount = usdc.amount(70);
         uint256 epochs = 1;
         uint256 expectedAmount = _initialAmount - amount;
-        uint256 expectedUnlockedAt = coupon.epochEndTime(2);
+        uint256 expectedUnlockedAt = coupon.epochEndTime(Types.Epoch.wrap(2));
 
         uint256 beforeThisBalance = usdc.balanceOf(address(this));
         Types.Bond memory beforeBond = bondPosition.bonds(tokenId);
@@ -242,7 +244,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
         assertEq(usdc.balanceOf(address(this)), beforeThisBalance + _initialAmount, "THIS_BALANCE");
         assertEq(bondPosition.balanceOf(address(this)), beforeBondPositionBalance - 1, "BOND_POSITION_BALANCE");
         assertEq(afterBond.amount, 0, "LOCKED_AMOUNT");
-        assertEq(afterBond.unlockedAt, coupon.epochEndTime(1), "UNLOCKED_AT");
+        assertEq(afterBond.unlockedAt, coupon.epochEndTime(Types.Epoch.wrap(1)), "UNLOCKED_AT");
         vm.expectRevert("ERC721: invalid token ID");
         bondPosition.ownerOf(tokenId);
     }
@@ -250,7 +252,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
     function testAdjustPositionDecreaseEpochsToCurrentEpoch() public {
         uint256 tokenId = _beforeAdjustPosition();
 
-        uint256 expectedUnlockedAt = coupon.epochEndTime(1);
+        uint256 expectedUnlockedAt = coupon.epochEndTime(Types.Epoch.wrap(1));
         uint256 beforeThisBalance = usdc.balanceOf(address(this));
         uint256 beforeBondPositionBalance = bondPosition.balanceOf(address(this));
 
@@ -281,7 +283,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
         assetPool.setWithdrawLimit(address(usdc), limitBalance);
 
         uint256 expectedAmount = limitBalance;
-        uint256 expectedUnlockedAt = coupon.epochEndTime(2);
+        uint256 expectedUnlockedAt = coupon.epochEndTime(Types.Epoch.wrap(2));
 
         uint256 beforeThisBalance = usdc.balanceOf(address(this));
         Types.Bond memory beforeBond = bondPosition.bonds(tokenId);
