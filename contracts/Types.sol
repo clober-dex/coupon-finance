@@ -3,6 +3,8 @@
 pragma solidity ^0.8.0;
 
 library Types {
+    type Epoch is uint16;
+
     struct Bond {
         uint256 nonce;
         address asset;
