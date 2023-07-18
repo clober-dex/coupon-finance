@@ -256,7 +256,6 @@ contract LoanPosition is ILoanPosition, ERC721Permit, Ownable {
         IAssetPool(assetPool).withdraw(loan.collateralToken, liquidationAmount, msg.sender);
         IAssetPool(assetPool).withdraw(loan.collateralToken, protocolFeeAmount, treasury);
         if (data.length > 0) {
-            uint256 beforeDebtAmount = IERC20(loan.debtToken).balanceOf(address(this));
             ILiquidateCallbackReceiver(msg.sender).couponFinanceLiquidateCallback(
                 tokenId,
                 loan.collateralToken,
@@ -265,11 +264,8 @@ contract LoanPosition is ILoanPosition, ERC721Permit, Ownable {
                 repayAmount,
                 data
             );
-            uint256 afterDebtAmount = IERC20(loan.debtToken).balanceOf(address(this));
-            require(afterDebtAmount - beforeDebtAmount >= repayAmount, "NOT_RECEIVED_DEBT");
-        } else {
-            IERC20(loan.debtToken).safeTransferFrom(msg.sender, address(this), repayAmount);
         }
+        IERC20(loan.debtToken).safeTransferFrom(msg.sender, assetPool, repayAmount);
         IAssetPool(assetPool).deposit(loan.debtToken, repayAmount);
 
         // Todo coupon has to be refund to ownerOf(tokenId)
