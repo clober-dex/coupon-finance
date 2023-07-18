@@ -121,11 +121,16 @@ contract LoanPosition is ILoanPosition, ERC721Permit, Ownable {
         assets[2] = address(0);
 
         uint256[] memory prices = ICouponOracle(oracle).getAssetsPrices(assets);
-        ethAmount = (ethAmount * prices[2]) / prices[0];
         if (assetDecimal > collateralDecimal) {
-            return (prices[0], prices[1] * 10 ** (assetDecimal - collateralDecimal), ethAmount);
+            uint256 precisionComplement = 10 ** (assetDecimal - collateralDecimal);
+            return (
+                prices[0],
+                prices[1] * precisionComplement,
+                (ethAmount * prices[2] * precisionComplement) / prices[0]
+            );
         }
-        return (prices[0] * 10 ** (collateralDecimal - assetDecimal), prices[1], ethAmount);
+        uint256 precisionComplement = 10 ** (collateralDecimal - assetDecimal);
+        return (prices[0] * precisionComplement, prices[1], (ethAmount * prices[2]) / prices[0] / precisionComplement);
     }
 
     function _getLiquidationAmount(
@@ -138,7 +143,7 @@ contract LoanPosition is ILoanPosition, ERC721Permit, Ownable {
             uint256 liquidationThreshold,
             uint256 liquidationTargetLtv
         ) = _getAssetConfig(loan.debtToken, loan.collateralToken);
-        (uint256 assetPrice, uint256 collateralPrice, uint256 ethAmount) = _getPriceWithPrecisionAndEthAmountPerDebt(
+        (uint256 assetPrice, uint256 collateralPrice, uint256 minDebtValue) = _getPriceWithPrecisionAndEthAmountPerDebt(
             loan.debtToken,
             loan.collateralToken,
             minDebtValueInEth
@@ -173,10 +178,13 @@ contract LoanPosition is ILoanPosition, ERC721Permit, Ownable {
                 collateralPrice * (_RATE_PRECISION - liquidationFee - liquidationTargetLtv)
             );
 
-            repayAmount = (liquidationAmount * collateralPrice * (_RATE_PRECISION - liquidationFee)) / _RATE_PRECISION;
+            repayAmount =
+                (liquidationAmount * collateralPrice * (_RATE_PRECISION - liquidationFee)) /
+                assetPrice /
+                _RATE_PRECISION;
 
             uint256 newRepayAmount = Math.min(repayAmount, maxRepayAmount);
-            if (loan.debtAmount <= newRepayAmount + ethAmount) {
+            if (loan.debtAmount <= newRepayAmount + minDebtValue) {
                 newRepayAmount = loan.debtAmount;
                 require(newRepayAmount <= maxRepayAmount, "SMALL_LIQUIDATION");
             }
