@@ -7,6 +7,7 @@ import {ERC721Permit} from "./libraries/ERC721Permit.sol";
 import {ReentrancyGuard} from "./libraries/ReentrancyGuard.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {Types} from "./Types.sol";
 import {ILoanPosition} from "./interfaces/ILoanPosition.sol";
@@ -63,6 +64,7 @@ contract LoanPosition is ILoanPosition, ERC721Permit, Ownable {
 
     function setLoanConfiguration(address asset, Types.AssetLoanConfiguration memory config) external onlyOwner {
         require(_assetConfig[asset].liquidationThreshold == 0, "INITIALIZED");
+        config.decimal = IERC20Metadata(asset).decimal();
         _assetConfig[asset] = config;
     }
 
