@@ -21,6 +21,8 @@ library Types {
         uint256 expiredAt;
     }
 
+    // liquidationFee = liquidator fee + protocol fee
+    // debt = collateral * (1 - liquidationFee)
     struct AssetLoanConfiguration {
         uint32 decimal;
         uint32 liquidationThreshold;
