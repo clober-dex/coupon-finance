@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 
 import {IPriceOracleGetter} from "../../../contracts/external/aave-v3/IPriceOracleGetter.sol";
+import {Constants} from "../Constants.sol";
 
 contract MockOracle is IPriceOracleGetter {
     mapping(address => uint256) private _priceMap;
@@ -16,14 +17,14 @@ contract MockOracle is IPriceOracleGetter {
     }
 
     function getAssetPrice(address asset) external view override returns (uint256) {
-        return _priceMap[asset];
+        return asset == address(0) ? _priceMap[Constants.WETH] : _priceMap[asset];
     }
 
     function getAssetsPrices(address[] calldata assets) external view returns (uint256[] memory prices) {
         uint256 length = assets.length;
         prices = new uint256[](length);
         for (uint256 i = 0; i < length; ++i) {
-            prices[i] = _priceMap[assets[i]];
+            prices[i] = assets[i] == address(0) ? _priceMap[Constants.WETH] : _priceMap[assets[i]];
         }
     }
 
