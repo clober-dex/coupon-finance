@@ -539,6 +539,19 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
             "LIQUIDATOR_COLLATERAL_BALANCE"
         );
         assertEq(afterTreasuryBalance - beforeTreasuryBalance, 0.0025 ether, "TREASURY_BALANCE");
+
+        assertEq(
+            (beforeLoanPosition.debtAmount - afterUserLoanStatus.debtAmount) * 1600 * 100 <=
+                (beforeLoanPosition.collateralAmount - afterUserLoanStatus.collateralAmount) * 10 ** 12 * 98,
+            true,
+            "ROUNDING_ISSUE"
+        );
+        assertEq(
+            (afterTreasuryBalance - beforeTreasuryBalance) * 1000 <=
+                (beforeLoanPosition.collateralAmount - afterUserLoanStatus.collateralAmount) * 5,
+            true,
+            "ROUNDING_ISSUE"
+        );
     }
 
     function testLiquidationWhenPriceChangesAndUsdcCollateral() public {
@@ -604,5 +617,18 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
             "LIQUIDATOR_COLLATERAL_BALANCE"
         );
         assertEq(afterTreasuryBalance - beforeTreasuryBalance, 7142857, "TREASURY_BALANCE");
+
+        assertEq(
+            (beforeLoanPosition.debtAmount - afterUserLoanStatus.debtAmount) * 2500 * 100 <=
+                (beforeLoanPosition.collateralAmount - afterUserLoanStatus.collateralAmount) * 10 ** 12 * 98,
+            true,
+            "ROUNDING_ISSUE"
+        );
+        assertEq(
+            (afterTreasuryBalance - beforeTreasuryBalance) * 1000 <=
+                (beforeLoanPosition.collateralAmount - afterUserLoanStatus.collateralAmount) * 5,
+            true,
+            "ROUNDING_ISSUE"
+        );
     }
 }
