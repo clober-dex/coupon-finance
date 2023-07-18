@@ -330,8 +330,17 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
     function testRegisterAsset() public {
         MockERC20 newToken = new MockERC20("New", "NEW", 18);
         assertTrue(!bondPosition.isAssetRegistered(address(newToken)), "NEW_TOKEN_IS_REGISTERED");
+        vm.expectEmit(true, true, true, true);
+        emit AssetRegistered(address(newToken));
         bondPosition.registerAsset(address(newToken));
         assertTrue(bondPosition.isAssetRegistered(address(newToken)), "NEW_TOKEN_IS_NOT_REGISTERED");
-        assertEq(newToken.allowance(address(assetPool), address(coupon)), type(uint256).max, "ALLOWANCE");
+        assertEq(newToken.allowance(address(bondPosition), address(assetPool)), type(uint256).max, "ALLOWANCE");
+    }
+
+    function testRegisterAssetOwnership() public {
+        MockERC20 newToken = new MockERC20("New", "NEW", 18);
+        vm.expectRevert("Ownable: caller is not the owner");
+        vm.prank(address(0x123));
+        bondPosition.registerAsset(address(newToken));
     }
 }

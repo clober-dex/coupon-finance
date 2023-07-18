@@ -21,6 +21,11 @@ library Utils {
         arr[0] = coupon;
     }
 
+    function toArr(address account) internal pure returns (address[] memory arr) {
+        arr = new address[](1);
+        arr[0] = account;
+    }
+
     function toArr(uint256 n0) internal pure returns (uint256[] memory arr) {
         arr = new uint256[](1);
         arr[0] = n0;
