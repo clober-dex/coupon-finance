@@ -14,10 +14,15 @@ import {ILoanPosition} from "./interfaces/ILoanPosition.sol";
 import {IAssetPool} from "./interfaces/IAssetPool.sol";
 import {ILiquidateCallbackReceiver} from "./interfaces/ILiquidateCallbackReceiver.sol";
 import {ICouponOracle} from "./interfaces/ICouponOracle.sol";
+import {Coupon} from "./libraries/Coupon.sol";
+import {Epoch} from "./libraries/Epoch.sol";
+import {ICouponManager} from "./interfaces/ICouponManager.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract LoanPosition is ILoanPosition, ERC721Permit, Ownable {
     using SafeERC20 for IERC20;
+    using Coupon for Types.Coupon;
+    using Epoch for Types.Epoch;
 
     uint256 private constant _RATE_PRECISION = 10 ** 6;
 
@@ -121,15 +126,16 @@ contract LoanPosition is ILoanPosition, ERC721Permit, Ownable {
         assets[2] = address(0);
 
         uint256[] memory prices = ICouponOracle(oracle).getAssetsPrices(assets);
+        uint256 precisionComplement;
         if (assetDecimal > collateralDecimal) {
-            uint256 precisionComplement = 10 ** (assetDecimal - collateralDecimal);
+            precisionComplement = 10 ** (assetDecimal - collateralDecimal);
             return (
                 prices[0],
                 prices[1] * precisionComplement,
                 (ethAmount * prices[2] * precisionComplement) / prices[0]
             );
         }
-        uint256 precisionComplement = 10 ** (collateralDecimal - assetDecimal);
+        precisionComplement = 10 ** (collateralDecimal - assetDecimal);
         return (prices[0] * precisionComplement, prices[1], (ethAmount * prices[2]) / prices[0] / precisionComplement);
     }
 
@@ -268,7 +274,15 @@ contract LoanPosition is ILoanPosition, ERC721Permit, Ownable {
         IERC20(loan.debtToken).safeTransferFrom(msg.sender, assetPool, repayAmount);
         IAssetPool(assetPool).deposit(loan.debtToken, repayAmount);
 
-        // Todo coupon has to be refund to ownerOf(tokenId)
+        // Todo check if ownerOf(tokenId) is contract
+        Types.Epoch epoch = Epoch.current();
+        uint256 length = Epoch.fromTimestamp(loan.expiredAt).sub(epoch) + 1;
+        Types.Coupon[] memory coupons = new Types.Coupon[](length);
+        for (uint256 i = 0; i < length; ++i) {
+            coupons[i] = Coupon.from(loan.debtToken, epoch, repayAmount);
+            epoch = epoch.add(1);
+        }
+        ICouponManager(coupon).safeBatchTransferFrom(address(this), ownerOf(tokenId), coupons, data);
     }
 
     function burn(uint256 tokenId) external {
