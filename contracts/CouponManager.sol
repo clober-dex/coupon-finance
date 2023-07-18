@@ -71,10 +71,10 @@ contract CouponManager is ERC1155Permit, ERC1155Supply, ICouponManager {
     function burnExpiredCoupons(Types.CouponKey[] calldata couponKeys) external {
         uint256[] memory ids = new uint256[](couponKeys.length);
         uint256[] memory amounts = new uint256[](couponKeys.length);
-        Types.Epoch currentEpoch = Epoch.current();
+        Types.Epoch current = Epoch.current();
         uint256 count;
         for (uint256 i = 0; i < couponKeys.length; ++i) {
-            if (couponKeys[i].epoch.compare(currentEpoch) >= 0) {
+            if (couponKeys[i].epoch.compare(current) >= 0) {
                 continue;
             }
             uint256 id = couponKeys[i].toId();

@@ -329,9 +329,9 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
 
     function testRegisterAsset() public {
         MockERC20 newToken = new MockERC20("New", "NEW", 18);
-        assertTrue(!assetPool.isRegistered(address(newToken)), "NEW_TOKEN_IS_REGISTERED");
-        assetPool.registerAsset(address(newToken));
-        assertTrue(assetPool.isRegistered(address(newToken)), "NEW_TOKEN_IS_NOT_REGISTERED");
+        assertTrue(!bondPosition.isAssetRegistered(address(newToken)), "NEW_TOKEN_IS_REGISTERED");
+        bondPosition.registerAsset(address(newToken));
+        assertTrue(bondPosition.isAssetRegistered(address(newToken)), "NEW_TOKEN_IS_NOT_REGISTERED");
         assertEq(newToken.allowance(address(assetPool), address(coupon)), type(uint256).max, "ALLOWANCE");
     }
 }

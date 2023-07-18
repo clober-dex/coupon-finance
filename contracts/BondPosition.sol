@@ -41,6 +41,10 @@ contract BondPosition is IBondPosition, ERC721Permit {
         revert("not implemented");
     }
 
+    function registerAsset(address asset) external {
+        revert("not implemented");
+    }
+
     function _getAndIncrementNonce(uint256 tokenId) internal override returns (uint256) {
         return _bondMap[tokenId].nonce++;
     }
