@@ -24,7 +24,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
     using Coupon for Types.Coupon;
     using Epoch for Types.Epoch;
 
-    MockERC20 public collateral;
+    MockERC20 public weth;
     MockERC20 public usdc;
 
     MockOracle public oracle;
@@ -38,10 +38,10 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
     uint256 public initialDebtAmount;
 
     function setUp() public {
-        collateral = new MockERC20("Collateral Token", "COL", 18);
+        weth = new MockERC20("Collateral Token", "COL", 18);
         usdc = new MockERC20("USD coin", "USDC", 6);
 
-        collateral.mint(address(this), collateral.amount(2_000_000_000));
+        weth.mint(address(this), weth.amount(2_000_000_000));
         usdc.mint(address(this), usdc.amount(2_000_000_000));
 
         assetPool = new MockAssetPool();
@@ -66,7 +66,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
             })
         );
         loanPosition.setLoanConfiguration(
-            address(collateral),
+            address(weth),
             Types.AssetLoanConfiguration({
                 decimal: 0,
                 liquidationThreshold: 800000,
@@ -76,19 +76,19 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
             })
         );
 
-        collateral.approve(address(loanPosition), type(uint256).max);
+        weth.approve(address(loanPosition), type(uint256).max);
         usdc.approve(address(loanPosition), type(uint256).max);
-        collateral.transfer(address(assetPool), collateral.amount(1_000_000_000));
+        weth.transfer(address(assetPool), weth.amount(1_000_000_000));
         usdc.transfer(address(assetPool), usdc.amount(1_000_000_000));
-        assetPool.deposit(address(collateral), collateral.amount(1_000_000_000));
+        assetPool.deposit(address(weth), weth.amount(1_000_000_000));
         assetPool.deposit(address(usdc), usdc.amount(1_000_000_000));
 
-        oracle.setAssetPrice(address(collateral), 1800 * 10 ** 8);
+        oracle.setAssetPrice(address(weth), 1800 * 10 ** 8);
         oracle.setAssetPrice(address(usdc), 10 ** 8);
 
         startEpoch = Epoch.current();
 
-        initialCollateralAmount = collateral.amount(10);
+        initialCollateralAmount = weth.amount(10);
         initialDebtAmount = usdc.amount(100);
     }
 
@@ -100,7 +100,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
     }
 
     function testMint() public {
-        uint256 beforeCollateralBalance = collateral.balanceOf(address(this));
+        uint256 beforeCollateralBalance = weth.balanceOf(address(this));
         uint256 beforeDebtBalance = usdc.balanceOf(Constants.USER1);
         uint256 beforeLoanPositionBalance = loanPosition.balanceOf(Constants.USER1);
         uint256 nextId = loanPosition.nextId();
@@ -115,7 +115,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         vm.expectEmit(true, true, true, true);
         emit PositionUpdated(nextId, initialCollateralAmount, initialDebtAmount, expectedExpiredAt);
         loanPosition.mint(
-            address(collateral),
+            address(weth),
             address(usdc),
             initialCollateralAmount,
             initialDebtAmount,
@@ -132,7 +132,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
             )
         );
         uint256 tokenId = loanPosition.mint(
-            address(collateral),
+            address(weth),
             address(usdc),
             initialCollateralAmount,
             initialDebtAmount,
@@ -146,14 +146,14 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         assertEq(tokenId, nextId, "TOKEN_ID");
         assertEq(usdc.balanceOf(Constants.USER1), beforeDebtBalance + initialDebtAmount, "DEBT_BALANCE");
         assertEq(
-            collateral.balanceOf(address(this)),
+            weth.balanceOf(address(this)),
             beforeCollateralBalance - initialCollateralAmount,
             "COLLATERAL_BALANCE"
         );
         assertEq(loanPosition.balanceOf(Constants.USER1), beforeLoanPositionBalance + 1, "LOAN_POSITION_BALANCE");
         assertEq(loanPosition.nextId(), nextId + 1, "NEXT_ID");
         assertEq(loanPosition.ownerOf(tokenId), Constants.USER1, "OWNER_OF");
-        assertEq(loan.collateralToken, address(collateral), "COLLATERAL_ASSET");
+        assertEq(loan.collateralToken, address(weth), "COLLATERAL_ASSET");
         assertEq(loan.debtToken, address(usdc), "DEBT_ASSET");
         assertEq(loan.collateralAmount, initialCollateralAmount, "COLLATERAL_AMOUNT");
         assertEq(loan.debtAmount, initialDebtAmount, "DEBT_AMOUNT");
@@ -167,19 +167,11 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         _mintCoupons(address(this), coupons);
 
         vm.expectRevert(bytes(Errors.TOO_SMALL_DEBT));
-        loanPosition.mint(
-            address(collateral),
-            address(usdc),
-            initialCollateralAmount,
-            1,
-            2,
-            Constants.USER1,
-            new bytes(0)
-        );
+        loanPosition.mint(address(weth), address(usdc), initialCollateralAmount, 1, 2, Constants.USER1, new bytes(0));
     }
 
     function testMintWithInsufficientCollateralAmount() public {
-        uint256 collateralAmount = collateral.amount(1);
+        uint256 collateralAmount = weth.amount(1);
         uint256 debtAmount = usdc.amount(10000);
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
         coupons[0] = Coupon.from(address(usdc), startEpoch, debtAmount);
@@ -187,15 +179,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         _mintCoupons(address(this), coupons);
 
         vm.expectRevert(bytes(Errors.LIQUIDATION_THRESHOLD));
-        loanPosition.mint(
-            address(collateral),
-            address(usdc),
-            collateralAmount,
-            debtAmount,
-            2,
-            Constants.USER1,
-            new bytes(0)
-        );
+        loanPosition.mint(address(weth), address(usdc), collateralAmount, debtAmount, 2, Constants.USER1, new bytes(0));
     }
 
     function _beforeAdjustPosition() internal returns (uint256 tokenId) {
@@ -206,7 +190,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         _mintCoupons(address(this), coupons);
 
         tokenId = loanPosition.mint(
-            address(collateral),
+            address(weth),
             address(usdc),
             initialCollateralAmount,
             initialDebtAmount,
@@ -383,7 +367,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         uint256 expectedExpiredAt = coupon.epochEndTime(Types.Epoch.wrap(1));
 
         uint256 beforeDebtBalance = usdc.balanceOf(address(this));
-        uint256 beforeCollateralBalance = collateral.balanceOf(address(this));
+        uint256 beforeCollateralBalance = weth.balanceOf(address(this));
         uint256 beforeLoanPositionBalance = loanPosition.balanceOf(address(this));
 
         snapshotId = vm.snapshot();
@@ -407,7 +391,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
 
         assertEq(usdc.balanceOf(address(this)), beforeDebtBalance - debtAmount, "DEBT_BALANCE");
         assertEq(
-            collateral.balanceOf(address(this)),
+            weth.balanceOf(address(this)),
             beforeCollateralBalance + initialCollateralAmount,
             "COLLATERAL_BALANCE"
         );
@@ -420,11 +404,11 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
 
     function testAdjustPositionIncreaseCollateral() public {
         uint256 tokenId = _beforeAdjustPosition();
-        uint256 collateralAmount = collateral.amount(1);
+        uint256 collateralAmount = weth.amount(1);
         uint256 expectedCollateralAmount = initialCollateralAmount + collateralAmount;
         uint256 expectedExpiredAt = coupon.epochEndTime(Types.Epoch.wrap(2));
 
-        uint256 beforeCollateralBalance = collateral.balanceOf(address(this));
+        uint256 beforeCollateralBalance = weth.balanceOf(address(this));
 
         vm.expectEmit(true, true, true, true);
         emit PositionUpdated(tokenId, expectedCollateralAmount, initialDebtAmount, expectedExpiredAt);
@@ -432,17 +416,17 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
 
         Types.Loan memory loan = loanPosition.loans(tokenId);
 
-        assertEq(collateral.balanceOf(address(this)), beforeCollateralBalance - collateralAmount, "COLLATERAL_BALANCE");
+        assertEq(weth.balanceOf(address(this)), beforeCollateralBalance - collateralAmount, "COLLATERAL_BALANCE");
         assertEq(loan.collateralAmount, expectedCollateralAmount, "COLLATERAL_AMOUNT");
     }
 
     function testAdjustPositionDecreaseCollateral() public {
         uint256 tokenId = _beforeAdjustPosition();
-        uint256 collateralAmount = collateral.amount(1);
+        uint256 collateralAmount = weth.amount(1);
         uint256 expectedCollateralAmount = initialCollateralAmount - collateralAmount;
         uint256 expectedExpiredAt = coupon.epochEndTime(Types.Epoch.wrap(2));
 
-        uint256 beforeCollateralBalance = collateral.balanceOf(address(this));
+        uint256 beforeCollateralBalance = weth.balanceOf(address(this));
 
         vm.expectEmit(true, true, true, true);
         emit PositionUpdated(tokenId, expectedCollateralAmount, initialDebtAmount, expectedExpiredAt);
@@ -450,7 +434,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
 
         Types.Loan memory loan = loanPosition.loans(tokenId);
 
-        assertEq(collateral.balanceOf(address(this)), beforeCollateralBalance + collateralAmount, "COLLATERAL_BALANCE");
+        assertEq(weth.balanceOf(address(this)), beforeCollateralBalance + collateralAmount, "COLLATERAL_BALANCE");
         assertEq(loan.collateralAmount, expectedCollateralAmount, "COLLATERAL_AMOUNT");
     }
 
@@ -502,16 +486,16 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         _mintCoupons(address(this), coupons);
 
         uint256 tokenId = loanPosition.mint(
-            address(collateral),
+            address(weth),
             address(usdc),
-            collateral.amount(1),
+            weth.amount(1),
             usdc.amount(1344),
             2,
             Constants.USER1,
             new bytes(0)
         );
 
-        oracle.setAssetPrice(address(collateral), 1600 * 10 ** 8);
+        oracle.setAssetPrice(address(weth), 1600 * 10 ** 8);
 
         Types.LiquidationStatus memory liquidationStatus = loanPosition.getLiquidationStatus(tokenId, 0);
 
@@ -522,18 +506,18 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         Types.Loan memory beforeLoanPosition = loanPosition.loans(tokenId);
         uint256 beforeUserCoupon1Balance = coupon.balanceOf(Constants.USER1, coupons[0]);
         uint256 beforeUserCoupon2Balance = coupon.balanceOf(Constants.USER1, coupons[1]);
-        uint256 beforeLiquidatorCollateralBalance = collateral.balanceOf(address(this));
+        uint256 beforeLiquidatorCollateralBalance = weth.balanceOf(address(this));
         uint256 beforeLiquidatorBalance = usdc.balanceOf(address(this));
-        uint256 beforeTreasuryBalance = collateral.balanceOf(loanPosition.treasury());
+        uint256 beforeTreasuryBalance = weth.balanceOf(loanPosition.treasury());
 
         loanPosition.liquidate(tokenId, 0, new bytes(0));
 
         Types.Loan memory afterUserLoanStatus = loanPosition.loans(tokenId);
         uint256 afterUserCoupon1Balance = coupon.balanceOf(Constants.USER1, coupons[0]);
         uint256 afterUserCoupon2Balance = coupon.balanceOf(Constants.USER1, coupons[0]);
-        uint256 afterLiquidatorCollateralBalance = collateral.balanceOf(address(this));
+        uint256 afterLiquidatorCollateralBalance = weth.balanceOf(address(this));
         uint256 afterLiquidatorBalance = usdc.balanceOf(address(this));
-        uint256 afterTreasuryBalance = collateral.balanceOf(loanPosition.treasury());
+        uint256 afterTreasuryBalance = weth.balanceOf(loanPosition.treasury());
 
         assertEq(beforeLoanPosition.debtAmount - afterUserLoanStatus.debtAmount, usdc.amount(784), "DEBT_AMOUNT");
         assertEq(
