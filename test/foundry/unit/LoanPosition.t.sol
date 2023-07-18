@@ -48,10 +48,10 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
 
         collateral.approve(address(loanPosition), type(uint256).max);
         usdc.approve(address(loanPosition), type(uint256).max);
-        collateral.approve(address(assetPool), type(uint256).max);
-        usdc.approve(address(assetPool), type(uint256).max);
+        collateral.transfer(address(assetPool), collateral.amount(1_000_000_000));
+        usdc.transfer(address(assetPool), usdc.amount(1_000_000_000));
         assetPool.deposit(address(collateral), collateral.amount(1_000_000_000));
-        assetPool.deposit(address(usdc), collateral.amount(1_000_000_000));
+        assetPool.deposit(address(usdc), usdc.amount(1_000_000_000));
 
         oracle.setAssetPrice(address(collateral), 1800 * 10 ** 8);
         oracle.setAssetPrice(address(usdc), 10 ** 8);

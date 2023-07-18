@@ -23,7 +23,7 @@ contract MockAssetPool is IAssetPool {
     }
 
     function deposit(address asset, uint256 amount) external {
-        IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
+        require(IERC20(asset).balanceOf(address(this)) > totalReservedAmount[asset] + amount, "insufficient balance");
         totalReservedAmount[asset] += amount;
         reservedAmount[asset] += amount;
     }
