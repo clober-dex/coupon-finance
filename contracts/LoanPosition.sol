@@ -198,7 +198,7 @@ contract LoanPosition is ILoanPosition, ERC721Permit, Ownable {
             if (newRepayAmount != repayAmount) {
                 liquidationAmount = Math.ceilDiv(
                     newRepayAmount * assetPrice * _RATE_PRECISION,
-                    _RATE_PRECISION - liquidationFee
+                    collateralPrice * (_RATE_PRECISION - liquidationFee)
                 );
             }
             repayAmount = newRepayAmount;
