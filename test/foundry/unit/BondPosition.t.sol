@@ -6,9 +6,12 @@ import "forge-std/Test.sol";
 
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
+import {Create1} from "@clober/library/contracts/Create1.sol";
 
 import {Errors} from "../../../contracts/Errors.sol";
 import {Types} from "../../../contracts/Types.sol";
+import {CouponManager} from "../../../contracts/CouponManager.sol";
+import {BondPosition} from "../../../contracts/BondPosition.sol";
 import {IBondPosition, IBondPositionEvents} from "../../../contracts/interfaces/IBondPosition.sol";
 import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
 import {Coupon} from "../../../contracts/libraries/Coupon.sol";
@@ -40,7 +43,9 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
 
         initialAmount = usdc.amount(100);
         assetPool = new MockAssetPool();
-        // bondPosition = new BondPosition();
+        uint64 thisNonce = vm.getNonce(address(this));
+        coupon = new CouponManager(Create1.computeAddress(address(this), thisNonce + 1), "URI/");
+        bondPosition = new BondPosition(address(coupon), address(assetPool), "bond/position/uri/");
 
         usdc.approve(address(bondPosition), type(uint256).max);
     }
