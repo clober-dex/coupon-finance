@@ -90,7 +90,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
 
     function _beforeAdjustPosition() internal returns (uint256 tokenId) {
         tokenId = bondPosition.mint(address(usdc), initialAmount, 3, address(this), new bytes(0));
-        vm.warp(Epoch.current().add(1).startTime());
+        vm.warp(startEpoch.add(1).startTime());
     }
 
     function testAdjustPositionIncreaseAmountAndEpochs() public {
@@ -325,6 +325,40 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
     function testAdjustPositionWithInvalidTokenId() public {
         vm.expectRevert("ERC721: invalid token ID");
         bondPosition.adjustPosition(123, int256(12412), int256(2), new bytes(0));
+    }
+
+    function testBurnExpiredPosition() public {
+        uint256 tokenId = _beforeAdjustPosition();
+        vm.warp(startEpoch.add(10).startTime());
+
+        uint256 beforeThisBalance = usdc.balanceOf(address(this));
+        uint256 beforeUserPositionBalance = bondPosition.balanceOf(address(this));
+
+        bondPosition.burnExpiredPosition(tokenId);
+
+        uint256 afterThisBalance = usdc.balanceOf(address(this));
+        uint256 afterUserPositionBalance = bondPosition.balanceOf(address(this));
+
+        assertEq(afterThisBalance, beforeThisBalance + initialAmount, "BALANCE");
+        assertEq(afterUserPositionBalance, beforeUserPositionBalance - 1, "POSITION_BALANCE");
+        vm.expectRevert("ERC721: invalid token ID");
+        bondPosition.ownerOf(tokenId);
+    }
+
+    function testBurnExpiredPositionWhenPositionNotExpired() public {
+        uint256 tokenId = _beforeAdjustPosition();
+
+        vm.expectRevert(bytes(Errors.INVALID_EPOCH));
+        bondPosition.burnExpiredPosition(tokenId);
+    }
+
+    function testBurnExpiredPositionOwnership() public {
+        uint256 tokenId = _beforeAdjustPosition();
+        vm.warp(startEpoch.add(10).startTime());
+
+        vm.expectRevert(bytes(Errors.ACCESS));
+        vm.prank(address(0x123));
+        bondPosition.burnExpiredPosition(tokenId);
     }
 
     function testRegisterAsset() public {

@@ -37,6 +37,8 @@ interface IBondPosition is IERC721Metadata, IERC721Permit, IBondPositionEvents {
 
     function adjustPosition(uint256 tokenId, int256 amount, int256 lockEpochs, bytes calldata data) external;
 
+    function burnExpiredPosition(uint256 tokenId) external;
+
     // Admin Functions //
     function registerAsset(address asset) external;
 }

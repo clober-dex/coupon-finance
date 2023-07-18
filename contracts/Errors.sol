@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 
 library Errors {
     string internal constant ACCESS = "ACCESS";
-    string internal constant EXPIRED_EPOCH = "EXPIRED_EPOCH";
+    string internal constant INVALID_EPOCH = "INVALID_EPOCH";
     string internal constant UNREGISTERED_ASSET = "UNREGISTERED_ASSET";
     string internal constant TOO_SMALL_DEBT = "TOO_SMALL_DEBT";
     string internal constant LIQUIDATION_THRESHOLD = "LIQUIDATION_THRESHOLD";
