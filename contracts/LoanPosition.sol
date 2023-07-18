@@ -201,11 +201,6 @@ contract LoanPosition is ILoanPosition, ERC721Permit, Ownable {
         }
     }
 
-    // Todo remove
-    function setLoanMap(uint256 tokenId, Types.Loan calldata loan) external {
-        _loanMap[tokenId] = loan;
-    }
-
     function getLiquidationStatus(
         uint256 tokenId,
         uint256 maxRepayAmount
