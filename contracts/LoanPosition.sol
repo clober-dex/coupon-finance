@@ -13,8 +13,9 @@ import {ILoanPosition} from "./interfaces/ILoanPosition.sol";
 import {IAssetPool} from "./interfaces/IAssetPool.sol";
 import {ILiquidateCallbackReceiver} from "./interfaces/ILiquidateCallbackReceiver.sol";
 import {ICouponOracle} from "./interfaces/ICouponOracle.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-contract LoanPosition is ILoanPosition, ERC721Permit {
+contract LoanPosition is ILoanPosition, ERC721Permit, Ownable {
     using SafeERC20 for IERC20;
 
     uint256 private constant _RATE_PRECISION = 10 ** 6;
@@ -58,6 +59,11 @@ contract LoanPosition is ILoanPosition, ERC721Permit {
 
     function getLoanConfiguration(address asset) external view returns (Types.AssetLoanConfiguration memory) {
         return _assetConfig[asset];
+    }
+
+    function setLoanConfiguration(address asset, Types.AssetLoanConfiguration memory config) external onlyOwner {
+        require(_assetConfig[asset].liquidationThreshold == 0, "INITIALIZED");
+        _assetConfig[asset] = config;
     }
 
     function _getAssetConfig(

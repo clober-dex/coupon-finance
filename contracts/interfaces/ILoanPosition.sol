@@ -35,6 +35,8 @@ interface ILoanPosition is IERC721Metadata, IERC721Permit, ILoanPositionEvents {
 
     function getLoanConfiguration(address asset) external view returns (Types.AssetLoanConfiguration memory);
 
+    function setLoanConfiguration(address asset, Types.AssetLoanConfiguration memory config) external;
+
     function getLiquidationStatus(
         uint256 tokenId,
         uint256 maxRepayAmount
