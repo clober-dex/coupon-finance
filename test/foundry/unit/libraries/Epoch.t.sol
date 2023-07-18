@@ -48,14 +48,14 @@ contract EpochUnitTest is Test {
     }
 
     function testEndTime() public {
-        assertEq(Epoch.fromMonths(0).endTime(), 2678399); // 31 days - 1 second
-        assertEq(Epoch.fromMonths(1).endTime(), 5097599); // 59 days - 1 second
-        assertEq(Epoch.fromMonths(12).endTime(), 34214399); // 396 days - 1 second
-        assertEq(Epoch.fromMonths(13).endTime(), 36633599); // 424 days - 1 second
-        assertEq(Epoch.fromMonths(24).endTime(), 65750399); // 761 days - 1 second
-        assertEq(Epoch.fromMonths(25).endTime(), 68255999); // 790 days - 1 second
-        // 1 APR 2032 00:00:00 GMT - 1 second
-        assertEq(Epoch.fromMonths(12 * (2032 - 1970) + 3 - 1).endTime(), 1964390399);
+        assertEq(Epoch.fromMonths(0).endTime(), 2678400); // 31 days
+        assertEq(Epoch.fromMonths(1).endTime(), 5097600); // 59 days
+        assertEq(Epoch.fromMonths(12).endTime(), 34214400); // 396 days
+        assertEq(Epoch.fromMonths(13).endTime(), 36633600); // 424 days
+        assertEq(Epoch.fromMonths(24).endTime(), 65750400); // 761 days
+        assertEq(Epoch.fromMonths(25).endTime(), 68256000); // 790 days
+        // 1 APR 2032 00:00:00 GMT
+        assertEq(Epoch.fromMonths(12 * (2032 - 1970) + 3 - 1).endTime(), 1964390400);
     }
 
     function testLong() public {

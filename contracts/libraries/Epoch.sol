@@ -27,13 +27,13 @@ library Epoch {
     function endTime(Types.Epoch epoch) internal pure returns (uint256) {
         unchecked {
             uint256 nextEpoch = Types.Epoch.unwrap(epoch) + 1;
-            return BokkyPooBahsDateTimeLibrary.addMonths(0, nextEpoch) - 1;
+            return BokkyPooBahsDateTimeLibrary.addMonths(0, nextEpoch);
         }
     }
 
     function long(Types.Epoch epoch) internal pure returns (uint256) {
         unchecked {
-            return endTime(epoch) + 1 - startTime(epoch);
+            return endTime(epoch) - startTime(epoch);
         }
     }
 
@@ -44,7 +44,7 @@ library Epoch {
     }
 
     function sub(Types.Epoch epoch, uint256 months) internal pure returns (Types.Epoch) {
-        return fromMonths(months - Types.Epoch.unwrap(epoch));
+        return fromMonths(Types.Epoch.unwrap(epoch) - months);
     }
 
     function unwrap(Types.Epoch epoch) internal pure returns (uint16) {
