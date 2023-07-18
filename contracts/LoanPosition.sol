@@ -133,9 +133,9 @@ contract LoanPosition is ILoanPosition, ERC721Permit, Ownable {
         uint256 maxRepayAmount
     ) private view returns (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount) {
         (
-            uint256 liquidationThreshold,
             uint256 liquidationFee,
             uint256 liquidationProtocolFee,
+            uint256 liquidationThreshold,
             uint256 liquidationTargetLtv
         ) = _getAssetConfig(loan.debtToken, loan.collateralToken);
         (uint256 assetPrice, uint256 collateralPrice, uint256 ethAmount) = _getPriceWithPrecisionAndEthAmountPerDebt(
