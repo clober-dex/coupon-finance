@@ -326,4 +326,12 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
         vm.expectRevert("ERC721: invalid token ID");
         bondPosition.adjustPosition(123, int256(12412), int256(2), new bytes(0));
     }
+
+    function testRegisterAsset() public {
+        MockERC20 newToken = new MockERC20("New", "NEW", 18);
+        assertTrue(!assetPool.isRegistered(address(newToken)), "NEW_TOKEN_IS_REGISTERED");
+        assetPool.registerAsset(address(newToken));
+        assertTrue(assetPool.isRegistered(address(newToken)), "NEW_TOKEN_IS_NOT_REGISTERED");
+        assertEq(newToken.allowance(address(assetPool), address(coupon)), type(uint256).max, "ALLOWANCE");
+    }
 }

@@ -26,6 +26,7 @@ interface IBondPosition is IERC721Metadata, IERC721Permit, IBondPositionEvents {
 
     function isAssetRegistered(address asset) external view returns (bool);
 
+    // User Functions //
     function mint(
         address asset,
         uint256 amount,
@@ -35,4 +36,7 @@ interface IBondPosition is IERC721Metadata, IERC721Permit, IBondPositionEvents {
     ) external returns (uint256);
 
     function adjustPosition(uint256 tokenId, int256 amount, int256 lockEpochs, bytes calldata data) external;
+
+    // Admin Functions //
+    function registerAsset(address asset) external;
 }
