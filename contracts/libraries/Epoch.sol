@@ -43,6 +43,10 @@ library Epoch {
         }
     }
 
+    function sub(Types.Epoch epoch, uint256 months) internal pure returns (Types.Epoch) {
+        return fromMonths(months - Types.Epoch.unwrap(epoch));
+    }
+
     function unwrap(Types.Epoch epoch) internal pure returns (uint16) {
         return Types.Epoch.unwrap(epoch);
     }
