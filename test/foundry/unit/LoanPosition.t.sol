@@ -631,4 +631,82 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
             "ROUNDING_ISSUE"
         );
     }
+
+    function testLiquidationWhenPriceChangesWithMaxRepayAmount() public {
+        uint256 nextId = loanPosition.nextId();
+        uint256 expectedExpiredAt = coupon.epochEndTime(Types.Epoch.wrap(2));
+
+        Types.Coupon[] memory coupons = new Types.Coupon[](2);
+        coupons[0] = Coupon.from(address(usdc), startEpoch, usdc.amount(1344));
+        coupons[1] = Coupon.from(address(usdc), startEpoch.add(1), usdc.amount(1344));
+        _mintCoupons(address(this), coupons);
+
+        uint256 tokenId = loanPosition.mint(
+            address(weth),
+            address(usdc),
+            weth.amount(1),
+            usdc.amount(1344),
+            2,
+            Constants.USER1,
+            new bytes(0)
+        );
+
+        oracle.setAssetPrice(address(weth), 1600 * 10 ** 8);
+
+        Types.LiquidationStatus memory liquidationStatus = loanPosition.getLiquidationStatus(tokenId, usdc.amount(490));
+
+        assertEq(liquidationStatus.available, true, "LIQUIDATION_AVAILABLE");
+        assertEq(liquidationStatus.liquidationAmount, 0.3109375 ether, "LIQUIDATION_AMOUNT");
+        assertEq(liquidationStatus.repayAmount, usdc.amount(490), "REPAY_AMOUNT");
+
+        Types.Loan memory beforeLoanPosition = loanPosition.loans(tokenId);
+        uint256 beforeUserCoupon1Balance = coupon.balanceOf(Constants.USER1, coupons[0].id());
+        uint256 beforeUserCoupon2Balance = coupon.balanceOf(Constants.USER1, coupons[1].id());
+        uint256 beforeLiquidatorCollateralBalance = weth.balanceOf(address(this));
+        uint256 beforeLiquidatorBalance = usdc.balanceOf(address(this));
+        uint256 beforeTreasuryBalance = weth.balanceOf(loanPosition.treasury());
+
+        loanPosition.liquidate(tokenId, usdc.amount(490), new bytes(0));
+
+        Types.Loan memory afterUserLoanStatus = loanPosition.loans(tokenId);
+        uint256 afterUserCoupon1Balance = coupon.balanceOf(Constants.USER1, coupons[0].id());
+        uint256 afterUserCoupon2Balance = coupon.balanceOf(Constants.USER1, coupons[1].id());
+        uint256 afterLiquidatorCollateralBalance = weth.balanceOf(address(this));
+        uint256 afterLiquidatorBalance = usdc.balanceOf(address(this));
+        uint256 afterTreasuryBalance = weth.balanceOf(loanPosition.treasury());
+
+        assertEq(beforeLoanPosition.debtAmount - afterUserLoanStatus.debtAmount, usdc.amount(490), "DEBT_AMOUNT");
+        assertEq(
+            beforeLoanPosition.collateralAmount - afterUserLoanStatus.collateralAmount,
+            0.3125 ether,
+            "COLLATERAL_AMOUNT"
+        );
+        assertEq(afterUserCoupon1Balance - beforeUserCoupon1Balance, usdc.amount(490), "USER_COUPON1_BALANCE");
+        assertEq(afterUserCoupon2Balance - beforeUserCoupon2Balance, usdc.amount(490), "USER_COUPON2_BALANCE");
+        assertEq(
+            beforeLoanPosition.collateralAmount - afterUserLoanStatus.collateralAmount,
+            0.3125 ether,
+            "COLLATERAL_AMOUNT"
+        );
+        assertEq(beforeLiquidatorBalance - afterLiquidatorBalance, usdc.amount(490), "LIQUIDATOR_BALANCE");
+        assertEq(
+            afterLiquidatorCollateralBalance - beforeLiquidatorCollateralBalance,
+            0.3109375 ether,
+            "LIQUIDATOR_COLLATERAL_BALANCE"
+        );
+        assertEq(afterTreasuryBalance - beforeTreasuryBalance, 0.0015625 ether, "TREASURY_BALANCE");
+
+        assertEq(
+            (beforeLoanPosition.debtAmount - afterUserLoanStatus.debtAmount) * 1600 * 100 <=
+                (beforeLoanPosition.collateralAmount - afterUserLoanStatus.collateralAmount) * 10 ** 12 * 98,
+            true,
+            "ROUNDING_ISSUE"
+        );
+        assertEq(
+            (afterTreasuryBalance - beforeTreasuryBalance) * 1000 <=
+                (beforeLoanPosition.collateralAmount - afterUserLoanStatus.collateralAmount) * 5,
+            true,
+            "ROUNDING_ISSUE"
+        );
+    }
 }
