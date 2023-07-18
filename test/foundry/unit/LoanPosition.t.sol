@@ -504,8 +504,8 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         assertEq(liquidationStatus.repayAmount, usdc.amount(784), "REPAY_AMOUNT");
 
         Types.Loan memory beforeLoanPosition = loanPosition.loans(tokenId);
-        uint256 beforeUserCoupon1Balance = coupon.balanceOf(Constants.USER1, coupons[0]);
-        uint256 beforeUserCoupon2Balance = coupon.balanceOf(Constants.USER1, coupons[1]);
+        uint256 beforeUserCoupon1Balance = coupon.balanceOf(Constants.USER1, coupons[0].id());
+        uint256 beforeUserCoupon2Balance = coupon.balanceOf(Constants.USER1, coupons[1].id());
         uint256 beforeLiquidatorCollateralBalance = weth.balanceOf(address(this));
         uint256 beforeLiquidatorBalance = usdc.balanceOf(address(this));
         uint256 beforeTreasuryBalance = weth.balanceOf(loanPosition.treasury());
@@ -513,8 +513,8 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
         loanPosition.liquidate(tokenId, 0, new bytes(0));
 
         Types.Loan memory afterUserLoanStatus = loanPosition.loans(tokenId);
-        uint256 afterUserCoupon1Balance = coupon.balanceOf(Constants.USER1, coupons[0]);
-        uint256 afterUserCoupon2Balance = coupon.balanceOf(Constants.USER1, coupons[0]);
+        uint256 afterUserCoupon1Balance = coupon.balanceOf(Constants.USER1, coupons[0].id());
+        uint256 afterUserCoupon2Balance = coupon.balanceOf(Constants.USER1, coupons[1].id());
         uint256 afterLiquidatorCollateralBalance = weth.balanceOf(address(this));
         uint256 afterLiquidatorBalance = usdc.balanceOf(address(this));
         uint256 afterTreasuryBalance = weth.balanceOf(loanPosition.treasury());
