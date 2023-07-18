@@ -314,6 +314,14 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
         assertEq(afterBond.expiredWith, expectedExpiredWith, "EXPIRED_WITH");
     }
 
+    function testAdjustPositionWithExpiredPosition() public {
+        uint256 tokenId = _beforeAdjustPosition();
+        vm.warp(startEpoch.add(10).startTime());
+
+        vm.expectRevert(bytes(Errors.INVALID_EPOCH));
+        bondPosition.adjustPosition(tokenId, int256(100), int256(1), new bytes(0));
+    }
+
     function testAdjustPositionOwnership() public {
         uint256 tokenId = _beforeAdjustPosition();
         vm.startPrank(address(0x123));
