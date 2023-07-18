@@ -6,9 +6,9 @@ library Types {
     type Epoch is uint16;
 
     struct Bond {
-        uint256 nonce;
         address asset;
-        uint256 unlockedAt;
+        uint64 nonce;
+        Epoch expiredWith;
         uint256 amount;
     }
 

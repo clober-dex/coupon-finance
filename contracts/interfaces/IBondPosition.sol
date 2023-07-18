@@ -9,7 +9,7 @@ import {IERC721Permit} from "./IERC721Permit.sol";
 
 interface IBondPositionEvents {
     event AssetRegistered(address indexed asset);
-    event PositionUpdated(uint256 indexed tokenId, uint256 amount, uint256 unlockedAt);
+    event PositionUpdated(uint256 indexed tokenId, uint256 amount, Types.Epoch expiredWith);
 }
 
 interface IBondPosition is IERC721Metadata, IERC721Permit, IBondPositionEvents {
