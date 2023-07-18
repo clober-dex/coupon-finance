@@ -64,7 +64,7 @@ contract LoanPosition is ILoanPosition, ERC721Permit, Ownable {
 
     function setLoanConfiguration(address asset, Types.AssetLoanConfiguration memory config) external onlyOwner {
         require(_assetConfig[asset].liquidationThreshold == 0, "INITIALIZED");
-        config.decimal = IERC20Metadata(asset).decimal();
+        config.decimal = IERC20Metadata(asset).decimals();
         _assetConfig[asset] = config;
     }
 
