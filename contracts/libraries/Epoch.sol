@@ -37,14 +37,20 @@ library Epoch {
         }
     }
 
-    function add(Types.Epoch epoch, uint256 months) internal pure returns (Types.Epoch) {
-        unchecked {
-            return fromMonths(months + Types.Epoch.unwrap(epoch));
-        }
+    function add(Types.Epoch epoch, uint16 months) internal pure returns (Types.Epoch) {
+        return Types.Epoch.wrap(Types.Epoch.unwrap(epoch) + months);
     }
 
-    function sub(Types.Epoch epoch, uint256 months) internal pure returns (Types.Epoch) {
-        return fromMonths(Types.Epoch.unwrap(epoch) - months);
+    function add(Types.Epoch e1, Types.Epoch e2) internal pure returns (Types.Epoch) {
+        return Types.Epoch.wrap(Types.Epoch.unwrap(e1) + Types.Epoch.unwrap(e2));
+    }
+
+    function sub(Types.Epoch epoch, uint16 months) internal pure returns (Types.Epoch) {
+        return Types.Epoch.wrap(Types.Epoch.unwrap(epoch) - months);
+    }
+
+    function sub(Types.Epoch e1, Types.Epoch e2) internal pure returns (Types.Epoch) {
+        return Types.Epoch.wrap(Types.Epoch.unwrap(e1) - Types.Epoch.unwrap(e2));
     }
 
     function unwrap(Types.Epoch epoch) internal pure returns (uint16) {

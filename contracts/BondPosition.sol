@@ -30,14 +30,14 @@ contract BondPosition is IBondPosition, ERC721Permit {
     function mint(
         address asset,
         uint256 amount,
-        uint256 lockEpochs,
+        uint16 lockEpochs,
         address recipient,
         bytes calldata data
     ) external returns (uint256) {
         revert("not implemented");
     }
 
-    function adjustPosition(uint256 tokenId, int256 amount, int256 lockEpochs, bytes calldata data) external {
+    function adjustPosition(uint256 tokenId, int256 amount, int16 lockEpochs, bytes calldata data) external {
         revert("not implemented");
     }
 

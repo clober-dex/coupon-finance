@@ -97,7 +97,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
         uint256 tokenId = _beforeAdjustPosition();
 
         uint256 amount = usdc.amount(70);
-        uint256 epochs = 3;
+        uint16 epochs = 3;
         Types.Epoch expectedExpiredWith = startEpoch.add(5);
 
         uint256 beforeThisBalance = usdc.balanceOf(address(this));
@@ -106,7 +106,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
         snapshotId = vm.snapshot();
         vm.expectEmit(true, true, true, true);
         emit PositionUpdated(tokenId, initialAmount + amount, expectedExpiredWith);
-        bondPosition.adjustPosition(tokenId, int256(amount), int256(epochs), new bytes(0));
+        bondPosition.adjustPosition(tokenId, int256(amount), int16(epochs), new bytes(0));
         vm.revertTo(snapshotId);
         Types.Coupon[] memory coupons = new Types.Coupon[](5);
         coupons[0] = Coupon.from(address(usdc), startEpoch.add(1), amount);
@@ -118,7 +118,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
             address(coupon),
             abi.encodeCall(ICouponManager.mintBatch, (address(this), coupons, new bytes(0)))
         );
-        bondPosition.adjustPosition(tokenId, int256(amount), int256(epochs), new bytes(0));
+        bondPosition.adjustPosition(tokenId, int256(amount), int16(epochs), new bytes(0));
 
         Types.Bond memory afterBond = bondPosition.bonds(tokenId);
 
@@ -131,7 +131,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
         uint256 tokenId = _beforeAdjustPosition();
 
         uint256 amount = usdc.amount(70);
-        uint256 epochs = 1;
+        uint16 epochs = 1;
         Types.Epoch expectedExpiredWith = startEpoch.add(1);
 
         uint256 beforeThisBalance = usdc.balanceOf(address(this));
@@ -140,7 +140,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
         snapshotId = vm.snapshot();
         vm.expectEmit(true, true, true, true);
         emit PositionUpdated(tokenId, initialAmount + amount, expectedExpiredWith);
-        bondPosition.adjustPosition(tokenId, int256(amount), -int256(epochs), new bytes(0));
+        bondPosition.adjustPosition(tokenId, int256(amount), -int16(epochs), new bytes(0));
         vm.revertTo(snapshotId);
         Types.Coupon[] memory coupons = new Types.Coupon[](1);
         coupons[0] = Coupon.from(address(usdc), startEpoch.add(1), amount);
@@ -148,12 +148,12 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
             address(coupon),
             abi.encodeCall(ICouponManager.mintBatch, (address(this), coupons, new bytes(0)))
         );
-        bondPosition.adjustPosition(tokenId, int256(amount), -int256(epochs), new bytes(0));
+        bondPosition.adjustPosition(tokenId, int256(amount), -int16(epochs), new bytes(0));
         vm.revertTo(snapshotId);
         coupons = new Types.Coupon[](1);
         coupons[0] = Coupon.from(address(usdc), startEpoch.add(2), initialAmount);
         vm.expectCall(address(coupon), abi.encodeCall(ICouponManager.burnBatch, (address(this), coupons)));
-        bondPosition.adjustPosition(tokenId, int256(amount), -int256(epochs), new bytes(0));
+        bondPosition.adjustPosition(tokenId, int256(amount), -int16(epochs), new bytes(0));
 
         Types.Bond memory afterBond = bondPosition.bonds(tokenId);
 
@@ -166,7 +166,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
         uint256 tokenId = _beforeAdjustPosition();
 
         uint256 amount = usdc.amount(70);
-        uint256 epochs = 3;
+        uint16 epochs = 3;
         uint256 expectedAmount = initialAmount - amount;
         Types.Epoch expectedExpiredWith = startEpoch.add(5);
 
@@ -176,7 +176,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
         snapshotId = vm.snapshot();
         vm.expectEmit(true, true, true, true);
         emit PositionUpdated(tokenId, expectedAmount, expectedExpiredWith);
-        bondPosition.adjustPosition(tokenId, -int256(amount), int256(epochs), new bytes(0));
+        bondPosition.adjustPosition(tokenId, -int256(amount), int16(epochs), new bytes(0));
         vm.revertTo(snapshotId);
         Types.Coupon[] memory coupons = new Types.Coupon[](3);
         coupons[0] = Coupon.from(address(usdc), startEpoch.add(3), expectedAmount);
@@ -186,13 +186,13 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
             address(coupon),
             abi.encodeCall(ICouponManager.mintBatch, (address(this), coupons, new bytes(0)))
         );
-        bondPosition.adjustPosition(tokenId, -int256(amount), int256(epochs), new bytes(0));
+        bondPosition.adjustPosition(tokenId, -int256(amount), int16(epochs), new bytes(0));
         vm.revertTo(snapshotId);
         coupons = new Types.Coupon[](2);
         coupons[0] = Coupon.from(address(usdc), startEpoch.add(1), amount);
         coupons[1] = Coupon.from(address(usdc), startEpoch.add(2), amount);
         vm.expectCall(address(coupon), abi.encodeCall(ICouponManager.burnBatch, (address(this), coupons)));
-        bondPosition.adjustPosition(tokenId, -int256(amount), int256(epochs), new bytes(0));
+        bondPosition.adjustPosition(tokenId, -int256(amount), int16(epochs), new bytes(0));
 
         Types.Bond memory afterBond = bondPosition.bonds(tokenId);
 
@@ -205,7 +205,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
         uint256 tokenId = _beforeAdjustPosition();
 
         uint256 amount = usdc.amount(70);
-        uint256 epochs = 1;
+        uint16 epochs = 1;
         uint256 expectedAmount = initialAmount - amount;
         Types.Epoch expectedExpiredWith = startEpoch.add(1);
 
@@ -215,13 +215,13 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
         snapshotId = vm.snapshot();
         vm.expectEmit(true, true, true, true);
         emit PositionUpdated(tokenId, expectedAmount, expectedExpiredWith);
-        bondPosition.adjustPosition(tokenId, -int256(amount), -int256(epochs), new bytes(0));
+        bondPosition.adjustPosition(tokenId, -int256(amount), -int16(epochs), new bytes(0));
         vm.revertTo(snapshotId);
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
         coupons[0] = Coupon.from(address(usdc), startEpoch.add(1), amount);
         coupons[1] = Coupon.from(address(usdc), startEpoch.add(2), initialAmount);
         vm.expectCall(address(coupon), abi.encodeCall(ICouponManager.burnBatch, (address(this), coupons)));
-        bondPosition.adjustPosition(tokenId, -int256(amount), -int256(epochs), new bytes(0));
+        bondPosition.adjustPosition(tokenId, -int256(amount), -int16(epochs), new bytes(0));
 
         Types.Bond memory afterBond = bondPosition.bonds(tokenId);
 
@@ -239,13 +239,13 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
         snapshotId = vm.snapshot();
         vm.expectEmit(true, true, true, true);
         emit PositionUpdated(tokenId, 0, startEpoch.sub(1));
-        bondPosition.adjustPosition(tokenId, -int256(initialAmount), int256(1), new bytes(0));
+        bondPosition.adjustPosition(tokenId, -int256(initialAmount), int16(1), new bytes(0));
         vm.revertTo(snapshotId);
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
         coupons[0] = Coupon.from(address(usdc), startEpoch.add(1), initialAmount);
         coupons[1] = Coupon.from(address(usdc), startEpoch.add(2), initialAmount);
         vm.expectCall(address(coupon), abi.encodeCall(ICouponManager.burnBatch, (address(this), coupons)));
-        bondPosition.adjustPosition(tokenId, -int256(initialAmount), int256(1), new bytes(0));
+        bondPosition.adjustPosition(tokenId, -int256(initialAmount), int16(1), new bytes(0));
 
         Types.Bond memory afterBond = bondPosition.bonds(tokenId);
 
@@ -267,13 +267,13 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
         snapshotId = vm.snapshot();
         vm.expectEmit(true, true, true, true);
         emit PositionUpdated(tokenId, 0, expectedExpiredWith);
-        bondPosition.adjustPosition(tokenId, int256(1231), -int256(2), new bytes(0));
+        bondPosition.adjustPosition(tokenId, int256(1231), -int16(2), new bytes(0));
         vm.revertTo(snapshotId);
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
         coupons[0] = Coupon.from(address(usdc), startEpoch.add(1), initialAmount);
         coupons[1] = Coupon.from(address(usdc), startEpoch.add(2), initialAmount);
         vm.expectCall(address(coupon), abi.encodeCall(ICouponManager.burnBatch, (address(this), coupons)));
-        bondPosition.adjustPosition(tokenId, int256(3242), -int256(2), new bytes(0));
+        bondPosition.adjustPosition(tokenId, int256(3242), -int16(2), new bytes(0));
 
         Types.Bond memory afterBond = bondPosition.bonds(tokenId);
 
@@ -299,13 +299,13 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
         snapshotId = vm.snapshot();
         vm.expectEmit(true, true, true, true);
         emit PositionUpdated(tokenId, expectedAmount, expectedExpiredWith);
-        bondPosition.adjustPosition(tokenId, -int256(initialAmount), -int256(2), new bytes(0));
+        bondPosition.adjustPosition(tokenId, -int256(initialAmount), -int16(2), new bytes(0));
         vm.revertTo(snapshotId);
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
         coupons[0] = Coupon.from(address(usdc), startEpoch.add(1), initialAmount - limitBalance);
         coupons[1] = Coupon.from(address(usdc), startEpoch.add(2), initialAmount);
         vm.expectCall(address(coupon), abi.encodeCall(ICouponManager.burnBatch, (address(this), coupons)));
-        bondPosition.adjustPosition(tokenId, -int256(initialAmount), -int256(2), new bytes(0));
+        bondPosition.adjustPosition(tokenId, -int256(initialAmount), -int16(2), new bytes(0));
 
         Types.Bond memory afterBond = bondPosition.bonds(tokenId);
 
@@ -319,20 +319,20 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
         vm.warp(startEpoch.add(10).startTime());
 
         vm.expectRevert(bytes(Errors.INVALID_EPOCH));
-        bondPosition.adjustPosition(tokenId, int256(100), int256(1), new bytes(0));
+        bondPosition.adjustPosition(tokenId, int256(100), int16(1), new bytes(0));
     }
 
     function testAdjustPositionOwnership() public {
         uint256 tokenId = _beforeAdjustPosition();
         vm.startPrank(address(0x123));
         vm.expectRevert(bytes(Errors.ACCESS));
-        bondPosition.adjustPosition(tokenId, int256(12412), int256(2), new bytes(0));
+        bondPosition.adjustPosition(tokenId, int256(12412), int16(2), new bytes(0));
         vm.stopPrank();
     }
 
     function testAdjustPositionWithInvalidTokenId() public {
         vm.expectRevert("ERC721: invalid token ID");
-        bondPosition.adjustPosition(123, int256(12412), int256(2), new bytes(0));
+        bondPosition.adjustPosition(123, int256(12412), int16(2), new bytes(0));
     }
 
     function testBurnExpiredPosition() public {
