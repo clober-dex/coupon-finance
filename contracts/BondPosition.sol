@@ -96,12 +96,12 @@ contract BondPosition is IBondPosition, ERC721Permit, Ownable {
         if (newBond.amount == oldBond.amount) {
             int256 comparisonResult = newBond.compareEpoch(oldBond);
             if (comparisonResult > 0) {
-                couponsToMint = new Types.Coupon[](newBond.expiredWith.sub(oldBond.expiredWith).unwrap());
+                couponsToMint = new Types.Coupon[](newBond.expiredWith.sub(oldBond.expiredWith));
                 for (uint16 i = 0; i < couponsToBurn.length; ++i) {
                     couponsToMint[i] = Coupon.from(asset, oldBond.expiredWith.add(i + 1), newBond.amount);
                 }
             } else {
-                couponsToBurn = new Types.Coupon[](oldBond.expiredWith.sub(newBond.expiredWith).unwrap());
+                couponsToBurn = new Types.Coupon[](oldBond.expiredWith.sub(newBond.expiredWith));
                 for (uint16 i = 0; i < couponsToBurn.length; ++i) {
                     couponsToBurn[i] = Coupon.from(asset, newBond.expiredWith.add(i + 1), oldBond.amount);
                 }
@@ -178,7 +178,7 @@ contract BondPosition is IBondPosition, ERC721Permit, Ownable {
         // @dev always satisfy below condition
         // require(largeAmountBond.amount >= smallAmountBond.amount);
 
-        couponsToMint = new Types.Coupon[](largeAmountBond.expiredWith.sub(latestExpiredEpoch).unwrap());
+        couponsToMint = new Types.Coupon[](largeAmountBond.expiredWith.sub(latestExpiredEpoch));
         uint256 amountDiff = largeAmountBond.amount - smallAmountBond.amount;
         for (uint16 i = 0; i < couponsToMint.length; ++i) {
             Types.Epoch epoch = latestExpiredEpoch.add(i + 1);
@@ -189,7 +189,7 @@ contract BondPosition is IBondPosition, ERC721Permit, Ownable {
             }
         }
         if (smallAmountBond.compareEpoch(largeAmountBond) > 0) {
-            couponsToBurn = new Types.Coupon[](smallAmountBond.expiredWith.sub(largeAmountBond.expiredWith).unwrap());
+            couponsToBurn = new Types.Coupon[](smallAmountBond.expiredWith.sub(largeAmountBond.expiredWith));
             for (uint16 i = 0; i < couponsToBurn.length; ++i) {
                 couponsToBurn[i] = Coupon.from(asset, largeAmountBond.expiredWith.add(i + 1), smallAmountBond.amount);
             }
