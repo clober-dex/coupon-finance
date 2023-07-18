@@ -61,4 +61,8 @@ library Epoch {
                     : int256(0);
         }
     }
+
+    function max(Types.Epoch a, Types.Epoch b) internal pure returns (Types.Epoch) {
+        return compare(a, b) > 0 ? a : b;
+    }
 }

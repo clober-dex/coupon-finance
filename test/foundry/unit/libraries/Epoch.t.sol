@@ -88,4 +88,13 @@ contract EpochUnitTest is Test {
         assertEq(a.compare(c), -1);
         assertEq(c.compare(a), 1);
     }
+
+    function testMax() public {
+        Types.Epoch a = Epoch.fromMonths(1234);
+        Types.Epoch b = Epoch.fromMonths(1234);
+        Types.Epoch c = Epoch.fromMonths(1235);
+        assertEq(Epoch.max(a, b).unwrap(), a.unwrap());
+        assertEq(Epoch.max(a, c).unwrap(), c.unwrap());
+        assertEq(Epoch.max(c, a).unwrap(), c.unwrap());
+    }
 }
