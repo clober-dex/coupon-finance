@@ -14,6 +14,10 @@ contract MockAssetPool is IAssetPool {
     mapping(address asset => uint256) public override totalReservedAmount;
     mapping(address => uint256) public withdrawLimit;
 
+    function isOperator(address) external pure returns (bool) {
+        return true;
+    }
+
     function withdrawable(address asset) external view returns (uint256 amount) {
         amount = totalReservedAmount[asset];
         if (withdrawLimit[asset] > 0 && amount > withdrawLimit[asset]) {
