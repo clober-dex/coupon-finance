@@ -526,10 +526,11 @@ contract LoanPositionUnitTest is Test, ILoanPositionManagerEvents, ERC1155Holder
         bool canLiquidate
     ) private {
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
-        coupons[0] = Coupon.from(address(usdc), startEpoch, debtAmount);
-        coupons[1] = Coupon.from(address(usdc), startEpoch.add(1), debtAmount);
+        coupons[0] = Coupon.from(address(isEthCollateral ? usdc : weth), startEpoch, debtAmount);
+        coupons[1] = Coupon.from(address(isEthCollateral ? usdc : weth), startEpoch.add(1), debtAmount);
         _mintCoupons(address(this), coupons);
 
+        couponManager.setApprovalForAll(address(loanPositionManager), true);
         uint256 tokenId = loanPositionManager.mint(
             address(isEthCollateral ? weth : usdc),
             address(isEthCollateral ? usdc : weth),
@@ -543,7 +544,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionManagerEvents, ERC1155Holder
         MockERC20 collateralToken = isEthCollateral ? weth : usdc;
         MockERC20 debtToken = isEthCollateral ? usdc : weth;
 
-        if (changeData == 0) vm.warp(block.timestamp + 1);
+        if (changeData == 0) vm.warp(loanPositionManager.getPosition(tokenId).expiredWith.endTime() + 1);
         else oracle.setAssetPrice(address(weth), changeData);
 
         Types.LiquidationStatus memory liquidationStatus = loanPositionManager.getLiquidationStatus(
@@ -647,7 +648,8 @@ contract LoanPositionUnitTest is Test, ILoanPositionManagerEvents, ERC1155Holder
     function _testRevertLiquidation(
         uint256 debtAmount,
         uint256 collateralAmount,
-        uint256 changeData,
+        uint256 price,
+        bool epochEnds,
         uint256 maxRepayAmount,
         bool isEthCollateral
     ) private {
@@ -659,6 +661,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionManagerEvents, ERC1155Holder
         MockERC20 collateralToken = isEthCollateral ? weth : usdc;
         MockERC20 debtToken = isEthCollateral ? usdc : weth;
 
+        couponManager.setApprovalForAll(address(loanPositionManager), true);
         uint256 tokenId = loanPositionManager.mint(
             address(collateralToken),
             address(debtToken),
@@ -669,8 +672,8 @@ contract LoanPositionUnitTest is Test, ILoanPositionManagerEvents, ERC1155Holder
             new bytes(0)
         );
 
-        if (changeData == 0) vm.warp(block.timestamp + 1);
-        else oracle.setAssetPrice(address(weth), changeData);
+        if (epochEnds) vm.warp(loanPositionManager.getPosition(tokenId).expiredWith.endTime() + 1);
+        oracle.setAssetPrice(address(weth), price);
 
         vm.expectRevert(bytes(Errors.TOO_SMALL_DEBT));
         Types.LiquidationStatus memory liquidationStatus = loanPositionManager.getLiquidationStatus(
@@ -753,35 +756,38 @@ contract LoanPositionUnitTest is Test, ILoanPositionManagerEvents, ERC1155Holder
     }
 
     function testLiquidationWhenPriceChangesWithSmallDebt() public {
+        oracle.setAssetPrice(address(weth), 1002 * 10 ** 8);
         _testLiquidation(
             usdc.amount(12),
             0.015 ether,
-            1000 * 10 ** 8,
+            999 * 10 ** 8,
             0,
-            12183673469387756,
+            12195869338726483,
             usdc.amount(12),
-            61224489795918,
+            61285775571489,
             true,
             true
         );
     }
 
     function testLiquidationWhenPriceChangesWithSmallDebtWithMaxRepayAmount() public {
+        oracle.setAssetPrice(address(weth), 1002 * 10 ** 8);
         _testLiquidation(
             usdc.amount(12),
             0.015 ether,
-            1000 * 10 ** 8,
+            999 * 10 ** 8,
             usdc.amount(8),
-            2030612244897960,
-            usdc.amount(2),
-            10204081632653,
+            2042808114236687,
+            2010000,
+            10265367408224,
             true,
             true
         );
     }
 
     function testRevertLiquidationWhenPriceChangesWithSmallDebtWithMaxRepayAmount() public {
-        _testRevertLiquidation(usdc.amount(10), 0.012 ether, 1000 * 10 ** 8, usdc.amount(8), true);
+        oracle.setAssetPrice(address(weth), 999 * 10 ** 8);
+        _testRevertLiquidation(usdc.amount(10), 0.0126 ether, 1001 * 10 ** 8, true, usdc.amount(8), true);
     }
 
     function testLiquidationWhenPriceChangesWithSmallRemainingDebt() public {
@@ -813,6 +819,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionManagerEvents, ERC1155Holder
     }
 
     function testLiquidationWhenPriceChangesWithSmallLiquidation() public {
+        oracle.setAssetPrice(address(weth), 3000 * 10 ** 8);
         _testLiquidation(
             usdc.amount(32) + 1,
             0.02 ether,
@@ -855,7 +862,18 @@ contract LoanPositionUnitTest is Test, ILoanPositionManagerEvents, ERC1155Holder
     }
 
     function testLiquidationWhenEpochEndsWithSmallDebt() public {
-        _testLiquidation(usdc.amount(10), 1 ether, 0, 0, 5640589569160998, usdc.amount(10), 28344671201814, true, true);
+        oracle.setAssetPrice(address(weth), 100 * 10 ** 8);
+        _testLiquidation(
+            usdc.amount(10),
+            1 ether,
+            0,
+            0,
+            101530612244897960,
+            usdc.amount(10),
+            510204081632653,
+            true,
+            true
+        );
     }
 
     function testLiquidationWhenEpochEndsWithSmallDebtWithMaxRepayAmount() public {
@@ -873,7 +891,8 @@ contract LoanPositionUnitTest is Test, ILoanPositionManagerEvents, ERC1155Holder
     }
 
     function testRevertLiquidationWhenEpochEndsWithSmallDebtWithMaxRepayAmount() public {
-        _testRevertLiquidation(usdc.amount(10), 1 ether, 0, usdc.amount(8), true);
+        oracle.setAssetPrice(address(weth), 100 * 10 ** 8);
+        _testRevertLiquidation(usdc.amount(10), 1 ether, 1800 * 10 ** 8, true, usdc.amount(8), true);
     }
 
     function testLiquidationWhenEpochEndsWithSmallRemainingDebt() public {
