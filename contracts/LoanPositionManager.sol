@@ -232,9 +232,9 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable {
 
     function adjustPosition(
         uint256 tokenId,
-        int256 collateralAmountDiff,
-        int256 debtAmountDiff,
-        int256 loanEpochs,
+        uint256 debtAmount,
+        uint256 collateralAmount,
+        Types.Epoch expiredWith,
         bytes calldata data
     ) external {
         revert("not implemented");

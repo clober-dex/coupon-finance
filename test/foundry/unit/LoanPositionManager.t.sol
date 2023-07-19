@@ -226,23 +226,23 @@ contract LoanPositionUnitTest is Test, ILoanPositionManagerEvents, ERC1155Holder
 
     function testAdjustPositionIncreaseDebtAndEpochs() public {
         uint256 tokenId = _beforeAdjustPosition();
-        uint256 debtAmount = usdc.amount(70);
+        uint256 increaseAmount = usdc.amount(70);
         uint256 loanEpochs = 2;
-        uint256 expectedDebtAmount = initialDebtAmount + debtAmount;
+        uint256 debtAmount = initialDebtAmount + increaseAmount;
         Types.Epoch epoch = startEpoch.add(4);
 
         uint256 beforeDebtBalance = usdc.balanceOf(address(this));
 
         snapshotId = vm.snapshot();
         vm.expectEmit(true, true, true, true);
-        emit PositionUpdated(tokenId, initialCollateralAmount, expectedDebtAmount, epoch);
-        loanPositionManager.adjustPosition(tokenId, 0, int256(debtAmount), int256(loanEpochs), new bytes(0));
+        emit PositionUpdated(tokenId, initialCollateralAmount, debtAmount, epoch);
+        loanPositionManager.adjustPosition(tokenId, initialCollateralAmount, debtAmount, epoch, new bytes(0));
         vm.revertTo(snapshotId);
         Types.Coupon[] memory coupons = new Types.Coupon[](4);
-        coupons[0] = Coupon.from(address(usdc), startEpoch.add(1), debtAmount);
-        coupons[1] = Coupon.from(address(usdc), startEpoch.add(2), debtAmount);
-        coupons[2] = Coupon.from(address(usdc), startEpoch.add(3), expectedDebtAmount);
-        coupons[3] = Coupon.from(address(usdc), startEpoch.add(4), expectedDebtAmount);
+        coupons[0] = Coupon.from(address(usdc), startEpoch.add(1), increaseAmount);
+        coupons[1] = Coupon.from(address(usdc), startEpoch.add(2), increaseAmount);
+        coupons[2] = Coupon.from(address(usdc), startEpoch.add(3), debtAmount);
+        coupons[3] = Coupon.from(address(usdc), startEpoch.add(4), debtAmount);
         vm.expectCall(
             address(couponManager),
             abi.encodeCall(
@@ -251,31 +251,30 @@ contract LoanPositionUnitTest is Test, ILoanPositionManagerEvents, ERC1155Holder
             ),
             1
         );
-        loanPositionManager.adjustPosition(tokenId, 0, int256(debtAmount), int256(loanEpochs), new bytes(0));
+        loanPositionManager.adjustPosition(tokenId, initialCollateralAmount, debtAmount, epoch, new bytes(0));
 
         Types.LoanPosition memory position = loanPositionManager.getPosition(tokenId);
 
-        assertEq(usdc.balanceOf(address(this)), beforeDebtBalance + debtAmount, "DEBT_BALANCE");
-        assertEq(position.debtAmount, expectedDebtAmount, "DEBT_AMOUNT");
+        assertEq(usdc.balanceOf(address(this)), beforeDebtBalance + increaseAmount, "DEBT_BALANCE");
+        assertEq(position.debtAmount, debtAmount, "DEBT_AMOUNT");
         assertEq(position.expiredWith, epoch, "EXPIRED_WITH");
     }
 
     function testAdjustPositionIncreaseDebtAndDecreaseEpochs() public {
         uint256 tokenId = _beforeAdjustPosition();
-        uint256 debtAmount = usdc.amount(70);
-        uint256 loanEpochs = 1;
-        uint256 expectedDebtAmount = initialDebtAmount + debtAmount;
+        uint256 increaseAmount = usdc.amount(70);
+        uint256 debtAmount = initialDebtAmount + increaseAmount;
         Types.Epoch epoch = startEpoch.add(1);
 
         uint256 beforeDebtBalance = usdc.balanceOf(address(this));
 
         snapshotId = vm.snapshot();
         vm.expectEmit(true, true, true, true);
-        emit PositionUpdated(tokenId, initialCollateralAmount, expectedDebtAmount, epoch);
-        loanPositionManager.adjustPosition(tokenId, 0, int256(debtAmount), -int256(loanEpochs), new bytes(0));
+        emit PositionUpdated(tokenId, initialCollateralAmount, debtAmount, epoch);
+        loanPositionManager.adjustPosition(tokenId, initialCollateralAmount, debtAmount, epoch, new bytes(0));
         vm.revertTo(snapshotId);
         Types.Coupon[] memory coupons = new Types.Coupon[](1);
-        coupons[0] = Coupon.from(address(usdc), startEpoch.add(1), debtAmount);
+        coupons[0] = Coupon.from(address(usdc), startEpoch.add(1), increaseAmount);
         vm.expectCall(
             address(couponManager),
             abi.encodeCall(
@@ -284,7 +283,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionManagerEvents, ERC1155Holder
             ),
             1
         );
-        loanPositionManager.adjustPosition(tokenId, 0, int256(debtAmount), -int256(loanEpochs), new bytes(0));
+        loanPositionManager.adjustPosition(tokenId, initialCollateralAmount, debtAmount, epoch, new bytes(0));
         vm.revertTo(snapshotId);
         coupons = new Types.Coupon[](1);
         coupons[0] = Coupon.from(address(usdc), startEpoch.add(2), initialDebtAmount);
@@ -296,32 +295,31 @@ contract LoanPositionUnitTest is Test, ILoanPositionManagerEvents, ERC1155Holder
             ),
             1
         );
-        loanPositionManager.adjustPosition(tokenId, 0, int256(debtAmount), -int256(loanEpochs), new bytes(0));
+        loanPositionManager.adjustPosition(tokenId, initialCollateralAmount, debtAmount, epoch, new bytes(0));
 
         Types.LoanPosition memory position = loanPositionManager.getPosition(tokenId);
 
-        assertEq(usdc.balanceOf(address(this)), beforeDebtBalance + debtAmount, "DEBT_BALANCE");
-        assertEq(position.debtAmount, expectedDebtAmount, "DEBT_AMOUNT");
+        assertEq(usdc.balanceOf(address(this)), beforeDebtBalance + increaseAmount, "DEBT_BALANCE");
+        assertEq(position.debtAmount, debtAmount, "DEBT_AMOUNT");
         assertEq(position.expiredWith, epoch, "EXPIRED_WITH");
     }
 
     function testAdjustPositionDecreaseDebtAndIncreaseEpochs() public {
         uint256 tokenId = _beforeAdjustPosition();
-        uint256 debtAmount = usdc.amount(30);
-        uint256 loanEpochs = 2;
-        uint256 expectedDebtAmount = initialDebtAmount - debtAmount;
+        uint256 decreaseAmount = usdc.amount(30);
+        uint256 debtAmount = initialDebtAmount - decreaseAmount;
         Types.Epoch epoch = startEpoch.add(4);
 
         uint256 beforeDebtBalance = usdc.balanceOf(address(this));
 
         snapshotId = vm.snapshot();
         vm.expectEmit(true, true, true, true);
-        emit PositionUpdated(tokenId, initialCollateralAmount, expectedDebtAmount, epoch);
-        loanPositionManager.adjustPosition(tokenId, 0, -int256(debtAmount), int256(loanEpochs), new bytes(0));
+        emit PositionUpdated(tokenId, initialCollateralAmount, debtAmount, epoch);
+        loanPositionManager.adjustPosition(tokenId, initialCollateralAmount, debtAmount, epoch, new bytes(0));
         vm.revertTo(snapshotId);
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
-        coupons[0] = Coupon.from(address(usdc), startEpoch.add(3), expectedDebtAmount);
-        coupons[1] = Coupon.from(address(usdc), startEpoch.add(4), expectedDebtAmount);
+        coupons[0] = Coupon.from(address(usdc), startEpoch.add(3), debtAmount);
+        coupons[1] = Coupon.from(address(usdc), startEpoch.add(4), debtAmount);
         vm.expectCall(
             address(couponManager),
             abi.encodeCall(
@@ -330,11 +328,11 @@ contract LoanPositionUnitTest is Test, ILoanPositionManagerEvents, ERC1155Holder
             ),
             1
         );
-        loanPositionManager.adjustPosition(tokenId, 0, -int256(debtAmount), int256(loanEpochs), new bytes(0));
+        loanPositionManager.adjustPosition(tokenId, initialCollateralAmount, debtAmount, epoch, new bytes(0));
         vm.revertTo(snapshotId);
         coupons = new Types.Coupon[](2);
-        coupons[0] = Coupon.from(address(usdc), startEpoch.add(1), debtAmount);
-        coupons[1] = Coupon.from(address(usdc), startEpoch.add(2), debtAmount);
+        coupons[0] = Coupon.from(address(usdc), startEpoch.add(1), decreaseAmount);
+        coupons[1] = Coupon.from(address(usdc), startEpoch.add(2), decreaseAmount);
         vm.expectCall(
             address(couponManager),
             abi.encodeCall(
@@ -343,31 +341,30 @@ contract LoanPositionUnitTest is Test, ILoanPositionManagerEvents, ERC1155Holder
             ),
             1
         );
-        loanPositionManager.adjustPosition(tokenId, 0, -int256(debtAmount), int256(loanEpochs), new bytes(0));
+        loanPositionManager.adjustPosition(tokenId, initialCollateralAmount, debtAmount, epoch, new bytes(0));
 
         Types.LoanPosition memory position = loanPositionManager.getPosition(tokenId);
 
-        assertEq(usdc.balanceOf(address(this)), beforeDebtBalance - debtAmount, "DEBT_BALANCE");
-        assertEq(position.debtAmount, expectedDebtAmount, "DEBT_AMOUNT");
+        assertEq(usdc.balanceOf(address(this)), beforeDebtBalance - decreaseAmount, "DEBT_BALANCE");
+        assertEq(position.debtAmount, debtAmount, "DEBT_AMOUNT");
         assertEq(position.expiredWith, epoch, "EXPIRED_WITH");
     }
 
     function testAdjustPositionDecreaseDebtAndEpochs() public {
         uint256 tokenId = _beforeAdjustPosition();
-        uint256 debtAmount = usdc.amount(30);
-        uint256 loanEpochs = 1;
-        uint256 expectedDebtAmount = initialDebtAmount - debtAmount;
+        uint256 decreaseAmount = usdc.amount(30);
+        uint256 debtAmount = initialDebtAmount - decreaseAmount;
         Types.Epoch epoch = startEpoch.add(1);
 
         uint256 beforeDebtBalance = usdc.balanceOf(address(this));
 
         snapshotId = vm.snapshot();
         vm.expectEmit(true, true, true, true);
-        emit PositionUpdated(tokenId, initialCollateralAmount, expectedDebtAmount, epoch);
-        loanPositionManager.adjustPosition(tokenId, 0, -int256(debtAmount), -int256(loanEpochs), new bytes(0));
+        emit PositionUpdated(tokenId, initialCollateralAmount, debtAmount, epoch);
+        loanPositionManager.adjustPosition(tokenId, initialCollateralAmount, debtAmount, epoch, new bytes(0));
         vm.revertTo(snapshotId);
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
-        coupons[0] = Coupon.from(address(usdc), startEpoch.add(1), debtAmount);
+        coupons[0] = Coupon.from(address(usdc), startEpoch.add(1), decreaseAmount);
         coupons[1] = Coupon.from(address(usdc), startEpoch.add(2), initialDebtAmount);
         vm.expectCall(
             address(couponManager),
@@ -377,20 +374,19 @@ contract LoanPositionUnitTest is Test, ILoanPositionManagerEvents, ERC1155Holder
             ),
             1
         );
-        loanPositionManager.adjustPosition(tokenId, 0, -int256(debtAmount), -int256(loanEpochs), new bytes(0));
+        loanPositionManager.adjustPosition(tokenId, initialCollateralAmount, debtAmount, epoch, new bytes(0));
 
         Types.LoanPosition memory position = loanPositionManager.getPosition(tokenId);
 
-        assertEq(usdc.balanceOf(address(this)), beforeDebtBalance - debtAmount, "DEBT_BALANCE");
-        assertEq(position.debtAmount, expectedDebtAmount, "DEBT_AMOUNT");
+        assertEq(usdc.balanceOf(address(this)), beforeDebtBalance - decreaseAmount, "DEBT_BALANCE");
+        assertEq(position.debtAmount, debtAmount, "DEBT_AMOUNT");
         assertEq(position.expiredWith, epoch, "EXPIRED_WITH");
     }
 
     function testAdjustPositionDecreaseDebtToZero() public {
         uint256 tokenId = _beforeAdjustPosition();
-        uint256 debtAmount = initialDebtAmount;
-        uint256 loanEpochs = 2;
-        uint256 expectedDebtAmount = 0;
+        uint256 decreaseAmount = initialDebtAmount;
+        uint256 debtAmount = 0;
         Types.Epoch epoch = startEpoch;
 
         uint256 beforeDebtBalance = usdc.balanceOf(address(this));
@@ -399,12 +395,12 @@ contract LoanPositionUnitTest is Test, ILoanPositionManagerEvents, ERC1155Holder
 
         snapshotId = vm.snapshot();
         vm.expectEmit(true, true, true, true);
-        emit PositionUpdated(tokenId, initialCollateralAmount, expectedDebtAmount, epoch);
-        loanPositionManager.adjustPosition(tokenId, 0, -int256(debtAmount), int256(loanEpochs), new bytes(0));
+        emit PositionUpdated(tokenId, initialCollateralAmount, debtAmount, epoch);
+        loanPositionManager.adjustPosition(tokenId, initialCollateralAmount, debtAmount, epoch, new bytes(0));
         vm.revertTo(snapshotId);
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
-        coupons[0] = Coupon.from(address(usdc), startEpoch.add(1), debtAmount);
-        coupons[1] = Coupon.from(address(usdc), startEpoch.add(2), debtAmount);
+        coupons[0] = Coupon.from(address(usdc), startEpoch.add(1), decreaseAmount);
+        coupons[1] = Coupon.from(address(usdc), startEpoch.add(2), decreaseAmount);
         vm.expectCall(
             address(couponManager),
             abi.encodeCall(
@@ -413,18 +409,18 @@ contract LoanPositionUnitTest is Test, ILoanPositionManagerEvents, ERC1155Holder
             ),
             1
         );
-        loanPositionManager.adjustPosition(tokenId, 0, -int256(debtAmount), int256(loanEpochs), new bytes(0));
+        loanPositionManager.adjustPosition(tokenId, initialCollateralAmount, debtAmount, epoch, new bytes(0));
 
         Types.LoanPosition memory position = loanPositionManager.getPosition(tokenId);
 
-        assertEq(usdc.balanceOf(address(this)), beforeDebtBalance - debtAmount, "DEBT_BALANCE");
+        assertEq(usdc.balanceOf(address(this)), beforeDebtBalance - decreaseAmount, "DEBT_BALANCE");
         assertEq(
             weth.balanceOf(address(this)),
             beforeCollateralBalance + initialCollateralAmount,
             "COLLATERAL_BALANCE"
         );
         assertEq(loanPositionManager.balanceOf(address(this)), beforeLoanPositionBalance - 1, "LOAN_POSITION_BALANCE");
-        assertEq(position.debtAmount, expectedDebtAmount, "DEBT_AMOUNT");
+        assertEq(position.debtAmount, debtAmount, "DEBT_AMOUNT");
         assertEq(position.expiredWith, epoch, "EXPIRED_WITH");
         vm.expectRevert("ERC721: invalid token ID");
         loanPositionManager.ownerOf(tokenId);
@@ -432,76 +428,82 @@ contract LoanPositionUnitTest is Test, ILoanPositionManagerEvents, ERC1155Holder
 
     function testAdjustPositionIncreaseCollateral() public {
         uint256 tokenId = _beforeAdjustPosition();
-        uint256 collateralAmount = weth.amount(1);
-        uint256 expectedCollateralAmount = initialCollateralAmount + collateralAmount;
+        uint256 increaseAmount = weth.amount(1);
+        uint256 collateralAmount = initialCollateralAmount + increaseAmount;
         Types.Epoch epoch = startEpoch.add(1);
 
         uint256 beforeCollateralBalance = weth.balanceOf(address(this));
 
         vm.expectEmit(true, true, true, true);
-        emit PositionUpdated(tokenId, expectedCollateralAmount, initialDebtAmount, epoch);
-        loanPositionManager.adjustPosition(tokenId, int256(collateralAmount), 0, 0, new bytes(0));
+        emit PositionUpdated(tokenId, collateralAmount, initialDebtAmount, epoch);
+        loanPositionManager.adjustPosition(tokenId, collateralAmount, initialDebtAmount, epoch, new bytes(0));
 
         Types.LoanPosition memory position = loanPositionManager.getPosition(tokenId);
 
-        assertEq(weth.balanceOf(address(this)), beforeCollateralBalance - collateralAmount, "COLLATERAL_BALANCE");
-        assertEq(position.collateralAmount, expectedCollateralAmount, "COLLATERAL_AMOUNT");
+        assertEq(weth.balanceOf(address(this)), beforeCollateralBalance - increaseAmount, "COLLATERAL_BALANCE");
+        assertEq(position.collateralAmount, collateralAmount, "COLLATERAL_AMOUNT");
     }
 
     function testAdjustPositionDecreaseCollateral() public {
         uint256 tokenId = _beforeAdjustPosition();
-        uint256 collateralAmount = weth.amount(1);
-        uint256 expectedCollateralAmount = initialCollateralAmount - collateralAmount;
+        uint256 decreaseAmount = weth.amount(1);
+        uint256 collateralAmount = initialCollateralAmount - decreaseAmount;
         Types.Epoch epoch = startEpoch.add(1);
 
         uint256 beforeCollateralBalance = weth.balanceOf(address(this));
 
         vm.expectEmit(true, true, true, true);
-        emit PositionUpdated(tokenId, expectedCollateralAmount, initialDebtAmount, epoch);
-        loanPositionManager.adjustPosition(tokenId, -int256(collateralAmount), 0, 0, new bytes(0));
+        emit PositionUpdated(tokenId, collateralAmount, initialDebtAmount, epoch);
+        loanPositionManager.adjustPosition(tokenId, collateralAmount, initialDebtAmount, epoch, new bytes(0));
 
         Types.LoanPosition memory position = loanPositionManager.getPosition(tokenId);
 
-        assertEq(weth.balanceOf(address(this)), beforeCollateralBalance + collateralAmount, "COLLATERAL_BALANCE");
-        assertEq(position.collateralAmount, expectedCollateralAmount, "COLLATERAL_AMOUNT");
+        assertEq(weth.balanceOf(address(this)), beforeCollateralBalance + decreaseAmount, "COLLATERAL_BALANCE");
+        assertEq(position.collateralAmount, collateralAmount, "COLLATERAL_AMOUNT");
     }
 
     function testAdjustPositionDecreaseDebtToTooSmallAmount() public {
         uint256 tokenId = _beforeAdjustPosition();
+        Types.Epoch epoch = startEpoch.add(2);
         vm.expectRevert(bytes(Errors.TOO_SMALL_DEBT));
-        loanPositionManager.adjustPosition(tokenId, 0, -int256(initialDebtAmount) + 1, 0, new bytes(0));
+        loanPositionManager.adjustPosition(tokenId, initialCollateralAmount, 1, epoch, new bytes(0));
     }
 
-    function testAdjustPositionDecreaseEpochsToCurrent() public {
+    function testAdjustPositionDecreaseEpochsToPast() public {
         uint256 tokenId = _beforeAdjustPosition();
+        Types.Epoch epoch = Epoch.current().sub(1);
         vm.expectRevert(bytes(Errors.UNPAID_DEBT));
-        loanPositionManager.adjustPosition(tokenId, 0, 0, -2, new bytes(0));
+        loanPositionManager.adjustPosition(tokenId, initialCollateralAmount, initialDebtAmount, epoch, new bytes(0));
     }
 
     function testAdjustPositionDecreaseTooMuchCollateral() public {
         uint256 tokenId = _beforeAdjustPosition();
+        Types.Epoch epoch = startEpoch.add(2);
         vm.expectRevert(bytes(Errors.LIQUIDATION_THRESHOLD));
-        loanPositionManager.adjustPosition(tokenId, -int256(initialCollateralAmount) + 1, 0, 0, new bytes(0));
+        loanPositionManager.adjustPosition(tokenId, 1, initialDebtAmount, epoch, new bytes(0));
     }
 
     function testAdjustPositionIncreaseTooMuchDebt() public {
         uint256 tokenId = _beforeAdjustPosition();
-        uint256 debtAmount = usdc.amount(18000);
+        uint256 debtAmount = initialDebtAmount + usdc.amount(18000);
+        Types.Epoch epoch = startEpoch.add(2);
         vm.expectRevert(bytes(Errors.LIQUIDATION_THRESHOLD));
-        loanPositionManager.adjustPosition(tokenId, 0, int256(debtAmount), 0, new bytes(0));
+        loanPositionManager.adjustPosition(tokenId, initialCollateralAmount, debtAmount, epoch, new bytes(0));
     }
 
     function testAdjustPositionOwnership() public {
         uint256 tokenId = _beforeAdjustPosition();
+        Types.Epoch epoch = Epoch.current();
         vm.startPrank(address(0x123));
         vm.expectRevert("ERC721: caller is not token owner or approved");
-        loanPositionManager.adjustPosition(tokenId, 0, 0, 0, new bytes(0));
+        loanPositionManager.adjustPosition(tokenId, 0, 0, epoch, new bytes(0));
         vm.stopPrank();
     }
 
     function testAdjustPositionInvalidTokenId() public {
+        Types.Epoch epoch = Epoch.current();
         vm.expectRevert("ERC721: invalid token ID");
-        loanPositionManager.adjustPosition(123, 0, 0, 0, new bytes(0));
+        loanPositionManager.adjustPosition(123, 0, 0, epoch, new bytes(0));
     }
 
     struct Balance {

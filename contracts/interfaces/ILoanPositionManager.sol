@@ -59,9 +59,9 @@ interface ILoanPositionManager is IERC721Metadata, IERC721Permit, ILoanPositionM
 
     function adjustPosition(
         uint256 tokenId,
-        int256 collateralAmount,
-        int256 debtAmount,
-        int256 loanEpochs,
+        uint256 collateralAmount,
+        uint256 debtAmount,
+        Types.Epoch expiredWith,
         bytes calldata data
     ) external;
 
