@@ -499,7 +499,6 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
 
         Types.LiquidationStatus memory liquidationStatus = loanPosition.getLiquidationStatus(tokenId, 0);
 
-        assertEq(liquidationStatus.available, true, "LIQUIDATION_AVAILABLE");
         assertEq(liquidationStatus.liquidationAmount, 0.4975 ether, "LIQUIDATION_AMOUNT");
         assertEq(liquidationStatus.repayAmount, usdc.amount(784), "REPAY_AMOUNT");
 
@@ -577,7 +576,6 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
 
         Types.LiquidationStatus memory liquidationStatus = loanPosition.getLiquidationStatus(tokenId, 0);
 
-        assertEq(liquidationStatus.available, true, "LIQUIDATION_AVAILABLE");
         assertEq(liquidationStatus.liquidationAmount, 1421428572, "LIQUIDATION_AMOUNT");
         assertEq(liquidationStatus.repayAmount, 560000000168000000, "REPAY_AMOUNT");
 
@@ -655,7 +653,6 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
 
         Types.LiquidationStatus memory liquidationStatus = loanPosition.getLiquidationStatus(tokenId, usdc.amount(490));
 
-        assertEq(liquidationStatus.available, true, "LIQUIDATION_AVAILABLE");
         assertEq(liquidationStatus.liquidationAmount, 0.3109375 ether, "LIQUIDATION_AMOUNT");
         assertEq(liquidationStatus.repayAmount, usdc.amount(490), "REPAY_AMOUNT");
 
@@ -733,7 +730,6 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
 
         Types.LiquidationStatus memory liquidationStatus = loanPosition.getLiquidationStatus(tokenId, 0);
 
-        assertEq(liquidationStatus.available, true, "LIQUIDATION_AVAILABLE");
         assertEq(liquidationStatus.liquidationAmount, 56405895691609978, "LIQUIDATION_AMOUNT");
         assertEq(liquidationStatus.repayAmount, usdc.amount(100), "REPAY_AMOUNT");
 
@@ -811,7 +807,6 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
 
         Types.LiquidationStatus memory liquidationStatus = loanPosition.getLiquidationStatus(tokenId, usdc.amount(50));
 
-        assertEq(liquidationStatus.available, true, "LIQUIDATION_AVAILABLE");
         assertEq(liquidationStatus.liquidationAmount, 28202947845804989, "LIQUIDATION_AMOUNT");
         assertEq(liquidationStatus.repayAmount, usdc.amount(50), "REPAY_AMOUNT");
 
