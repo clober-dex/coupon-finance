@@ -13,12 +13,12 @@ library Types {
     }
 
     struct LoanPosition {
-        uint256 nonce;
+        uint64 nonce;
+        Epoch expiredWith;
         address collateralToken;
         address debtToken;
         uint256 collateralAmount;
         uint256 debtAmount;
-        Epoch expiredWith;
     }
 
     // liquidationFee = liquidator fee + protocol fee
