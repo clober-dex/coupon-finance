@@ -19,8 +19,7 @@ contract CouponOracle is ICouponOracle {
      * @return The price of the asset
      */
     function getAssetPrice(address asset) external view returns (uint256) {
-        if (asset == address(0)) return IAaveOracle(oracle).getAssetPrice(weth);
-        return IAaveOracle(oracle).getAssetPrice(asset);
+        return IAaveOracle(oracle).getAssetPrice(asset == address(0) ? weth : asset);
     }
 
     /**
@@ -30,8 +29,10 @@ contract CouponOracle is ICouponOracle {
      */
     function getAssetsPrices(address[] memory assets) external view returns (uint256[] memory) {
         uint256 length = assets.length;
-        for (uint256 i = 0; i < length; ++i) {
-            if (assets[i] == address(0)) assets[i] = weth;
+        unchecked {
+            for (uint256 i = 0; i < length; ++i) {
+                if (assets[i] == address(0)) assets[i] = weth;
+            }
         }
         return IAaveOracle(oracle).getAssetsPrices(assets);
     }
