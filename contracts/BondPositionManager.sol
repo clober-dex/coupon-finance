@@ -88,12 +88,6 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
         Types.Epoch latestExpiredEpoch = Epoch.current().sub(1);
         require(oldPosition.expiredWith.compare(latestExpiredEpoch) > 0, Errors.INVALID_EPOCH);
         address asset = oldPosition.asset;
-        {
-            uint256 withdrawableAmount = IAssetPool(assetPool).withdrawable(asset);
-            if (amount < oldPosition.amount && withdrawableAmount < oldPosition.amount - amount) {
-                amount = oldPosition.amount - withdrawableAmount;
-            }
-        }
         Types.BondPosition memory newPosition = oldPosition.adjustPosition(amount, expiredWith, latestExpiredEpoch);
 
         Types.Coupon[] memory couponsToMint;
@@ -157,8 +151,7 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
         Types.BondPosition memory position = _positionMap[tokenId];
         require(position.expiredWith.compare(Epoch.current()) < 0, Errors.INVALID_EPOCH);
 
-        uint256 withdrawableAmount = IAssetPool(assetPool).withdrawable(position.asset);
-        uint256 assetToWithdraw = position.amount > withdrawableAmount ? withdrawableAmount : position.amount;
+        uint256 assetToWithdraw = position.amount;
         if (assetToWithdraw > 0) {
             IAssetPool(assetPool).withdraw(position.asset, assetToWithdraw, msg.sender);
             position.amount -= assetToWithdraw;

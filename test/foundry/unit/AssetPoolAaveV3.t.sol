@@ -8,14 +8,15 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {IPool} from "../../../contracts/external/aave-v3/IPool.sol";
 import {IAssetPool, IAssetPoolErrors} from "../../../contracts/interfaces/IAssetPool.sol";
+import {AssetPoolAaveV3} from "../../../contracts/AssetPoolAaveV3.sol";
 import {Constants} from "../Constants.sol";
-import {ForkUtils, ERC20Utils} from "../Utils.sol";
+import {ForkUtils, ERC20Utils, Utils} from "../Utils.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 
 contract AssetPoolAaveV3UnitTest is Test, IAssetPoolErrors {
     using ERC20Utils for IERC20;
 
-    IAssetPool public farmer;
+    IAssetPool public assetPool;
     IERC20 public usdc;
     IPool public aavePool;
 
@@ -25,51 +26,69 @@ contract AssetPoolAaveV3UnitTest is Test, IAssetPoolErrors {
         vm.startPrank(Constants.USDC_WHALE);
         usdc.transfer(address(this), usdc.amount(1_000_000_000));
         vm.stopPrank();
+        aavePool = IPool(Constants.AAVE_V3_POOL);
 
-        // _farmer = new AssetPoolAaveV3();
-        farmer.registerAsset(address(usdc));
+        assetPool = new AssetPoolAaveV3(address(aavePool), Constants.TREASURY, Utils.toArr(address(this)));
+        assetPool.registerAsset(address(usdc));
     }
 
     function testDeposit() public {
         uint256 amount = usdc.amount(100);
-        usdc.transfer(address(farmer), amount * 10);
+        usdc.transfer(address(assetPool), amount * 10);
 
-        uint256 beforeAssetPoolBalance = usdc.balanceOf(address(farmer));
-        uint256 beforeTotalReserved = farmer.totalReservedAmount(address(usdc));
+        uint256 beforeAssetPoolBalance = usdc.balanceOf(address(assetPool));
+        uint256 beforeTotalReserved = assetPool.totalReservedAmount(address(usdc));
 
-        vm.expectCall(address(aavePool), abi.encodeCall(IPool.supply, (address(usdc), amount, address(this), 0)));
-        farmer.deposit(address(usdc), amount);
+        vm.expectCall(
+            address(aavePool),
+            abi.encodeCall(aavePool.supply, (address(usdc), amount, address(assetPool), 0)),
+            1
+        );
+        assetPool.deposit(address(usdc), amount);
 
-        uint256 afterAssetPoolBalance = usdc.balanceOf(address(farmer));
-        uint256 afterTotalReserved = farmer.totalReservedAmount(address(usdc));
+        uint256 afterAssetPoolBalance = usdc.balanceOf(address(assetPool));
+        uint256 afterTotalReserved = assetPool.totalReservedAmount(address(usdc));
 
         assertEq(afterAssetPoolBalance, beforeAssetPoolBalance - amount, "ASSET_POOL_BALANCE");
         assertEq(afterTotalReserved, beforeTotalReserved + amount, "TOTAL_RESERVED");
     }
 
-    function testDepositAccess() public {
+    function testDepositWithInvalidAsset() public {
         uint256 amount = usdc.amount(100);
-        usdc.transfer(address(farmer), amount * 10);
+        usdc.transfer(address(assetPool), amount * 10);
 
         vm.expectRevert(abi.encodeWithSelector(InvalidAsset.selector));
         vm.prank(address(0x123));
-        farmer.deposit(address(usdc), amount);
+        assetPool.deposit(address(0x123), amount);
+    }
+
+    function testDepositAccess() public {
+        uint256 amount = usdc.amount(100);
+        usdc.transfer(address(assetPool), amount * 10);
+
+        vm.expectRevert(abi.encodeWithSelector(InvalidAccess.selector));
+        vm.prank(address(0x123));
+        assetPool.deposit(address(usdc), amount);
     }
 
     function testWithdraw() public {
         uint256 amount = usdc.amount(100);
-        usdc.transfer(address(farmer), amount * 10);
-        farmer.deposit(address(usdc), amount * 5);
+        usdc.transfer(address(assetPool), amount * 10);
+        assetPool.deposit(address(usdc), amount * 5);
 
-        uint256 beforeAssetPoolBalance = usdc.balanceOf(address(farmer));
-        uint256 beforeTotalReserved = farmer.totalReservedAmount(address(usdc));
+        uint256 beforeAssetPoolBalance = usdc.balanceOf(address(assetPool));
+        uint256 beforeTotalReserved = assetPool.totalReservedAmount(address(usdc));
         uint256 beforeUserBalance = usdc.balanceOf(Constants.USER1);
 
-        vm.expectCall(address(aavePool), abi.encodeCall(IPool.withdraw, (address(usdc), amount, Constants.USER1)));
-        farmer.withdraw(address(usdc), amount, Constants.USER1);
+        vm.expectCall(
+            address(aavePool),
+            abi.encodeCall(aavePool.withdraw, (address(usdc), amount, Constants.USER1)),
+            1
+        );
+        assetPool.withdraw(address(usdc), amount, Constants.USER1);
 
-        uint256 afterAssetPoolBalance = usdc.balanceOf(address(farmer));
-        uint256 afterTotalReserved = farmer.totalReservedAmount(address(usdc));
+        uint256 afterAssetPoolBalance = usdc.balanceOf(address(assetPool));
+        uint256 afterTotalReserved = assetPool.totalReservedAmount(address(usdc));
         uint256 afterUserBalance = usdc.balanceOf(Constants.USER1);
 
         assertEq(afterAssetPoolBalance, beforeAssetPoolBalance, "ASSET_POOL_BALANCE");
@@ -77,96 +96,152 @@ contract AssetPoolAaveV3UnitTest is Test, IAssetPoolErrors {
         assertEq(afterUserBalance, beforeUserBalance + amount, "USER_BALANCE");
     }
 
-    function testWithdrawAccess() public {
+    function testWithdrawWhenNotEnoughReserved() public {
         uint256 amount = usdc.amount(100);
-        usdc.transfer(address(farmer), amount * 10);
-        farmer.deposit(address(usdc), amount * 5);
+        usdc.transfer(address(assetPool), amount * 10);
+        assetPool.deposit(address(usdc), amount * 5);
+
+        // withdraw until utilization rate is 0
+        IERC20 aToken = IERC20(aavePool.getReserveData(address(usdc)).aTokenAddress);
+        uint256 withdrawAmount = aToken.balanceOf(0x1A8c53147E7b61C015159723408762fc60A34D17);
+        vm.prank(0x1A8c53147E7b61C015159723408762fc60A34D17);
+        aavePool.withdraw(address(usdc), withdrawAmount, address(0x123));
+        withdrawAmount = aToken.balanceOf(0xd007058e9b58E74C33c6bF6fbCd38BaAB813cBB6);
+        vm.prank(0xd007058e9b58E74C33c6bF6fbCd38BaAB813cBB6);
+        aavePool.withdraw(address(usdc), withdrawAmount, address(0x123));
+        withdrawAmount = usdc.balanceOf(address(aToken)) - amount;
+        vm.prank(0xD56353E0bDc41Ad232F9d11109868703c1e2b2B9);
+        aavePool.withdraw(address(usdc), withdrawAmount, address(0x123));
+
+        uint256 aTokenUnderlyingBalance = usdc.balanceOf(address(aToken));
+
+        uint256 beforeRecipientBalance = usdc.balanceOf(Constants.USER1);
+        uint256 beforeRecipientATokenBalance = aToken.balanceOf(Constants.USER1);
+        uint256 beforeTotalReserved = assetPool.totalReservedAmount(address(usdc));
+
+        vm.expectCall(
+            address(aavePool),
+            abi.encodeCall(aavePool.withdraw, (address(usdc), aTokenUnderlyingBalance, Constants.USER1)),
+            1
+        );
+        assetPool.withdraw(address(usdc), amount, Constants.USER1);
+
+        uint256 afterRecipientBalance = usdc.balanceOf(Constants.USER1);
+        uint256 afterRecipientATokenBalance = aToken.balanceOf(Constants.USER1);
+        uint256 afterTotalReserved = assetPool.totalReservedAmount(address(usdc));
+
+        assertEq(afterRecipientBalance, beforeRecipientBalance + aTokenUnderlyingBalance, "RECIPIENT_BALANCE");
+        assertEq(
+            afterRecipientATokenBalance,
+            beforeRecipientATokenBalance + (amount - aTokenUnderlyingBalance),
+            "RECIPIENT_ATOKEN_BALANCE"
+        );
+        assertEq(afterTotalReserved, beforeTotalReserved - amount, "TOTAL_RESERVED");
+    }
+
+    function testWithdrawWithInvalidAsset() public {
+        uint256 amount = usdc.amount(100);
+        usdc.transfer(address(assetPool), amount * 10);
+        assetPool.deposit(address(usdc), amount * 5);
 
         vm.expectRevert(abi.encodeWithSelector(InvalidAsset.selector));
         vm.prank(address(0x123));
-        farmer.withdraw(address(usdc), amount, Constants.USER1);
+        assetPool.withdraw(address(0x123), amount, Constants.USER1);
+    }
+
+    function testWithdrawAccess() public {
+        uint256 amount = usdc.amount(100);
+        usdc.transfer(address(assetPool), amount * 10);
+        assetPool.deposit(address(usdc), amount * 5);
+
+        vm.expectRevert(abi.encodeWithSelector(InvalidAccess.selector));
+        vm.prank(address(0x123));
+        assetPool.withdraw(address(usdc), amount, Constants.USER1);
     }
 
     function testWithdrawMoreThanBalance() public {
         uint256 amount = usdc.amount(100);
-        usdc.transfer(address(farmer), amount * 10);
-        farmer.deposit(address(usdc), amount * 5);
+        usdc.transfer(address(assetPool), amount * 10);
+        assetPool.deposit(address(usdc), amount * 5);
 
         vm.expectRevert(abi.encodeWithSelector(ExceedsBalance.selector, amount * 5));
-        farmer.withdraw(address(usdc), amount * 10, Constants.USER1);
+        assetPool.withdraw(address(usdc), amount * 10, Constants.USER1);
     }
 
     function testClaim() public {
         uint256 amount = usdc.amount(100);
-        usdc.transfer(address(farmer), amount * 10);
-        farmer.deposit(address(usdc), amount * 5);
+        usdc.transfer(address(assetPool), amount * 10);
+        assetPool.deposit(address(usdc), amount * 5);
 
         IERC20 aToken = IERC20(aavePool.getReserveData(address(usdc)).aTokenAddress);
 
-        uint256 beforeATokenBalance = aToken.balanceOf(address(farmer));
-        uint256 beforeUserBalance = usdc.balanceOf(Constants.USER1);
-        uint256 beforeTotalReserved = farmer.totalReservedAmount(address(usdc));
-
         vm.warp(block.timestamp + 1 weeks);
-        uint256 aTokenDiff = aToken.balanceOf(address(farmer)) - beforeATokenBalance;
-        assertGt(aTokenDiff, 0, "ATOKEN_BALANCE");
-        assertEq(farmer.claimableAmount(address(usdc)), aTokenDiff, "CLAIMABLE_AMOUNT");
-        farmer.claim(address(usdc));
 
-        uint256 afterATokenBalance = aToken.balanceOf(address(farmer));
-        uint256 afterUserBalance = usdc.balanceOf(Constants.USER1);
-        uint256 afterTotalReserved = farmer.totalReservedAmount(address(usdc));
+        uint256 beforeATokenBalance = aToken.balanceOf(address(assetPool));
+        uint256 beforeTreasuryBalance = usdc.balanceOf(Constants.TREASURY);
+        uint256 beforeTotalReserved = assetPool.totalReservedAmount(address(usdc));
 
-        assertEq(afterATokenBalance, beforeATokenBalance - aTokenDiff, "ATOKEN_BALANCE");
-        assertEq(afterUserBalance, beforeUserBalance + aTokenDiff, "USER_BALANCE");
+        uint256 claimableAmount = assetPool.claimableAmount(address(usdc));
+        assertGt(claimableAmount, 0, "CLAIMABLE_AMOUNT");
+        assetPool.claim(address(usdc));
+
+        uint256 afterATokenBalance = aToken.balanceOf(address(assetPool));
+        uint256 afterTreasuryBalance = usdc.balanceOf(Constants.TREASURY);
+        uint256 afterTotalReserved = assetPool.totalReservedAmount(address(usdc));
+
+        assertApproxEqAbs(afterATokenBalance, beforeATokenBalance - claimableAmount, 1, "ATOKEN_BALANCE");
+        assertEq(afterTreasuryBalance, beforeTreasuryBalance + claimableAmount, "TREASURY_BALANCE");
         assertEq(afterTotalReserved, beforeTotalReserved, "TOTAL_RESERVED");
+    }
+
+    function testClaimWithInvalidToken() public {
+        vm.expectRevert(abi.encodeWithSelector(InvalidAsset.selector));
+        assetPool.claim(address(0x123));
     }
 
     function testSetTreasury() public {
         address newTreasury = address(0x123);
-        farmer.setTreasury(newTreasury);
-        assertEq(farmer.treasury(), newTreasury, "TREASURY");
+        assetPool.setTreasury(newTreasury);
+        assertEq(assetPool.treasury(), newTreasury, "TREASURY");
     }
 
     function testSetTreasuryAccess() public {
-        vm.expectRevert(abi.encodeWithSelector(InvalidAsset.selector));
+        vm.expectRevert("Ownable: caller is not the owner");
         vm.prank(address(0x123));
-        farmer.setTreasury(address(0x123));
+        assetPool.setTreasury(address(0x123));
     }
 
     function testRegisterAsset() public {
         address btc = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
-        address aBtc = aavePool.getReserveData(btc).aTokenAddress;
-        assertFalse(farmer.isAssetRegistered(btc), "IS_ASSET_REGISTERED");
-        assertFalse(farmer.isAssetRegistered(aBtc), "IS_ASSET_REGISTERED");
+        assertFalse(assetPool.isAssetRegistered(btc), "IS_ASSET_REGISTERED");
 
-        farmer.registerAsset(btc);
+        assetPool.registerAsset(btc);
 
-        assertTrue(farmer.isAssetRegistered(btc), "IS_ASSET_REGISTERED");
-        assertTrue(farmer.isAssetRegistered(aBtc), "IS_ASSET_REGISTERED");
+        assertTrue(assetPool.isAssetRegistered(btc), "IS_ASSET_REGISTERED");
+        assertEq(IERC20(btc).allowance(address(assetPool), address(aavePool)), type(uint256).max, "ALLOWANCE");
     }
 
     function testRegisterAssetWithInvalidAsset() public {
         vm.expectRevert(abi.encodeWithSelector(InvalidAsset.selector));
-        farmer.registerAsset(address(0x123));
+        assetPool.registerAsset(address(0x123));
     }
 
     function testRegisterAssetAccess() public {
-        vm.expectRevert(abi.encodeWithSelector(InvalidAsset.selector));
+        vm.expectRevert(abi.encodeWithSelector(InvalidAccess.selector));
         vm.prank(address(0x123));
-        farmer.registerAsset(address(0x123));
+        assetPool.registerAsset(address(0x123));
     }
 
     function testWithdrawLostToken() public {
         MockERC20 lostToken = new MockERC20("Lost Token", "LOST", 18);
-        lostToken.mint(address(farmer), lostToken.amount(100));
+        lostToken.mint(address(assetPool), lostToken.amount(100));
 
-        uint256 beforeLostTokenBalance = lostToken.balanceOf(address(farmer));
+        uint256 beforeLostTokenBalance = lostToken.balanceOf(address(assetPool));
         uint256 beforeRecipientBalance = lostToken.balanceOf(Constants.USER1);
 
-        farmer.withdrawLostToken(address(lostToken), Constants.USER1);
+        assetPool.withdrawLostToken(address(lostToken), Constants.USER1);
 
-        uint256 afterLostTokenBalance = lostToken.balanceOf(address(farmer));
+        uint256 afterLostTokenBalance = lostToken.balanceOf(address(assetPool));
         uint256 afterRecipientBalance = lostToken.balanceOf(Constants.USER1);
 
         assertEq(afterLostTokenBalance, beforeLostTokenBalance - lostToken.amount(100), "LOST_TOKEN_BALANCE");
@@ -174,9 +249,22 @@ contract AssetPoolAaveV3UnitTest is Test, IAssetPoolErrors {
     }
 
     function testWithdrawLostTokenWithInvalidToken() public {
+        address aUsdc = aavePool.getReserveData(address(usdc)).aTokenAddress;
+        assertFalse(assetPool.isAssetRegistered(aUsdc), "IS_ASSET_REGISTERED");
+
         vm.expectRevert(abi.encodeWithSelector(InvalidAsset.selector));
-        farmer.withdrawLostToken(address(usdc), Constants.USER1);
+        assetPool.withdrawLostToken(address(usdc), Constants.USER1);
+
+        vm.expectRevert(abi.encodeWithSelector(InvalidAsset.selector));
+        assetPool.withdrawLostToken(address(aUsdc), Constants.USER1);
     }
 
-    function testWithdrawLostTokenAccess() public {}
+    function testWithdrawLostTokenAccess() public {
+        MockERC20 lostToken = new MockERC20("Lost Token", "LOST", 18);
+        lostToken.mint(address(assetPool), lostToken.amount(100));
+
+        vm.expectRevert(abi.encodeWithSelector(InvalidAccess.selector));
+        vm.prank(address(0x123));
+        assetPool.withdrawLostToken(address(lostToken), Constants.USER1);
+    }
 }
