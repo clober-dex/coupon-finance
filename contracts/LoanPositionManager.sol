@@ -218,6 +218,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable {
         return Types.LiquidationStatus({liquidationAmount: liquidationAmount, repayAmount: repayAmount});
     }
 
+    // Todo Progressing
     function mint(
         address collateralToken,
         address debtToken,
@@ -227,7 +228,63 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable {
         address recipient,
         bytes calldata data
     ) external returns (uint256) {
-        revert("not implemented");
+        uint256 currentId = nextId;
+
+        {
+            Types.AssetLoanConfiguration memory config = _getAssetConfig(debtToken, collateralToken);
+            (
+                uint256 assetPrice,
+                uint256 collateralPrice,
+                uint256 minDebtValue
+            ) = _getPriceWithPrecisionAndEthAmountPerDebt(debtToken, collateralToken, minDebtValueInEth);
+
+            require(minDebtValue <= debtAmount, Errors.TOO_SMALL_DEBT);
+            require(
+                (collateralAmount * collateralPrice) * config.liquidationThreshold >=
+                    debtAmount * assetPrice * _RATE_PRECISION,
+                Errors.LIQUIDATION_THRESHOLD
+            );
+        }
+
+        Types.Epoch expiredWith = Epoch.wrap(uint16(loanEpochs));
+
+        unchecked {
+            Types.Epoch epoch = Epoch.current();
+            uint256 length = expiredWith.sub(epoch);
+            Types.Coupon[] memory coupons = new Types.Coupon[](length);
+            for (uint256 i = 0; i < length; ++i) {
+                coupons[i] = Coupon.from(debtToken, epoch, debtAmount);
+                epoch = epoch.add(1);
+            }
+            ICouponManager(couponManager).safeBatchTransferFrom(msg.sender, address(this), coupons, new bytes(0));
+        }
+
+        _positionMap[currentId] = Types.LoanPosition({
+            nonce: 0,
+            collateralToken: collateralToken,
+            debtToken: debtToken,
+            collateralAmount: collateralAmount,
+            debtAmount: debtAmount,
+            expiredWith: expiredWith
+        });
+
+        emit PositionUpdated(nextId, collateralAmount, debtAmount, expiredWith);
+
+        if (data.length > 0) {} else {
+            if (debtAmount > 0) {
+                IAssetPool(assetPool).withdraw(debtToken, debtAmount, recipient);
+            }
+
+            if (collateralAmount > 0) {
+                IERC20(collateralToken).safeTransferFrom(msg.sender, assetPool, collateralAmount);
+                IAssetPool(assetPool).deposit(collateralToken, collateralAmount);
+            }
+        }
+
+        _mint(recipient, currentId);
+
+        nextId = currentId + 1;
+        return currentId;
     }
 
     function adjustPosition(
@@ -310,5 +367,20 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable {
 
     function _getAndIncrementNonce(uint256 tokenId) internal override returns (uint256) {
         return _positionMap[tokenId].nonce++;
+    }
+
+    // Todo implement ERC1155Holder?
+    function onERC1155Received(address, address, uint256, uint256, bytes memory) public returns (bytes4) {
+        return this.onERC1155Received.selector;
+    }
+
+    function onERC1155BatchReceived(
+        address,
+        address,
+        uint256[] memory,
+        uint256[] memory,
+        bytes memory
+    ) public returns (bytes4) {
+        return this.onERC1155BatchReceived.selector;
     }
 }
