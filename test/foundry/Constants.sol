@@ -12,6 +12,7 @@ library Constants {
     address internal constant MOCK_WETH = 0x5615dEB798BB3E4dFa0139dFa1b3D433Cc23b72f;
     address internal constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     address internal constant USDC_WHALE = 0xcEe284F754E854890e311e3280b767F80797180d;
+    address internal constant AAVE_V3_POOL = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
     bytes32 internal constant PERMIT_TYPEHASH =
         keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
 }
