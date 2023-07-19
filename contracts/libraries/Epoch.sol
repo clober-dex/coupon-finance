@@ -29,6 +29,10 @@ library Epoch {
         return fromTimestamp(block.timestamp);
     }
 
+    function isExpired(Types.Epoch epoch) internal view returns (bool) {
+        return endTime(epoch) <= block.timestamp;
+    }
+
     function startTime(Types.Epoch epoch) internal pure returns (uint256) {
         unchecked {
             return BokkyPooBahsDateTimeLibrary.addMonths(0, MONTHS_PER_EPOCH * Types.Epoch.unwrap(epoch));

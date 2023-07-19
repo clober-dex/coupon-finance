@@ -36,6 +36,13 @@ contract EpochUnitTest is Test {
         assertEq(Epoch.current().unwrap(), 12 * (2032 - 1970) + 3 - 1);
     }
 
+    function testIsExpired() public {
+        vm.warp(1961712000); // 1 Mar 2032 00:00:00 GMT
+        assertEq(Epoch.fromMonths(12 * (2032 - 1970) + 3).isExpired(), false);
+        assertEq(Epoch.fromMonths(12 * (2032 - 1970) + 3 - 1).isExpired(), false);
+        assertEq(Epoch.fromMonths(12 * (2032 - 1970) + 3 - 2).isExpired(), true);
+    }
+
     function testStartTime() public {
         assertEq(Epoch.fromMonths(0).startTime(), 0);
         assertEq(Epoch.fromMonths(1).startTime(), 2678400); // 31 days
