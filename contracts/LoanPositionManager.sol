@@ -165,7 +165,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable {
 
         unchecked {
             if (
-                (collateralAmountInBaseCurrency / _RATE_PRECISION) * config.liquidationThreshold >
+                (collateralAmountInBaseCurrency / _RATE_PRECISION) * config.liquidationThreshold >=
                 assetAmountInBaseCurrency
             ) return (0, 0, 0);
 
