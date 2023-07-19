@@ -221,9 +221,9 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable {
     function mint(
         address collateralToken,
         address debtToken,
-        uint256 loanEpochs,
         uint256 collateralAmount,
         uint256 debtAmount,
+        uint256 loanEpochs,
         address recipient,
         bytes calldata data
     ) external returns (uint256) {
