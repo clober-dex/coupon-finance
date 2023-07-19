@@ -17,14 +17,16 @@ contract MockOracle is IPriceOracleGetter {
     }
 
     function getAssetPrice(address asset) external view override returns (uint256) {
-        return asset == address(0) ? _priceMap[Constants.WETH] : _priceMap[asset];
+        return asset == address(0) ? _priceMap[Constants.MOCK_WETH] : _priceMap[asset];
     }
 
     function getAssetsPrices(address[] calldata assets) external view returns (uint256[] memory prices) {
         uint256 length = assets.length;
         prices = new uint256[](length);
-        for (uint256 i = 0; i < length; ++i) {
-            prices[i] = assets[i] == address(0) ? _priceMap[Constants.WETH] : _priceMap[assets[i]];
+        unchecked {
+            for (uint256 i = 0; i < length; ++i) {
+                prices[i] = assets[i] == address(0) ? _priceMap[Constants.MOCK_WETH] : _priceMap[assets[i]];
+            }
         }
     }
 
