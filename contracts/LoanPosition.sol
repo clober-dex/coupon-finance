@@ -270,15 +270,25 @@ contract LoanPosition is ILoanPosition, ERC721Permit, Ownable {
         IERC20(loan.debtToken).safeTransferFrom(msg.sender, assetPool, repayAmount);
         IAssetPool(assetPool).deposit(loan.debtToken, repayAmount);
 
-        // Todo check if ownerOf(tokenId) is contract
-        Types.Epoch epoch = Epoch.current();
-        uint256 length = Epoch.fromTimestamp(loan.expiredAt).sub(epoch) + 1;
-        Types.Coupon[] memory coupons = new Types.Coupon[](length);
-        for (uint256 i = 0; i < length; ++i) {
-            coupons[i] = Coupon.from(loan.debtToken, epoch, repayAmount);
-            epoch = epoch.add(1);
+        unchecked {
+            address couponOwner = ownerOf(tokenId);
+            Types.Epoch epoch = Epoch.current();
+            uint256 length = Epoch.fromTimestamp(loan.expiredAt).sub(epoch) + 1;
+            Types.Coupon[] memory coupons = new Types.Coupon[](length);
+            for (uint256 i = 0; i < length; ++i) {
+                coupons[i] = Coupon.from(loan.debtToken, epoch, repayAmount);
+                epoch = epoch.add(1);
+            }
+            try ICouponManager(coupon).safeBatchTransferFrom(address(this), ownerOf(tokenId), coupons, data) {} catch {
+                for (uint256 i = 0; i < length; ++i) {
+                    couponOwed[couponOwner][coupons[i].id()] += coupons[i].amount;
+                }
+            }
         }
-        ICouponManager(coupon).safeBatchTransferFrom(address(this), ownerOf(tokenId), coupons, data);
+    }
+
+    function claimCoupon(Coupon[] coupons, bytes calldata data) external {
+        ICouponManager(coupon).safeBatchTransferFrom(address(this), msg.sender, coupons, data);
     }
 
     function burn(uint256 tokenId) external {
