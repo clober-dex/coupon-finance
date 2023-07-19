@@ -129,7 +129,8 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
             abi.encodeCall(
                 ICouponManager.safeBatchTransferFrom,
                 (address(this), address(loanPosition), coupons, new bytes(0))
-            )
+            ),
+            1
         );
         uint256 tokenId = loanPosition.mint(
             address(weth),
@@ -227,7 +228,8 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
             abi.encodeCall(
                 ICouponManager.safeBatchTransferFrom,
                 (address(this), address(loanPosition), coupons, new bytes(0))
-            )
+            ),
+            1
         );
         loanPosition.adjustPosition(tokenId, 0, int256(debtAmount), int256(loanEpochs), new bytes(0));
 
@@ -259,7 +261,8 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
             abi.encodeCall(
                 ICouponManager.safeBatchTransferFrom,
                 (address(this), address(loanPosition), coupons, new bytes(0))
-            )
+            ),
+            1
         );
         loanPosition.adjustPosition(tokenId, 0, int256(debtAmount), -int256(loanEpochs), new bytes(0));
         vm.revertTo(snapshotId);
@@ -270,7 +273,8 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
             abi.encodeCall(
                 ICouponManager.safeBatchTransferFrom,
                 (address(loanPosition), address(this), coupons, new bytes(0))
-            )
+            ),
+            1
         );
         loanPosition.adjustPosition(tokenId, 0, int256(debtAmount), -int256(loanEpochs), new bytes(0));
 
@@ -303,7 +307,8 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
             abi.encodeCall(
                 ICouponManager.safeBatchTransferFrom,
                 (address(this), address(loanPosition), coupons, new bytes(0))
-            )
+            ),
+            1
         );
         loanPosition.adjustPosition(tokenId, 0, -int256(debtAmount), int256(loanEpochs), new bytes(0));
         vm.revertTo(snapshotId);
@@ -315,7 +320,8 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
             abi.encodeCall(
                 ICouponManager.safeBatchTransferFrom,
                 (address(loanPosition), address(this), coupons, new bytes(0))
-            )
+            ),
+            1
         );
         loanPosition.adjustPosition(tokenId, 0, -int256(debtAmount), int256(loanEpochs), new bytes(0));
 
@@ -348,7 +354,8 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
             abi.encodeCall(
                 ICouponManager.safeBatchTransferFrom,
                 (address(loanPosition), address(this), coupons, new bytes(0))
-            )
+            ),
+            1
         );
         loanPosition.adjustPosition(tokenId, 0, -int256(debtAmount), -int256(loanEpochs), new bytes(0));
 
@@ -383,7 +390,8 @@ contract LoanPositionUnitTest is Test, ILoanPositionEvents, ERC1155Holder, ERC72
             abi.encodeCall(
                 ICouponManager.safeBatchTransferFrom,
                 (address(loanPosition), address(this), coupons, new bytes(0))
-            )
+            ),
+            1
         );
         loanPosition.adjustPosition(tokenId, 0, -int256(debtAmount), int256(loanEpochs), new bytes(0));
 

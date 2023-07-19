@@ -69,7 +69,8 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC115
         coupons[1] = Coupon.from(address(usdc), startEpoch.add(1), amount);
         vm.expectCall(
             address(couponManager),
-            abi.encodeCall(ICouponManager.mintBatch, (Constants.USER1, coupons, new bytes(0)))
+            abi.encodeCall(ICouponManager.mintBatch, (Constants.USER1, coupons, new bytes(0))),
+            1
         );
         vm.expectEmit(true, true, true, true);
         emit PositionUpdated(nextId, amount, expectedExpiredWith);
@@ -114,7 +115,13 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC115
         coupons[4] = Coupon.from(address(usdc), startEpoch.add(5), usdc.amount(170));
         vm.expectCall(
             address(couponManager),
-            abi.encodeCall(ICouponManager.mintBatch, (address(this), coupons, new bytes(0)))
+            abi.encodeCall(ICouponManager.mintBatch, (address(this), coupons, new bytes(0))),
+            1
+        );
+        vm.expectCall(
+            address(couponManager),
+            abi.encodeCall(ICouponManager.burnBatch, (address(this), new Types.Coupon[](0))),
+            0
         );
         vm.expectEmit(true, true, true, true);
         emit PositionUpdated(tokenId, initialAmount + increaseAmount, expiredWith);
@@ -142,9 +149,14 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC115
         couponsToBurn[0] = Coupon.from(address(usdc), startEpoch.add(2), initialAmount);
         vm.expectCall(
             address(couponManager),
-            abi.encodeCall(ICouponManager.mintBatch, (address(this), couponsToMint, new bytes(0)))
+            abi.encodeCall(ICouponManager.mintBatch, (address(this), couponsToMint, new bytes(0))),
+            1
         );
-        vm.expectCall(address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(this), couponsToBurn)));
+        vm.expectCall(
+            address(couponManager),
+            abi.encodeCall(ICouponManager.burnBatch, (address(this), couponsToBurn)),
+            1
+        );
         vm.expectEmit(true, true, true, true);
         emit PositionUpdated(tokenId, initialAmount + increaseAmount, expiredWith);
         bondPositionManager.adjustPosition(tokenId, initialAmount + increaseAmount, expiredWith, new bytes(0));
@@ -174,12 +186,18 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC115
         couponsToBurn[1] = Coupon.from(address(usdc), startEpoch.add(2), decreaseAmount);
         vm.expectCall(
             address(couponManager),
-            abi.encodeCall(ICouponManager.mintBatch, (address(this), couponsToMint, new bytes(0)))
+            abi.encodeCall(ICouponManager.mintBatch, (address(this), couponsToMint, new bytes(0))),
+            1
         );
-        vm.expectCall(address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(this), couponsToBurn)));
+        vm.expectCall(
+            address(couponManager),
+            abi.encodeCall(ICouponManager.burnBatch, (address(this), couponsToBurn)),
+            1
+        );
         vm.expectCall(
             address(assetPool),
-            abi.encodeCall(IAssetPool.withdraw, (address(usdc), decreaseAmount, address(this)))
+            abi.encodeCall(IAssetPool.withdraw, (address(usdc), decreaseAmount, address(this))),
+            1
         );
         vm.expectEmit(true, true, true, true);
         emit PositionUpdated(tokenId, amount, expiredWith);
@@ -203,10 +221,17 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC115
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
         coupons[0] = Coupon.from(address(usdc), startEpoch.add(1), decreaseAmount);
         coupons[1] = Coupon.from(address(usdc), startEpoch.add(2), initialAmount);
-        vm.expectCall(address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(this), coupons)));
+
+        vm.expectCall(
+            address(couponManager),
+            abi.encodeCall(ICouponManager.mintBatch, (address(this), new Types.Coupon[](0), new bytes(0))),
+            0
+        );
+        vm.expectCall(address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(this), coupons)), 1);
         vm.expectCall(
             address(assetPool),
-            abi.encodeCall(IAssetPool.withdraw, (address(usdc), decreaseAmount, address(this)))
+            abi.encodeCall(IAssetPool.withdraw, (address(usdc), decreaseAmount, address(this))),
+            1
         );
         vm.expectEmit(true, true, true, true);
         emit PositionUpdated(tokenId, amount, expiredWith);
@@ -226,10 +251,16 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC115
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
         coupons[0] = Coupon.from(address(usdc), startEpoch.add(1), initialAmount);
         coupons[1] = Coupon.from(address(usdc), startEpoch.add(2), initialAmount);
-        vm.expectCall(address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(this), coupons)));
+        vm.expectCall(
+            address(couponManager),
+            abi.encodeCall(ICouponManager.mintBatch, (address(this), new Types.Coupon[](0), new bytes(0))),
+            0
+        );
+        vm.expectCall(address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(this), coupons)), 1);
         vm.expectCall(
             address(assetPool),
-            abi.encodeCall(IAssetPool.withdraw, (address(usdc), initialAmount, address(this)))
+            abi.encodeCall(IAssetPool.withdraw, (address(usdc), initialAmount, address(this))),
+            1
         );
         vm.expectEmit(true, true, true, true);
         emit PositionUpdated(tokenId, 0, startEpoch);
@@ -253,7 +284,12 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC115
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
         coupons[0] = Coupon.from(address(usdc), startEpoch.add(1), initialAmount);
         coupons[1] = Coupon.from(address(usdc), startEpoch.add(2), initialAmount);
-        vm.expectCall(address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(this), coupons)));
+        vm.expectCall(
+            address(couponManager),
+            abi.encodeCall(ICouponManager.mintBatch, (address(this), new Types.Coupon[](0), new bytes(0))),
+            0
+        );
+        vm.expectCall(address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(this), coupons)), 1);
         vm.expectEmit(true, true, true, true);
         emit PositionUpdated(tokenId, initialAmount, epoch);
         bondPositionManager.adjustPosition(tokenId, initialAmount, epoch, new bytes(0));
@@ -295,7 +331,8 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC115
 
         vm.expectCall(
             address(assetPool),
-            abi.encodeCall(IAssetPool.withdraw, (address(usdc), initialAmount, address(this)))
+            abi.encodeCall(IAssetPool.withdraw, (address(usdc), initialAmount, address(this))),
+            1
         );
         bondPositionManager.burnExpiredPosition(tokenId);
 
