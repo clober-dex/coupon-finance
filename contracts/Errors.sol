@@ -11,5 +11,4 @@ library Errors {
     string internal constant TOO_SMALL_DEBT = "TOO_SMALL_DEBT";
     string internal constant LIQUIDATION_THRESHOLD = "LIQUIDATION_THRESHOLD";
     string internal constant UNPAID_DEBT = "UNPAID_DEBT";
-    string internal constant SMALL_LIQUIDATION = "SMALL_LIQUIDATION";
 }
