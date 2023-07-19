@@ -23,25 +23,21 @@ library BondPositionLibrary {
 
     function adjustPosition(
         Types.BondPosition memory position,
-        int256 amount,
-        int16 lockEpochs,
+        uint256 amount,
+        Types.Epoch expiredWith,
         Types.Epoch minEpoch
     ) internal pure returns (Types.BondPosition memory adjustedBond) {
         adjustedBond = clone(position);
 
-        adjustedBond.amount = amount > 0
-            ? adjustedBond.amount + uint256(amount)
-            : adjustedBond.amount - uint256(-amount);
+        adjustedBond.amount = amount;
 
-        if (adjustedBond.amount == 0) {
+        if (amount == 0) {
             adjustedBond.expiredWith = minEpoch;
         } else {
-            adjustedBond.expiredWith = lockEpochs > 0
-                ? adjustedBond.expiredWith.add(uint16(lockEpochs))
-                : adjustedBond.expiredWith.sub(uint16(-lockEpochs));
-            if (minEpoch.compare(adjustedBond.expiredWith) >= 0) {
-                adjustedBond.expiredWith = minEpoch;
+            if (minEpoch.compare(expiredWith) >= 0) {
+                expiredWith = minEpoch;
             }
+            adjustedBond.expiredWith = expiredWith;
         }
     }
 

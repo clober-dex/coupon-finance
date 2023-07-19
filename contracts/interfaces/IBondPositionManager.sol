@@ -35,7 +35,7 @@ interface IBondPositionManager is IERC721Metadata, IERC721Permit, IBondPositionM
         bytes calldata data
     ) external returns (uint256);
 
-    function adjustPosition(uint256 tokenId, int256 amount, int16 lockEpochs, bytes calldata data) external;
+    function adjustPosition(uint256 tokenId, uint256 amount, Types.Epoch expiredWith, bytes calldata data) external;
 
     function burnExpiredPosition(uint256 tokenId) external;
 

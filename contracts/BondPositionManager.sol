@@ -67,27 +67,22 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
         }
         tokenId = nextId++;
         Types.Epoch expiredWith = currentEpoch.add(lockEpochs - 1);
-        _positionMap[tokenId] = BondPositionLibrary.from(asset, expiredWith, amount);
+        Types.BondPosition memory position = BondPositionLibrary.from(asset, expiredWith, amount);
+        _positionMap[tokenId] = position;
         emit PositionUpdated(tokenId, amount, expiredWith);
 
         _safeMint(recipient, tokenId, data);
         ICouponManager(couponManager).mintBatch(recipient, coupons, data);
 
         if (data.length > 0) {
-            IBondPositionCallbackReceiver(recipient).bondPositionAdjustCallback(
-                msg.sender,
-                tokenId,
-                SafeCast.toInt256(amount),
-                SafeCast.toInt16(int256(uint256(lockEpochs))),
-                data
-            );
+            IBondPositionCallbackReceiver(recipient).bondPositionAdjustCallback(msg.sender, tokenId, position, data);
         }
 
         IERC20(asset).safeTransferFrom(msg.sender, address(assetPool), amount);
         IAssetPool(assetPool).deposit(asset, amount);
     }
 
-    function adjustPosition(uint256 tokenId, int256 amount, int16 lockEpochs, bytes calldata data) external {
+    function adjustPosition(uint256 tokenId, uint256 amount, Types.Epoch expiredWith, bytes calldata data) external {
         require(_isApprovedOrOwner(msg.sender, tokenId), Errors.ACCESS);
         Types.BondPosition memory oldPosition = _positionMap[tokenId];
         Types.Epoch latestExpiredEpoch = Epoch.current().sub(1);
@@ -95,11 +90,11 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
         address asset = oldPosition.asset;
         {
             uint256 withdrawableAmount = IAssetPool(assetPool).withdrawable(asset);
-            if (amount < 0 && withdrawableAmount < type(uint256).max / 2 && int256(withdrawableAmount) < -amount) {
-                amount = -int256(withdrawableAmount);
+            if (amount < oldPosition.amount && withdrawableAmount < oldPosition.amount - amount) {
+                amount = oldPosition.amount - withdrawableAmount;
             }
         }
-        Types.BondPosition memory newPosition = oldPosition.adjustPosition(amount, lockEpochs, latestExpiredEpoch);
+        Types.BondPosition memory newPosition = oldPosition.adjustPosition(amount, expiredWith, latestExpiredEpoch);
 
         Types.Coupon[] memory couponsToMint;
         Types.Coupon[] memory couponsToBurn;
@@ -141,8 +136,7 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
             IBondPositionCallbackReceiver(msg.sender).bondPositionAdjustCallback(
                 msg.sender,
                 tokenId,
-                amount,
-                lockEpochs,
+                newPosition,
                 data
             );
         }

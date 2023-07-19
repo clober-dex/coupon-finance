@@ -99,16 +99,15 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC115
     function testAdjustPositionIncreaseAmountAndEpochs() public {
         uint256 tokenId = _beforeAdjustPosition();
 
-        uint256 amount = usdc.amount(70);
-        uint16 epochs = 3;
-        Types.Epoch expectedExpiredWith = startEpoch.add(5);
+        uint256 increaseAmount = usdc.amount(70);
+        Types.Epoch expiredWith = startEpoch.add(5);
 
         uint256 beforeThisBalance = usdc.balanceOf(address(this));
         Types.BondPosition memory beforePosition = bondPositionManager.getPositions(tokenId);
 
         Types.Coupon[] memory coupons = new Types.Coupon[](5);
-        coupons[0] = Coupon.from(address(usdc), startEpoch.add(1), amount);
-        coupons[1] = Coupon.from(address(usdc), startEpoch.add(2), amount);
+        coupons[0] = Coupon.from(address(usdc), startEpoch.add(1), increaseAmount);
+        coupons[1] = Coupon.from(address(usdc), startEpoch.add(2), increaseAmount);
         coupons[2] = Coupon.from(address(usdc), startEpoch.add(3), usdc.amount(170));
         coupons[3] = Coupon.from(address(usdc), startEpoch.add(4), usdc.amount(170));
         coupons[4] = Coupon.from(address(usdc), startEpoch.add(5), usdc.amount(170));
@@ -117,28 +116,27 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC115
             abi.encodeCall(ICouponManager.mintBatch, (address(this), coupons, new bytes(0)))
         );
         vm.expectEmit(true, true, true, true);
-        emit PositionUpdated(tokenId, initialAmount + amount, expectedExpiredWith);
-        bondPositionManager.adjustPosition(tokenId, int256(amount), int16(epochs), new bytes(0));
+        emit PositionUpdated(tokenId, initialAmount + increaseAmount, expiredWith);
+        bondPositionManager.adjustPosition(tokenId, initialAmount + increaseAmount, expiredWith, new bytes(0));
 
         Types.BondPosition memory afterPosition = bondPositionManager.getPositions(tokenId);
 
-        assertEq(usdc.balanceOf(address(this)), beforeThisBalance - amount, "THIS_BALANCE");
-        assertEq(afterPosition.amount, beforePosition.amount + amount, "LOCKED_AMOUNT");
-        assertEq(afterPosition.expiredWith, expectedExpiredWith, "EXPIRED_WITH");
+        assertEq(usdc.balanceOf(address(this)), beforeThisBalance - increaseAmount, "THIS_BALANCE");
+        assertEq(afterPosition.amount, beforePosition.amount + increaseAmount, "LOCKED_AMOUNT");
+        assertEq(afterPosition.expiredWith, expiredWith, "EXPIRED_WITH");
     }
 
     function testAdjustPositionIncreaseAmountAndDecreaseEpochs() public {
         uint256 tokenId = _beforeAdjustPosition();
 
-        uint256 amount = usdc.amount(70);
-        uint16 epochs = 1;
-        Types.Epoch expectedExpiredWith = startEpoch.add(1);
+        uint256 increaseAmount = usdc.amount(70);
+        Types.Epoch expiredWith = startEpoch.add(1);
 
         uint256 beforeThisBalance = usdc.balanceOf(address(this));
         Types.BondPosition memory beforePosition = bondPositionManager.getPositions(tokenId);
 
         Types.Coupon[] memory couponsToMint = new Types.Coupon[](1);
-        couponsToMint[0] = Coupon.from(address(usdc), startEpoch.add(1), amount);
+        couponsToMint[0] = Coupon.from(address(usdc), startEpoch.add(1), increaseAmount);
         Types.Coupon[] memory couponsToBurn = new Types.Coupon[](1);
         couponsToBurn[0] = Coupon.from(address(usdc), startEpoch.add(2), initialAmount);
         vm.expectCall(
@@ -147,74 +145,72 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC115
         );
         vm.expectCall(address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(this), couponsToBurn)));
         vm.expectEmit(true, true, true, true);
-        emit PositionUpdated(tokenId, initialAmount + amount, expectedExpiredWith);
-        bondPositionManager.adjustPosition(tokenId, int256(amount), -int16(epochs), new bytes(0));
+        emit PositionUpdated(tokenId, initialAmount + increaseAmount, expiredWith);
+        bondPositionManager.adjustPosition(tokenId, initialAmount + increaseAmount, expiredWith, new bytes(0));
 
         Types.BondPosition memory afterPosition = bondPositionManager.getPositions(tokenId);
 
-        assertEq(usdc.balanceOf(address(this)), beforeThisBalance - amount, "THIS_BALANCE");
-        assertEq(afterPosition.amount, beforePosition.amount + amount, "LOCKED_AMOUNT");
-        assertEq(afterPosition.expiredWith, expectedExpiredWith, "EXPIRED_WITH");
+        assertEq(usdc.balanceOf(address(this)), beforeThisBalance - increaseAmount, "THIS_BALANCE");
+        assertEq(afterPosition.amount, beforePosition.amount + increaseAmount, "LOCKED_AMOUNT");
+        assertEq(afterPosition.expiredWith, expiredWith, "EXPIRED_WITH");
     }
 
     function testAdjustPositionDecreaseAmountAndIncreaseEpochs() public {
         uint256 tokenId = _beforeAdjustPosition();
 
-        uint256 amount = usdc.amount(70);
-        uint16 epochs = 3;
-        uint256 expectedAmount = initialAmount - amount;
-        Types.Epoch expectedExpiredWith = startEpoch.add(5);
+        uint256 decreaseAmount = usdc.amount(70);
+        uint256 amount = initialAmount - decreaseAmount;
+        Types.Epoch expiredWith = startEpoch.add(5);
 
         uint256 beforeThisBalance = usdc.balanceOf(address(this));
         Types.BondPosition memory beforePosition = bondPositionManager.getPositions(tokenId);
 
         Types.Coupon[] memory couponsToMint = new Types.Coupon[](3);
-        couponsToMint[0] = Coupon.from(address(usdc), startEpoch.add(3), expectedAmount);
-        couponsToMint[1] = Coupon.from(address(usdc), startEpoch.add(4), expectedAmount);
-        couponsToMint[2] = Coupon.from(address(usdc), startEpoch.add(5), expectedAmount);
+        couponsToMint[0] = Coupon.from(address(usdc), startEpoch.add(3), amount);
+        couponsToMint[1] = Coupon.from(address(usdc), startEpoch.add(4), amount);
+        couponsToMint[2] = Coupon.from(address(usdc), startEpoch.add(5), amount);
         Types.Coupon[] memory couponsToBurn = new Types.Coupon[](2);
-        couponsToBurn[0] = Coupon.from(address(usdc), startEpoch.add(1), amount);
-        couponsToBurn[1] = Coupon.from(address(usdc), startEpoch.add(2), amount);
+        couponsToBurn[0] = Coupon.from(address(usdc), startEpoch.add(1), decreaseAmount);
+        couponsToBurn[1] = Coupon.from(address(usdc), startEpoch.add(2), decreaseAmount);
         vm.expectCall(
             address(couponManager),
             abi.encodeCall(ICouponManager.mintBatch, (address(this), couponsToMint, new bytes(0)))
         );
         vm.expectCall(address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(this), couponsToBurn)));
         vm.expectEmit(true, true, true, true);
-        emit PositionUpdated(tokenId, expectedAmount, expectedExpiredWith);
-        bondPositionManager.adjustPosition(tokenId, -int256(amount), int16(epochs), new bytes(0));
+        emit PositionUpdated(tokenId, amount, expiredWith);
+        bondPositionManager.adjustPosition(tokenId, amount, expiredWith, new bytes(0));
 
         Types.BondPosition memory afterPosition = bondPositionManager.getPositions(tokenId);
 
-        assertEq(usdc.balanceOf(address(this)), beforeThisBalance + amount, "THIS_BALANCE");
-        assertEq(afterPosition.amount, beforePosition.amount - amount, "LOCKED_AMOUNT");
-        assertEq(afterPosition.expiredWith, expectedExpiredWith, "EXPIRED_WITH");
+        assertEq(usdc.balanceOf(address(this)), beforeThisBalance + decreaseAmount, "THIS_BALANCE");
+        assertEq(afterPosition.amount, beforePosition.amount - decreaseAmount, "LOCKED_AMOUNT");
+        assertEq(afterPosition.expiredWith, expiredWith, "EXPIRED_WITH");
     }
 
     function testAdjustPositionDecreaseAmountAndEpochs() public {
         uint256 tokenId = _beforeAdjustPosition();
 
-        uint256 amount = usdc.amount(70);
-        uint16 epochs = 1;
-        uint256 expectedAmount = initialAmount - amount;
-        Types.Epoch expectedExpiredWith = startEpoch.add(1);
+        uint256 decreaseAmount = usdc.amount(70);
+        uint256 amount = initialAmount - decreaseAmount;
+        Types.Epoch expiredWith = startEpoch.add(1);
 
         uint256 beforeThisBalance = usdc.balanceOf(address(this));
         Types.BondPosition memory beforePosition = bondPositionManager.getPositions(tokenId);
 
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
-        coupons[0] = Coupon.from(address(usdc), startEpoch.add(1), amount);
+        coupons[0] = Coupon.from(address(usdc), startEpoch.add(1), decreaseAmount);
         coupons[1] = Coupon.from(address(usdc), startEpoch.add(2), initialAmount);
         vm.expectCall(address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(this), coupons)));
         vm.expectEmit(true, true, true, true);
-        emit PositionUpdated(tokenId, expectedAmount, expectedExpiredWith);
-        bondPositionManager.adjustPosition(tokenId, -int256(amount), -int16(epochs), new bytes(0));
+        emit PositionUpdated(tokenId, amount, expiredWith);
+        bondPositionManager.adjustPosition(tokenId, amount, expiredWith, new bytes(0));
 
         Types.BondPosition memory afterPosition = bondPositionManager.getPositions(tokenId);
 
-        assertEq(usdc.balanceOf(address(this)), beforeThisBalance + amount, "THIS_BALANCE");
-        assertEq(afterPosition.amount, beforePosition.amount - amount, "LOCKED_AMOUNT");
-        assertEq(afterPosition.expiredWith, expectedExpiredWith, "EXPIRED_WITH");
+        assertEq(usdc.balanceOf(address(this)), beforeThisBalance + decreaseAmount, "THIS_BALANCE");
+        assertEq(afterPosition.amount, beforePosition.amount - decreaseAmount, "LOCKED_AMOUNT");
+        assertEq(afterPosition.expiredWith, expiredWith, "EXPIRED_WITH");
     }
 
     function testAdjustPositionDecreaseAmountToZero() public {
@@ -229,7 +225,7 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC115
         vm.expectCall(address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(this), coupons)));
         vm.expectEmit(true, true, true, true);
         emit PositionUpdated(tokenId, 0, startEpoch);
-        bondPositionManager.adjustPosition(tokenId, -int256(initialAmount), int16(1), new bytes(0));
+        bondPositionManager.adjustPosition(tokenId, 0, startEpoch, new bytes(0));
 
         Types.BondPosition memory afterPosition = bondPositionManager.getPositions(tokenId);
 
@@ -244,7 +240,7 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC115
     function testAdjustPositionDecreaseEpochsToPastEpoch() public {
         uint256 tokenId = _beforeAdjustPosition();
 
-        Types.Epoch expectedExpiredWith = startEpoch;
+        Types.Epoch epoch = startEpoch;
         uint256 beforeThisBalance = usdc.balanceOf(address(this));
         uint256 beforeBondPositionBalance = bondPositionManager.balanceOf(address(this));
 
@@ -253,15 +249,15 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC115
         coupons[1] = Coupon.from(address(usdc), startEpoch.add(2), initialAmount);
         vm.expectCall(address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(this), coupons)));
         vm.expectEmit(true, true, true, true);
-        emit PositionUpdated(tokenId, initialAmount, expectedExpiredWith);
-        bondPositionManager.adjustPosition(tokenId, 0, -int16(4), new bytes(0));
+        emit PositionUpdated(tokenId, initialAmount, epoch);
+        bondPositionManager.adjustPosition(tokenId, initialAmount, epoch, new bytes(0));
 
         Types.BondPosition memory afterPosition = bondPositionManager.getPositions(tokenId);
 
         assertEq(usdc.balanceOf(address(this)), beforeThisBalance, "THIS_BALANCE");
         assertEq(bondPositionManager.balanceOf(address(this)), beforeBondPositionBalance, "BOND_POSITION_BALANCE");
         assertEq(afterPosition.amount, initialAmount, "LOCKED_AMOUNT");
-        assertEq(afterPosition.expiredWith, expectedExpiredWith, "EXPIRED_WITH");
+        assertEq(afterPosition.expiredWith, epoch, "EXPIRED_WITH");
         assertEq(bondPositionManager.ownerOf(tokenId), address(this), "OWNER");
     }
 
@@ -270,7 +266,7 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC115
         uint256 limitBalance = usdc.amount(20);
         assetPool.setWithdrawLimit(address(usdc), limitBalance);
 
-        Types.Epoch expectedExpiredWith = startEpoch.add(1);
+        Types.Epoch epoch = startEpoch.add(1);
 
         uint256 beforeThisBalance = usdc.balanceOf(address(this));
         Types.BondPosition memory beforePosition = bondPositionManager.getPositions(tokenId);
@@ -280,14 +276,14 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC115
         coupons[1] = Coupon.from(address(usdc), startEpoch.add(2), initialAmount);
         vm.expectCall(address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(this), coupons)));
         vm.expectEmit(true, true, true, true);
-        emit PositionUpdated(tokenId, initialAmount - limitBalance, expectedExpiredWith);
-        bondPositionManager.adjustPosition(tokenId, -int256(initialAmount), -int16(1), new bytes(0));
+        emit PositionUpdated(tokenId, initialAmount - limitBalance, epoch);
+        bondPositionManager.adjustPosition(tokenId, initialAmount - limitBalance, epoch, new bytes(0));
 
         Types.BondPosition memory afterPosition = bondPositionManager.getPositions(tokenId);
 
         assertEq(usdc.balanceOf(address(this)), beforeThisBalance + limitBalance, "THIS_BALANCE");
         assertEq(afterPosition.amount, beforePosition.amount - limitBalance, "LOCKED_AMOUNT");
-        assertEq(afterPosition.expiredWith, expectedExpiredWith, "EXPIRED_WITH");
+        assertEq(afterPosition.expiredWith, epoch, "EXPIRED_WITH");
     }
 
     function testAdjustPositionWithExpiredPosition() public {
@@ -295,20 +291,20 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC115
         vm.warp(startEpoch.add(10).startTime());
 
         vm.expectRevert(bytes(Errors.INVALID_EPOCH));
-        bondPositionManager.adjustPosition(tokenId, int256(100), int16(1), new bytes(0));
+        bondPositionManager.adjustPosition(tokenId, initialAmount - 100, startEpoch.add(2), new bytes(0));
     }
 
     function testAdjustPositionOwnership() public {
         uint256 tokenId = _beforeAdjustPosition();
         vm.startPrank(address(0x123));
         vm.expectRevert(bytes(Errors.ACCESS));
-        bondPositionManager.adjustPosition(tokenId, int256(12412), int16(2), new bytes(0));
+        bondPositionManager.adjustPosition(tokenId, initialAmount + 12342, startEpoch.add(3), new bytes(0));
         vm.stopPrank();
     }
 
     function testAdjustPositionWithInvalidTokenId() public {
         vm.expectRevert("ERC721: invalid token ID");
-        bondPositionManager.adjustPosition(123, int256(12412), int16(2), new bytes(0));
+        bondPositionManager.adjustPosition(123, initialAmount + 12342, startEpoch.add(3), new bytes(0));
     }
 
     function testBurnExpiredPosition() public {
