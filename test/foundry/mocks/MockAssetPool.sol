@@ -12,8 +12,11 @@ contract MockAssetPool is IAssetPool {
 
     address public override treasury;
     mapping(address asset => uint256) public override totalReservedAmount;
-    mapping(address asset => uint256) public override reservedAmount;
     mapping(address => uint256) public withdrawLimit;
+
+    function isOperator(address) external pure returns (bool) {
+        return true;
+    }
 
     function withdrawable(address asset) external view returns (uint256 amount) {
         amount = totalReservedAmount[asset];
@@ -25,22 +28,20 @@ contract MockAssetPool is IAssetPool {
     function deposit(address asset, uint256 amount) external {
         require(IERC20(asset).balanceOf(address(this)) >= totalReservedAmount[asset] + amount, "insufficient balance");
         totalReservedAmount[asset] += amount;
-        reservedAmount[asset] += amount;
     }
 
     function withdraw(address asset, uint256 amount, address recipient) external {
         require(totalReservedAmount[asset] >= amount, "insufficient balance");
         IERC20(asset).safeTransfer(recipient, amount);
         totalReservedAmount[asset] -= amount;
-        reservedAmount[asset] -= amount;
     }
 
     function claimableAmount(address asset) public view returns (uint256) {
         return IERC20(asset).balanceOf(address(this)) - totalReservedAmount[asset];
     }
 
-    function claim(address asset, address recipient) external {
-        IERC20(asset).safeTransfer(recipient, claimableAmount(asset));
+    function claim(address asset) external {
+        IERC20(asset).safeTransfer(treasury, claimableAmount(asset));
     }
 
     function setWithdrawLimit(address asset, uint256 amount) external {
@@ -49,5 +50,9 @@ contract MockAssetPool is IAssetPool {
 
     function setTreasury(address newTreasury) external {
         treasury = newTreasury;
+    }
+
+    function withdrawLostToken(address asset, address recipient) external {
+        IERC20(asset).safeTransfer(recipient, IERC20(asset).balanceOf(address(this)));
     }
 }
