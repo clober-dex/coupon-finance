@@ -39,7 +39,7 @@ contract BondPositionUnitTest is Test, IBondPositionEvents, ERC1155Holder, ERC72
 
         usdc.mint(address(this), usdc.amount(1_000_000_000));
 
-        vm.warp(Epoch.fromMonths(10).startTime());
+        vm.warp(Epoch.wrap(10).startTime());
         startEpoch = Epoch.current();
 
         initialAmount = usdc.amount(100);

@@ -7,7 +7,16 @@ import {Types} from "../Types.sol";
 import {BokkyPooBahsDateTimeLibrary} from "./BokkyPooBahsDateTimeLibrary.sol";
 
 library Epoch {
+    uint256 internal constant MONTHS_PER_EPOCH = 1;
+
+    function wrap(uint16 epoch) internal pure returns (Types.Epoch) {
+        return Types.Epoch.wrap(epoch);
+    }
+
     function fromMonths(uint256 months) internal pure returns (Types.Epoch) {
+        unchecked {
+            months /= MONTHS_PER_EPOCH;
+        }
         if (months > type(uint16).max) revert("Epoch: Overflow");
         return Types.Epoch.wrap(uint16(months));
     }
@@ -21,13 +30,15 @@ library Epoch {
     }
 
     function startTime(Types.Epoch epoch) internal pure returns (uint256) {
-        return BokkyPooBahsDateTimeLibrary.addMonths(0, Types.Epoch.unwrap(epoch));
+        unchecked {
+            return BokkyPooBahsDateTimeLibrary.addMonths(0, MONTHS_PER_EPOCH * Types.Epoch.unwrap(epoch));
+        }
     }
 
     function endTime(Types.Epoch epoch) internal pure returns (uint256) {
         unchecked {
-            uint256 nextEpoch = Types.Epoch.unwrap(epoch) + 1;
-            return BokkyPooBahsDateTimeLibrary.addMonths(0, nextEpoch);
+            uint256 nextEpoch = uint256(Types.Epoch.unwrap(epoch)) + 1;
+            return BokkyPooBahsDateTimeLibrary.addMonths(0, MONTHS_PER_EPOCH * nextEpoch);
         }
     }
 
@@ -37,12 +48,12 @@ library Epoch {
         }
     }
 
-    function add(Types.Epoch epoch, uint16 months) internal pure returns (Types.Epoch) {
-        return Types.Epoch.wrap(Types.Epoch.unwrap(epoch) + months);
+    function add(Types.Epoch epoch, uint16 epochs) internal pure returns (Types.Epoch) {
+        return Types.Epoch.wrap(Types.Epoch.unwrap(epoch) + epochs);
     }
 
-    function sub(Types.Epoch epoch, uint16 months) internal pure returns (Types.Epoch) {
-        return Types.Epoch.wrap(Types.Epoch.unwrap(epoch) - months);
+    function sub(Types.Epoch epoch, uint16 epochs) internal pure returns (Types.Epoch) {
+        return Types.Epoch.wrap(Types.Epoch.unwrap(epoch) - epochs);
     }
 
     function sub(Types.Epoch e1, Types.Epoch e2) internal pure returns (uint16) {
