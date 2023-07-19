@@ -12,6 +12,7 @@ contract MockAssetPool is IAssetPool {
 
     address public override treasury;
     mapping(address asset => uint256) public override totalReservedAmount;
+    mapping(address => bool) public override isAssetRegistered;
     mapping(address => uint256) public withdrawLimit;
 
     function isOperator(address) external pure returns (bool) {
@@ -50,6 +51,10 @@ contract MockAssetPool is IAssetPool {
 
     function setTreasury(address newTreasury) external {
         treasury = newTreasury;
+    }
+
+    function registerAsset(address asset) external {
+        isAssetRegistered[asset] = true;
     }
 
     function withdrawLostToken(address asset, address recipient) external {
