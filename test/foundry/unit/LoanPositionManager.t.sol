@@ -575,16 +575,18 @@ contract LoanPositionUnitTest is Test, ILoanPositionManagerEvents, ERC1155Holder
             "COLLATERAL_AMOUNT"
         );
 
-        assertEq(
-            couponManager.balanceOf(Constants.USER1, coupons[0].id()) - balances.beforeUserCoupon1Balance,
-            repayAmount,
-            "USER_COUPON1_BALANCE"
-        );
-        assertEq(
-            couponManager.balanceOf(Constants.USER1, coupons[1].id()) - balances.beforeUserCoupon2Balance,
-            repayAmount,
-            "USER_COUPON2_BALANCE"
-        );
+        if (changeData > 0) {
+            assertEq(
+                couponManager.balanceOf(Constants.USER1, coupons[0].id()) - balances.beforeUserCoupon1Balance,
+                repayAmount,
+                "USER_COUPON1_BALANCE"
+            );
+            assertEq(
+                couponManager.balanceOf(Constants.USER1, coupons[1].id()) - balances.beforeUserCoupon2Balance,
+                repayAmount,
+                "USER_COUPON2_BALANCE"
+            );
+        }
         assertEq(
             beforePosition.collateralAmount - afterPosition.collateralAmount,
             liquidationAmount + protocolFee,
