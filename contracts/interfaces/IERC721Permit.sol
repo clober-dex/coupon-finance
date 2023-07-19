@@ -7,7 +7,8 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 /// @title ERC721 with permit
 /// @notice Extension to ERC721 that includes a permit function for signature based approvals
 /// @author Clober (https://github.com/clober-dex/coupon-finance/blob/main/contracts/interfaces/IERC721Permit.sol)
-/// @author Modified from Uniswap (https://github.com/Uniswap/v3-periphery/blob/main/contracts/interfaces/IERC721Permit.sol)
+/// @author Modified from Uniswap
+/// (https://github.com/Uniswap/v3-periphery/blob/main/contracts/interfaces/IERC721Permit.sol)
 interface IERC721Permit is IERC721 {
     /// @notice The permit typehash used in the permit signature
     /// @return The typehash for the permit
