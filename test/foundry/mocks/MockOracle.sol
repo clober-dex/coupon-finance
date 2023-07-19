@@ -8,11 +8,11 @@ import {Constants} from "../Constants.sol";
 contract MockOracle is IPriceOracleGetter {
     mapping(address => uint256) private _priceMap;
 
-    function BASE_CURRENCY() external view returns (address) {
+    function BASE_CURRENCY() external pure returns (address) {
         return address(0);
     }
 
-    function BASE_CURRENCY_UNIT() external view returns (uint256) {
+    function BASE_CURRENCY_UNIT() external pure returns (uint256) {
         return 100000000;
     }
 

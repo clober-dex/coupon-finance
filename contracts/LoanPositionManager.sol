@@ -3,31 +3,32 @@
 
 pragma solidity ^0.8.0;
 
-import {ERC721Permit} from "./libraries/ERC721Permit.sol";
-import {ReentrancyGuard} from "./libraries/ReentrancyGuard.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {Types} from "./Types.sol";
-import {ILoanPosition} from "./interfaces/ILoanPosition.sol";
+
+import {ILoanPositionManager} from "./interfaces/ILoanPositionManager.sol";
 import {IAssetPool} from "./interfaces/IAssetPool.sol";
 import {ILiquidateCallbackReceiver} from "./interfaces/ILiquidateCallbackReceiver.sol";
 import {ICouponOracle} from "./interfaces/ICouponOracle.sol";
+import {ICouponManager} from "./interfaces/ICouponManager.sol";
+import {ERC721Permit} from "./libraries/ERC721Permit.sol";
+import {ReentrancyGuard} from "./libraries/ReentrancyGuard.sol";
 import {Coupon} from "./libraries/Coupon.sol";
 import {Epoch} from "./libraries/Epoch.sol";
+import {Types} from "./Types.sol";
 import {Errors} from "./Errors.sol";
-import {ICouponManager} from "./interfaces/ICouponManager.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-contract LoanPosition is ILoanPosition, ERC721Permit, Ownable {
+contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable {
     using SafeERC20 for IERC20;
     using Coupon for Types.Coupon;
     using Epoch for Types.Epoch;
 
     uint256 private constant _RATE_PRECISION = 10 ** 6;
 
-    address public immutable override coupon;
+    address public immutable override couponManager;
     address public immutable override assetPool;
     address public immutable override oracle;
     address public immutable override treasury;
@@ -38,17 +39,17 @@ contract LoanPosition is ILoanPosition, ERC721Permit, Ownable {
 
     mapping(address user => mapping(uint256 couponId => uint256)) public override couponOwed;
     mapping(address asset => Types.AssetLoanConfiguration) private _assetConfig;
-    mapping(uint256 id => Types.Loan) private _loanMap;
+    mapping(uint256 id => Types.LoanPosition) private _loanMap;
 
     constructor(
-        address coupon_,
+        address couponManager_,
         address assetPool_,
         address oracle_,
         address treasury_,
         uint256 minDebtValueInEth_,
         string memory baseURI_
     ) ERC721Permit("Loan Position", "LP", "1") {
-        coupon = coupon_;
+        couponManager = couponManager_;
         assetPool = assetPool_;
         oracle = oracle_;
         baseURI = baseURI_;
@@ -56,7 +57,7 @@ contract LoanPosition is ILoanPosition, ERC721Permit, Ownable {
         minDebtValueInEth = minDebtValueInEth_;
     }
 
-    function loans(uint256 tokenId) external view returns (Types.Loan memory) {
+    function getLoans(uint256 tokenId) external view returns (Types.LoanPosition memory) {
         return _loanMap[tokenId];
     }
 
@@ -128,7 +129,7 @@ contract LoanPosition is ILoanPosition, ERC721Permit, Ownable {
     }
 
     function _getLiquidationAmount(
-        Types.Loan memory loan,
+        Types.LoanPosition memory loan,
         uint256 maxRepayAmount
     ) private view returns (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount) {
         Types.AssetLoanConfiguration memory config = _getAssetConfig(loan.debtToken, loan.collateralToken);
@@ -238,7 +239,7 @@ contract LoanPosition is ILoanPosition, ERC721Permit, Ownable {
     }
 
     function liquidate(uint256 tokenId, uint256 maxRepayAmount, bytes calldata data) external {
-        Types.Loan memory loan = _loanMap[tokenId];
+        Types.LoanPosition memory loan = _loanMap[tokenId];
         (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount) = _getLiquidationAmount(
             loan,
             maxRepayAmount > 0 ? maxRepayAmount : type(uint256).max
@@ -275,7 +276,9 @@ contract LoanPosition is ILoanPosition, ERC721Permit, Ownable {
                 coupons[i] = Coupon.from(loan.debtToken, epoch, repayAmount);
                 epoch = epoch.add(1);
             }
-            try ICouponManager(coupon).safeBatchTransferFrom(address(this), ownerOf(tokenId), coupons, data) {} catch {
+            try
+                ICouponManager(couponManager).safeBatchTransferFrom(address(this), ownerOf(tokenId), coupons, data)
+            {} catch {
                 for (uint256 i = 0; i < length; ++i) {
                     couponOwed[couponOwner][coupons[i].id()] += coupons[i].amount;
                 }
@@ -290,7 +293,7 @@ contract LoanPosition is ILoanPosition, ERC721Permit, Ownable {
             coupons[i].key = couponKeys[i];
             coupons[i].amount = couponOwed[msg.sender][couponKeys[i].toId()];
         }
-        ICouponManager(coupon).safeBatchTransferFrom(address(this), msg.sender, coupons, data);
+        ICouponManager(couponManager).safeBatchTransferFrom(address(this), msg.sender, coupons, data);
     }
 
     function burn(uint256 tokenId) external {

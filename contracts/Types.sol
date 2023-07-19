@@ -12,7 +12,7 @@ library Types {
         uint256 amount;
     }
 
-    struct Loan {
+    struct LoanPosition {
         uint256 nonce;
         address collateralToken;
         address debtToken;
