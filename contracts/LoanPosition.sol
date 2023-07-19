@@ -198,6 +198,7 @@ contract LoanPosition is ILoanPosition, ERC721Permit, Ownable {
                 repayAmount = newRepayAmount;
             }
 
+            if (liquidationAmount > loan.collateralAmount) liquidationAmount = loan.collateralAmount;
             protocolFeeAmount = (liquidationAmount * config.liquidationProtocolFee) / _RATE_PRECISION;
             return (liquidationAmount - protocolFeeAmount, repayAmount, protocolFeeAmount);
         }
