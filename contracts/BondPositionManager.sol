@@ -15,14 +15,14 @@ import {ICouponManager} from "./interfaces/ICouponManager.sol";
 import {IAssetPool} from "./interfaces/IAssetPool.sol";
 import {IBondPositionCallbackReceiver} from "./interfaces/IBondPositionCallbackReceiver.sol";
 import {ERC721Permit} from "./libraries/ERC721Permit.sol";
-import {BondPosition} from "./libraries/Bond.sol";
+import {BondPositionLibrary} from "./libraries/Bond.sol";
 import {Coupon} from "./libraries/Coupon.sol";
 import {Epoch} from "./libraries/Epoch.sol";
 
 contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
     using SafeERC20 for IERC20;
     using Epoch for Types.Epoch;
-    using BondPosition for Types.BondPosition;
+    using BondPositionLibrary for Types.BondPosition;
 
     address public immutable override couponManager;
     address public immutable override assetPool;
