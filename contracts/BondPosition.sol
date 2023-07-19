@@ -6,12 +6,14 @@ pragma solidity ^0.8.0;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 import {Types} from "./Types.sol";
 import {Errors} from "./Errors.sol";
 import {IBondPosition} from "./interfaces/IBondPosition.sol";
 import {ICouponManager} from "./interfaces/ICouponManager.sol";
 import {IAssetPool} from "./interfaces/IAssetPool.sol";
+import {IBondPositionCallbackReceiver} from "./interfaces/IBondPositionCallbackReceiver.sol";
 import {ERC721Permit} from "./libraries/ERC721Permit.sol";
 import {Bond} from "./libraries/Bond.sol";
 import {Coupon} from "./libraries/Coupon.sol";
@@ -71,6 +73,16 @@ contract BondPosition is IBondPosition, ERC721Permit, Ownable {
         _safeMint(recipient, tokenId, data);
         ICouponManager(coupon).mintBatch(recipient, coupons, data);
 
+        if (data.length > 0) {
+            IBondPositionCallbackReceiver(recipient).bondPositionAdjustCallback(
+                msg.sender,
+                tokenId,
+                SafeCast.toInt256(amount),
+                SafeCast.toInt16(int256(uint256(lockEpochs))),
+                data
+            );
+        }
+
         IERC20(asset).safeTransferFrom(msg.sender, address(assetPool), amount);
         IAssetPool(assetPool).deposit(asset, amount);
     }
@@ -83,7 +95,7 @@ contract BondPosition is IBondPosition, ERC721Permit, Ownable {
         address asset = oldBond.asset;
         {
             uint256 withdrawableAmount = IAssetPool(assetPool).withdrawable(asset);
-            if (amount < 0 && int256(withdrawableAmount) < -amount) {
+            if (amount < 0 && withdrawableAmount < type(uint256).max / 2 && int256(withdrawableAmount) < -amount) {
                 amount = -int256(withdrawableAmount);
             }
         }
@@ -125,7 +137,15 @@ contract BondPosition is IBondPosition, ERC721Permit, Ownable {
         if (assetToWithdraw > 0) {
             IAssetPool(assetPool).withdraw(asset, assetToWithdraw, msg.sender);
         }
-        // todo callback
+        if (data.length > 0) {
+            IBondPositionCallbackReceiver(msg.sender).bondPositionAdjustCallback(
+                msg.sender,
+                tokenId,
+                amount,
+                lockEpochs,
+                data
+            );
+        }
         if (assetToDeposit > 0) {
             IERC20(asset).safeTransferFrom(msg.sender, address(assetPool), assetToDeposit);
             IAssetPool(assetPool).deposit(asset, assetToDeposit);
