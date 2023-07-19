@@ -346,6 +346,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable {
                 }
             }
         }
+        emit PositionLiquidated(tokenId);
     }
 
     function claimOwedCoupons(Types.CouponKey[] memory couponKeys, bytes calldata data) external {

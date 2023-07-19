@@ -15,6 +15,7 @@ interface ILoanPositionManagerEvents {
         uint256 debtAmount,
         Types.Epoch unlockedAt
     );
+    event PositionLiquidated(uint256 indexed tokenId);
 }
 
 interface ILoanPositionManager is IERC721Metadata, IERC721Permit, ILoanPositionManagerEvents {
