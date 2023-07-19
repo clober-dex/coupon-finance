@@ -16,6 +16,7 @@ import {ICouponOracle} from "./interfaces/ICouponOracle.sol";
 import {ICouponManager} from "./interfaces/ICouponManager.sol";
 import {ERC721Permit} from "./libraries/ERC721Permit.sol";
 import {ReentrancyGuard} from "./libraries/ReentrancyGuard.sol";
+import {CouponKey} from "./libraries/CouponKey.sol";
 import {Coupon} from "./libraries/Coupon.sol";
 import {Epoch} from "./libraries/Epoch.sol";
 import {Types} from "./Types.sol";
@@ -23,6 +24,7 @@ import {Errors} from "./Errors.sol";
 
 contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable {
     using SafeERC20 for IERC20;
+    using CouponKey for Types.CouponKey;
     using Coupon for Types.Coupon;
     using Epoch for Types.Epoch;
 
@@ -288,12 +290,15 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable {
 
     function claimOwedCoupons(Types.CouponKey[] memory couponKeys, bytes calldata data) external {
         uint256 length = couponKeys.length;
-        Types.Coupon[] memory coupons = new Types.Coupon[](length);
+        uint256[] memory ids = new uint256[](length);
+        uint256[] memory amounts = new uint256[](length);
         for (uint256 i = 0; i < length; ++i) {
-            coupons[i].key = couponKeys[i];
-            coupons[i].amount = couponOwed[msg.sender][couponKeys[i].toId()];
+            uint256 id = couponKeys[i].toId();
+            ids[i] = id;
+            amounts[i] = couponOwed[msg.sender][id];
+            couponOwed[msg.sender][id] = 0;
         }
-        ICouponManager(couponManager).safeBatchTransferFrom(address(this), msg.sender, coupons, data);
+        ICouponManager(couponManager).safeBatchTransferFrom(address(this), msg.sender, ids, amounts, data);
     }
 
     function burn(uint256 tokenId) external {
