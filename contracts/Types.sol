@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 library Types {
     type Epoch is uint16;
 
-    struct Bond {
+    struct BondPosition {
         address asset;
         uint64 nonce;
         Epoch expiredWith;

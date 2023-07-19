@@ -6,50 +6,55 @@ pragma solidity ^0.8.0;
 import {Types} from "../Types.sol";
 import {Epoch} from "./Epoch.sol";
 
-library Bond {
+library BondPositionLibrary {
     using Epoch for Types.Epoch;
 
     function from(
         address asset,
         Types.Epoch expiredWith,
         uint256 amount
-    ) internal pure returns (Types.Bond memory bond) {
-        bond = Types.Bond({asset: asset, nonce: 0, expiredWith: expiredWith, amount: amount});
+    ) internal pure returns (Types.BondPosition memory position) {
+        position = Types.BondPosition({asset: asset, nonce: 0, expiredWith: expiredWith, amount: amount});
     }
 
-    function getAndIncrementNonce(Types.Bond storage bondStorage) internal returns (uint64 nonce) {
-        nonce = bondStorage.nonce++;
+    function getAndIncrementNonce(Types.BondPosition storage positionStorage) internal returns (uint64 nonce) {
+        nonce = positionStorage.nonce++;
     }
 
     function adjustPosition(
-        Types.Bond memory bond,
-        int256 amount,
-        int16 lockEpochs,
+        Types.BondPosition memory position,
+        uint256 amount,
+        Types.Epoch expiredWith,
         Types.Epoch minEpoch
-    ) internal pure returns (Types.Bond memory adjustedBond) {
-        adjustedBond = clone(bond);
+    ) internal pure returns (Types.BondPosition memory adjustedBond) {
+        adjustedBond = clone(position);
 
-        adjustedBond.amount = amount > 0
-            ? adjustedBond.amount + uint256(amount)
-            : adjustedBond.amount - uint256(-amount);
+        adjustedBond.amount = amount;
 
-        if (adjustedBond.amount == 0) {
+        if (amount == 0) {
             adjustedBond.expiredWith = minEpoch;
         } else {
-            adjustedBond.expiredWith = lockEpochs > 0
-                ? adjustedBond.expiredWith.add(uint16(lockEpochs))
-                : adjustedBond.expiredWith.sub(uint16(-lockEpochs));
-            if (minEpoch.compare(adjustedBond.expiredWith) >= 0) {
-                adjustedBond.expiredWith = minEpoch;
+            if (minEpoch.compare(expiredWith) >= 0) {
+                expiredWith = minEpoch;
             }
+            adjustedBond.expiredWith = expiredWith;
         }
     }
 
-    function clone(Types.Bond memory bond) internal pure returns (Types.Bond memory) {
-        return Types.Bond({asset: bond.asset, nonce: bond.nonce, expiredWith: bond.expiredWith, amount: bond.amount});
+    function clone(Types.BondPosition memory position) internal pure returns (Types.BondPosition memory) {
+        return
+            Types.BondPosition({
+                asset: position.asset,
+                nonce: position.nonce,
+                expiredWith: position.expiredWith,
+                amount: position.amount
+            });
     }
 
-    function compareEpoch(Types.Bond memory bond1, Types.Bond memory bond2) internal pure returns (int256) {
-        return bond1.expiredWith.compare(bond2.expiredWith);
+    function compareEpoch(
+        Types.BondPosition memory position1,
+        Types.BondPosition memory position2
+    ) internal pure returns (int256) {
+        return position1.expiredWith.compare(position2.expiredWith);
     }
 }

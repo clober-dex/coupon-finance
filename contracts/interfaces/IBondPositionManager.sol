@@ -7,22 +7,22 @@ import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/I
 import {Types} from "../Types.sol";
 import {IERC721Permit} from "./IERC721Permit.sol";
 
-interface IBondPositionEvents {
+interface IBondPositionManagerEvents {
     event AssetRegistered(address indexed asset);
     event PositionUpdated(uint256 indexed tokenId, uint256 amount, Types.Epoch expiredWith);
 }
 
-interface IBondPosition is IERC721Metadata, IERC721Permit, IBondPositionEvents {
+interface IBondPositionManager is IERC721Metadata, IERC721Permit, IBondPositionManagerEvents {
     // View Functions //
     function baseURI() external view returns (string memory);
 
     function nextId() external view returns (uint256);
 
-    function coupon() external view returns (address);
+    function couponManager() external view returns (address);
 
     function assetPool() external view returns (address);
 
-    function bonds(uint256 tokenId) external view returns (Types.Bond memory);
+    function getPositions(uint256 tokenId) external view returns (Types.BondPosition memory);
 
     function isAssetRegistered(address asset) external view returns (bool);
 
@@ -35,7 +35,7 @@ interface IBondPosition is IERC721Metadata, IERC721Permit, IBondPositionEvents {
         bytes calldata data
     ) external returns (uint256);
 
-    function adjustPosition(uint256 tokenId, int256 amount, int16 lockEpochs, bytes calldata data) external;
+    function adjustPosition(uint256 tokenId, uint256 amount, Types.Epoch expiredWith, bytes calldata data) external;
 
     function burnExpiredPosition(uint256 tokenId) external;
 
