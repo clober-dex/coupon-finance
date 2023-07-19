@@ -127,16 +127,13 @@ contract LoanPosition is ILoanPosition, ERC721Permit, Ownable {
 
         uint256[] memory prices = ICouponOracle(oracle).getAssetsPrices(assets);
         uint256 precisionComplement;
+        ethAmount = (ethAmount * prices[2]) / 10 ** (18 - assetDecimal) / prices[0];
         if (assetDecimal > collateralDecimal) {
             precisionComplement = 10 ** (assetDecimal - collateralDecimal);
-            return (
-                prices[0],
-                prices[1] * precisionComplement,
-                (ethAmount * prices[2] * precisionComplement) / prices[0]
-            );
+            return (prices[0], prices[1] * precisionComplement, ethAmount);
         }
         precisionComplement = 10 ** (collateralDecimal - assetDecimal);
-        return (prices[0] * precisionComplement, prices[1], (ethAmount * prices[2]) / prices[0] / precisionComplement);
+        return (prices[0] * precisionComplement, prices[1], ethAmount);
     }
 
     function _getLiquidationAmount(
