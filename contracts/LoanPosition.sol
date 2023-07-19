@@ -16,6 +16,7 @@ import {ILiquidateCallbackReceiver} from "./interfaces/ILiquidateCallbackReceive
 import {ICouponOracle} from "./interfaces/ICouponOracle.sol";
 import {Coupon} from "./libraries/Coupon.sol";
 import {Epoch} from "./libraries/Epoch.sol";
+import {Errors} from "./Errors.sol";
 import {ICouponManager} from "./interfaces/ICouponManager.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -153,9 +154,12 @@ contract LoanPosition is ILoanPosition, ERC721Permit, Ownable {
         );
 
         if (block.timestamp > loan.expiredAt) {
-            repayAmount = loan.debtAmount;
-            if (repayAmount > maxRepayAmount) {
-                repayAmount = maxRepayAmount;
+            unchecked {
+                if (maxRepayAmount >= loan.debtAmount) repayAmount = loan.debtAmount;
+                else if (maxRepayAmount + minDebtValue > loan.debtAmount) {
+                    require(loan.debtAmount >= minDebtValue, Errors.TOO_SMALL_DEBT);
+                    repayAmount = loan.debtAmount - minDebtValue;
+                } else repayAmount = maxRepayAmount;
             }
 
             liquidationAmount = Math.ceilDiv(
@@ -189,7 +193,7 @@ contract LoanPosition is ILoanPosition, ERC721Permit, Ownable {
             uint256 newRepayAmount = Math.min(repayAmount, maxRepayAmount);
             if (loan.debtAmount <= newRepayAmount + minDebtValue) {
                 newRepayAmount = loan.debtAmount;
-                require(newRepayAmount <= maxRepayAmount, "SMALL_LIQUIDATION");
+                require(newRepayAmount <= maxRepayAmount, Errors.TOO_SMALL_DEBT);
             }
 
             if (newRepayAmount != repayAmount) {
@@ -197,8 +201,8 @@ contract LoanPosition is ILoanPosition, ERC721Permit, Ownable {
                     newRepayAmount * assetPrice * _RATE_PRECISION,
                     collateralPrice * (_RATE_PRECISION - liquidationFee)
                 );
+                repayAmount = newRepayAmount;
             }
-            repayAmount = newRepayAmount;
             protocolFeeAmount = (liquidationAmount * liquidationProtocolFee) / _RATE_PRECISION;
             liquidationAmount -= protocolFeeAmount;
         }
