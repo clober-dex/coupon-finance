@@ -1,11 +1,8 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 pragma solidity ^0.8.0;
 
 interface ICouponOracle {
-    function oracle() external view returns (address);
-
-    function weth() external view returns (address);
-
     /**
      * @notice Returns the asset price in the base currency
      * @param asset The address of the asset

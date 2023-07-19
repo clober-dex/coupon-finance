@@ -5,12 +5,12 @@ import {IAaveOracle} from "./external/aave-v3/IAaveOracle.sol";
 import "./interfaces/ICouponOracle.sol";
 
 contract CouponOracle is ICouponOracle {
-    address public immutable override oracle;
-    address public immutable override weth;
+    address private immutable _oracle;
+    address private immutable _weth;
 
     constructor(address oracle_, address weth_) {
-        oracle = oracle_;
-        weth = weth_;
+        _oracle = oracle_;
+        _weth = weth_;
     }
 
     /**
@@ -19,7 +19,7 @@ contract CouponOracle is ICouponOracle {
      * @return The price of the asset
      */
     function getAssetPrice(address asset) external view returns (uint256) {
-        return IAaveOracle(oracle).getAssetPrice(asset == address(0) ? weth : asset);
+        return IAaveOracle(_oracle).getAssetPrice(asset == address(0) ? _weth : asset);
     }
 
     /**
@@ -31,9 +31,9 @@ contract CouponOracle is ICouponOracle {
         uint256 length = assets.length;
         unchecked {
             for (uint256 i = 0; i < length; ++i) {
-                if (assets[i] == address(0)) assets[i] = weth;
+                if (assets[i] == address(0)) assets[i] = _weth;
             }
         }
-        return IAaveOracle(oracle).getAssetsPrices(assets);
+        return IAaveOracle(_oracle).getAssetsPrices(assets);
     }
 }

@@ -45,7 +45,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionManagerEvents, ERC1155Holder
         usdc.mint(address(this), usdc.amount(2_000_000_000));
 
         assetPool = new MockAssetPool();
-        oracle = new MockOracle();
+        oracle = new MockOracle(address(weth));
         couponManager = new CouponManager(address(this), "URI/");
         loanPositionManager = new LoanPositionManager(
             address(couponManager),

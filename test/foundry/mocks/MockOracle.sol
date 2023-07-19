@@ -2,22 +2,20 @@
 
 pragma solidity ^0.8.0;
 
-import {IPriceOracleGetter} from "../../../contracts/external/aave-v3/IPriceOracleGetter.sol";
 import {Constants} from "../Constants.sol";
+import {ICouponOracle} from "../../../contracts/interfaces/ICouponOracle.sol";
 
-contract MockOracle is IPriceOracleGetter {
+contract MockOracle is ICouponOracle {
+    address private _weth;
+
     mapping(address => uint256) private _priceMap;
 
-    function BASE_CURRENCY() external pure returns (address) {
-        return address(0);
-    }
-
-    function BASE_CURRENCY_UNIT() external pure returns (uint256) {
-        return 100000000;
+    constructor(address weth_) {
+        _weth = weth_;
     }
 
     function getAssetPrice(address asset) external view override returns (uint256) {
-        return asset == address(0) ? _priceMap[Constants.MOCK_WETH] : _priceMap[asset];
+        return asset == address(0) ? _priceMap[_weth] : _priceMap[asset];
     }
 
     function getAssetsPrices(address[] calldata assets) external view returns (uint256[] memory prices) {
@@ -25,7 +23,7 @@ contract MockOracle is IPriceOracleGetter {
         prices = new uint256[](length);
         unchecked {
             for (uint256 i = 0; i < length; ++i) {
-                prices[i] = assets[i] == address(0) ? _priceMap[Constants.MOCK_WETH] : _priceMap[assets[i]];
+                prices[i] = assets[i] == address(0) ? _priceMap[_weth] : _priceMap[assets[i]];
             }
         }
     }
