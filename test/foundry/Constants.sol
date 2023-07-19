@@ -9,7 +9,7 @@ library Constants {
     address internal constant TREASURY = address(0xc0f1);
     address internal constant USER1 = address(0x1);
     address internal constant USER2 = address(0x2);
-    address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address internal constant MOCK_WETH = 0x5615dEB798BB3E4dFa0139dFa1b3D433Cc23b72f;
     address internal constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     address internal constant USDC_WHALE = 0xcEe284F754E854890e311e3280b767F80797180d;
     bytes32 internal constant PERMIT_TYPEHASH =
