@@ -7,8 +7,6 @@ interface IAssetPool {
 
     function totalReservedAmount(address asset) external view returns (uint256);
 
-    function reservedAmount(address asset) external view returns (uint256);
-
     function withdrawable(address asset) external view returns (uint256);
 
     function deposit(address asset, uint256 amount) external;
