@@ -62,7 +62,7 @@ interface ILoanPosition is IERC721Metadata, IERC721Permit, ILoanPositionEvents {
 
     function liquidate(uint256 tokenId, uint256 maxRepayAmount, bytes calldata data) external;
 
-    function claimCoupon(Types.Coupon[] memory coupons, bytes calldata data) external;
+    function claimOwedCoupons(Types.Coupon[] memory coupons, bytes calldata data) external;
 
     function burn(uint256 tokenId) external;
 }
