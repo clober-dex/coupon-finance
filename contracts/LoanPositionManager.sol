@@ -269,20 +269,23 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable {
         IERC20(position.debtToken).safeTransferFrom(msg.sender, assetPool, repayAmount);
         IAssetPool(assetPool).deposit(position.debtToken, repayAmount);
 
+        // Todo enhance performance
         unchecked {
             address couponOwner = ownerOf(tokenId);
             Types.Epoch epoch = Epoch.current();
-            uint256 length = position.expiredWith.sub(epoch) + 1;
-            Types.Coupon[] memory coupons = new Types.Coupon[](length);
-            for (uint256 i = 0; i < length; ++i) {
-                coupons[i] = Coupon.from(position.debtToken, epoch, repayAmount);
-                epoch = epoch.add(1);
-            }
-            try
-                ICouponManager(couponManager).safeBatchTransferFrom(address(this), ownerOf(tokenId), coupons, data)
-            {} catch {
+            if (epoch.compare(position.expiredWith) <= 0) {
+                uint256 length = position.expiredWith.sub(epoch);
+                Types.Coupon[] memory coupons = new Types.Coupon[](length);
                 for (uint256 i = 0; i < length; ++i) {
-                    couponOwed[couponOwner][coupons[i].id()] += coupons[i].amount;
+                    coupons[i] = Coupon.from(position.debtToken, epoch, repayAmount);
+                    epoch = epoch.add(1);
+                }
+                try
+                    ICouponManager(couponManager).safeBatchTransferFrom(address(this), ownerOf(tokenId), coupons, data)
+                {} catch {
+                    for (uint256 i = 0; i < length; ++i) {
+                        couponOwed[couponOwner][coupons[i].id()] += coupons[i].amount;
+                    }
                 }
             }
         }
