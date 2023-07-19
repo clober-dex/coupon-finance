@@ -110,6 +110,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionManagerEvents, ERC1155Holder
         coupons[0] = Coupon.from(address(usdc), startEpoch, initialDebtAmount);
         coupons[1] = Coupon.from(address(usdc), startEpoch.add(1), initialDebtAmount);
         _mintCoupons(address(this), coupons);
+        couponManager.setApprovalForAll(address(loanPositionManager), true);
 
         snapshotId = vm.snapshot();
         vm.expectEmit(true, true, true, true);
@@ -210,6 +211,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionManagerEvents, ERC1155Holder
         }
         _mintCoupons(address(this), coupons);
 
+        couponManager.setApprovalForAll(address(loanPositionManager), true);
         tokenId = loanPositionManager.mint(
             address(weth),
             address(usdc),
@@ -495,7 +497,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionManagerEvents, ERC1155Holder
         uint256 tokenId = _beforeAdjustPosition();
         Types.Epoch epoch = Epoch.current();
         vm.startPrank(address(0x123));
-        vm.expectRevert("ERC721: caller is not token owner or approved");
+        vm.expectRevert(bytes(Errors.ACCESS));
         loanPositionManager.adjustPosition(tokenId, 0, 0, epoch, new bytes(0));
         vm.stopPrank();
     }
