@@ -22,7 +22,7 @@ interface IBondPositionManager is IERC721Metadata, IERC721Permit, IBondPositionM
 
     function assetPool() external view returns (address);
 
-    function getPositions(uint256 tokenId) external view returns (Types.BondPosition memory);
+    function getPosition(uint256 tokenId) external view returns (Types.BondPosition memory);
 
     function isAssetRegistered(address asset) external view returns (bool);
 

@@ -9,7 +9,12 @@ import {IERC721Permit} from "./IERC721Permit.sol";
 
 interface ILoanPositionManagerEvents {
     event AssetRegistered(address indexed asset);
-    event PositionUpdated(uint256 indexed tokenId, uint256 collateralAmount, uint256 debtAmount, uint256 unlockedAt);
+    event PositionUpdated(
+        uint256 indexed tokenId,
+        uint256 collateralAmount,
+        uint256 debtAmount,
+        Types.Epoch unlockedAt
+    );
 }
 
 interface ILoanPositionManager is IERC721Metadata, IERC721Permit, ILoanPositionManagerEvents {
@@ -29,7 +34,7 @@ interface ILoanPositionManager is IERC721Metadata, IERC721Permit, ILoanPositionM
 
     function couponOwed(address user, uint256 couponId) external view returns (uint256);
 
-    function getLoans(uint256 tokenId) external view returns (Types.LoanPosition memory);
+    function getPosition(uint256 tokenId) external view returns (Types.LoanPosition memory);
 
     function isAssetRegistered(address asset) external view returns (bool);
 

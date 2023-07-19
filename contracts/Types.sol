@@ -18,7 +18,7 @@ library Types {
         address debtToken;
         uint256 collateralAmount;
         uint256 debtAmount;
-        uint256 expiredAt;
+        Epoch expiredWith;
     }
 
     // liquidationFee = liquidator fee + protocol fee

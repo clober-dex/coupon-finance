@@ -47,7 +47,7 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
         }
     }
 
-    function getPositions(uint256 tokenId) external view returns (Types.BondPosition memory) {
+    function getPosition(uint256 tokenId) external view returns (Types.BondPosition memory) {
         return _positionMap[tokenId];
     }
 

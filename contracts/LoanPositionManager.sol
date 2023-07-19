@@ -41,7 +41,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable {
 
     mapping(address user => mapping(uint256 couponId => uint256)) public override couponOwed;
     mapping(address asset => Types.AssetLoanConfiguration) private _assetConfig;
-    mapping(uint256 id => Types.LoanPosition) private _loanMap;
+    mapping(uint256 id => Types.LoanPosition) private _positionMap;
 
     constructor(
         address couponManager_,
@@ -59,8 +59,8 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable {
         minDebtValueInEth = minDebtValueInEth_;
     }
 
-    function getLoans(uint256 tokenId) external view returns (Types.LoanPosition memory) {
-        return _loanMap[tokenId];
+    function getPosition(uint256 tokenId) external view returns (Types.LoanPosition memory) {
+        return _positionMap[tokenId];
     }
 
     function isAssetRegistered(address asset) external view returns (bool) {
@@ -141,7 +141,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable {
             minDebtValueInEth
         );
 
-        if (block.timestamp > loan.expiredAt) {
+        if (loan.expiredWith.isExpired()) {
             unchecked {
                 if (maxRepayAmount >= loan.debtAmount) repayAmount = loan.debtAmount;
                 else if (maxRepayAmount + minDebtValue > loan.debtAmount) {
@@ -212,7 +212,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable {
         uint256 maxRepayAmount
     ) external view returns (Types.LiquidationStatus memory) {
         (uint256 liquidationAmount, uint256 repayAmount, ) = _getLiquidationAmount(
-            _loanMap[tokenId],
+            _positionMap[tokenId],
             maxRepayAmount > 0 ? maxRepayAmount : type(uint256).max
         );
         return Types.LiquidationStatus({liquidationAmount: liquidationAmount, repayAmount: repayAmount});
@@ -241,7 +241,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable {
     }
 
     function liquidate(uint256 tokenId, uint256 maxRepayAmount, bytes calldata data) external {
-        Types.LoanPosition memory loan = _loanMap[tokenId];
+        Types.LoanPosition memory loan = _positionMap[tokenId];
         (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount) = _getLiquidationAmount(
             loan,
             maxRepayAmount > 0 ? maxRepayAmount : type(uint256).max
@@ -250,8 +250,8 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable {
         require(liquidationAmount > 0, "LIQUIDATION_FAIL");
 
         unchecked {
-            _loanMap[tokenId].collateralAmount = loan.collateralAmount - liquidationAmount - protocolFeeAmount;
-            _loanMap[tokenId].debtAmount = loan.debtAmount - repayAmount;
+            _positionMap[tokenId].collateralAmount = loan.collateralAmount - liquidationAmount - protocolFeeAmount;
+            _positionMap[tokenId].debtAmount = loan.debtAmount - repayAmount;
         }
 
         IAssetPool(assetPool).withdraw(loan.collateralToken, liquidationAmount, msg.sender);
@@ -272,7 +272,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable {
         unchecked {
             address couponOwner = ownerOf(tokenId);
             Types.Epoch epoch = Epoch.current();
-            uint256 length = Epoch.fromTimestamp(loan.expiredAt).sub(epoch) + 1;
+            uint256 length = loan.expiredWith.sub(epoch) + 1;
             Types.Coupon[] memory coupons = new Types.Coupon[](length);
             for (uint256 i = 0; i < length; ++i) {
                 coupons[i] = Coupon.from(loan.debtToken, epoch, repayAmount);
@@ -306,6 +306,6 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable {
     }
 
     function _getAndIncrementNonce(uint256 tokenId) internal override returns (uint256) {
-        return _loanMap[tokenId].nonce++;
+        return _positionMap[tokenId].nonce++;
     }
 }
