@@ -287,7 +287,7 @@ contract LoanPosition is ILoanPosition, ERC721Permit, Ownable {
         }
     }
 
-    function claimCoupon(Coupon[] coupons, bytes calldata data) external {
+    function claimCoupon(Types.Coupon[] memory coupons, bytes calldata data) external {
         ICouponManager(coupon).safeBatchTransferFrom(address(this), msg.sender, coupons, data);
     }
 
