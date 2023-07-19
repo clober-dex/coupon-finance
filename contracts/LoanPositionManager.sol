@@ -232,8 +232,8 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable {
 
     function adjustPosition(
         uint256 tokenId,
-        int256 debtAmount,
-        int256 collateralAmount,
+        int256 collateralAmountDiff,
+        int256 debtAmountDiff,
         int256 loanEpochs,
         bytes calldata data
     ) external {
