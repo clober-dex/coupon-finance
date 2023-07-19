@@ -248,17 +248,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable {
 
         Types.Epoch expiredWith = Epoch.wrap(uint16(loanEpochs));
 
-        unchecked {
-            Types.Epoch epoch = Epoch.current();
-            uint256 length = expiredWith.sub(epoch);
-            Types.Coupon[] memory coupons = new Types.Coupon[](length);
-            for (uint256 i = 0; i < length; ++i) {
-                coupons[i] = Coupon.from(debtToken, epoch, debtAmount);
-                epoch = epoch.add(1);
-            }
-            ICouponManager(couponManager).safeBatchTransferFrom(msg.sender, address(this), coupons, new bytes(0));
-        }
-
+        // Todo nonce?
         _positionMap[currentId] = Types.LoanPosition({
             nonce: 0,
             collateralToken: collateralToken,
