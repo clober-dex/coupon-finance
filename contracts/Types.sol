@@ -42,7 +42,6 @@ library Types {
     }
 
     struct LiquidationStatus {
-        bool available;
         uint256 liquidationAmount;
         uint256 repayAmount;
     }

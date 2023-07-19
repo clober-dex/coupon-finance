@@ -216,12 +216,7 @@ contract LoanPosition is ILoanPosition, ERC721Permit, Ownable {
             _loanMap[tokenId],
             maxRepayAmount > 0 ? maxRepayAmount : type(uint256).max
         );
-        return
-            Types.LiquidationStatus({
-                available: liquidationAmount > 0,
-                liquidationAmount: liquidationAmount,
-                repayAmount: repayAmount
-            });
+        return Types.LiquidationStatus({liquidationAmount: liquidationAmount, repayAmount: repayAmount});
     }
 
     function mint(
