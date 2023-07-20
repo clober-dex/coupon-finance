@@ -10,8 +10,8 @@ interface ILoanPositionCallbackReceiver {
         Types.LoanPosition memory position,
         int256 collateralPositionChange,
         int256 debtPositionChange,
-        Types.Coupon[] memory couponsMinted,
-        Types.Coupon[] memory couponsToBurn,
+        Types.Coupon[] memory couponsToPay,
+        Types.Coupon[] memory couponsRefunded,
         bytes calldata data
     ) external;
 }

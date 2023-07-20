@@ -277,7 +277,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         if (data.length > 0) {
             ILoanPositionCallbackReceiver(msg.sender).loanPositionAdjustCallback(
                 tokenId,
-                newPosition,
+                position,
                 int256(collateralAmount),
                 int256(debtAmount),
                 coupons,
@@ -291,7 +291,6 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         ICouponManager(couponManager).safeBatchTransferFrom(msg.sender, address(this), coupons, data);
     }
 
-    // Todo Progressing
     function adjustPosition(
         uint256 tokenId,
         uint256 collateralAmount,
@@ -304,20 +303,19 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         Types.LoanPosition memory oldPosition = _positionMap[tokenId];
         Types.Epoch latestExpiredEpoch = Epoch.current().sub(1);
         require(oldPosition.expiredWith.compare(latestExpiredEpoch) > 0, Errors.INVALID_EPOCH);
-        Types.LoanPosition memory newPosition = oldPosition.adjustPosition(
-            collateralAmount,
-            debtAmount,
-            expiredWith,
-            latestExpiredEpoch
-        );
+        (
+            Types.LoanPosition memory newPosition,
+            Types.Coupon[] memory couponsToPay,
+            Types.Coupon[] memory couponsToRefund
+        ) = oldPosition.adjustPosition(collateralAmount, debtAmount, expiredWith, latestExpiredEpoch);
         _validatePosition(newPosition);
-
-        Types.Coupon[] memory couponsToPay;
-        Types.Coupon[] memory couponsToRefund;
 
         _positionMap[tokenId] = newPosition;
         emit PositionUpdated(tokenId, newPosition.collateralAmount, newPosition.debtAmount, newPosition.expiredWith);
 
+        if (couponsToRefund.length > 0) {
+            ICouponManager(couponManager).safeBatchTransferFrom(address(this), msg.sender, couponsToRefund, data);
+        }
         if (newPosition.debtAmount > oldPosition.debtAmount) {
             IAssetPool(assetPool).withdraw(
                 newPosition.debtToken,
@@ -339,8 +337,8 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
                 newPosition,
                 int256(newPosition.debtAmount) - int256(oldPosition.debtAmount),
                 int256(newPosition.collateralAmount) - int256(oldPosition.collateralAmount),
-                couponsToMint,
-                couponsToBurn,
+                couponsToPay,
+                couponsToRefund,
                 data
             );
         }
@@ -355,57 +353,9 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
             IERC20(newPosition.collateralToken).safeTransferFrom(msg.sender, assetPool, addCollateralAmount);
             IAssetPool(assetPool).deposit(newPosition.collateralToken, addCollateralAmount);
         }
-
-        //                int256 result = expiredWith.compare(oldPosition.expiredWith);
-        //                Types.Epoch epoch = Epoch.current();
-        //                Types.Coupon[] memory coupons;
-        //                if (result > 0) {
-        //                    uint256 length = oldPosition.expiredWith.sub(epoch);
-        //                    coupons = new Types.Coupon[](expiredWith.sub(epoch));
-        //                    if (debtAmount > oldPosition.debtAmount) {
-        //                        for (uint256 i = 0; i < length; ++i) {
-        //                            coupons[i] = Coupon.from(oldPosition.debtToken, epoch, debtAmount - oldPosition.debtAmount);
-        //                            epoch = epoch.add(1);
-        //                        }
-        //                    } else if (debtAmount < oldPosition.debtAmount) {
-        //                        for (uint256 i = 0; i < length; ++i) {
-        //                            // Todo minus coupon amount
-        //                            coupons[i] = Coupon.from(oldPosition.debtToken, epoch, debtAmount - oldPosition.debtAmount);
-        //                            epoch = epoch.add(1);
-        //                        }
-        //                    }
-        //                    length = expiredWith.sub(epoch);
-        //                    for (uint256 i = 0; i < length; ++i) {
-        //                        coupons[i] = Coupon.from(oldPosition.debtToken, epoch, debtAmount);
-        //                        epoch = epoch.add(1);
-        //                    }
-        //                } else if (result < 0) {
-        //                    uint256 length = oldPosition.expiredWith.sub(epoch);
-        //                    coupons = new Types.Coupon[](oldPosition.expiredWith.sub(epoch));
-        //                    if (debtAmount > oldPosition.debtAmount) {
-        //                        for (uint256 i = 0; i < length; ++i) {
-        //                            coupons[i] = Coupon.from(oldPosition.debtToken, epoch, debtAmount - oldPosition.debtAmount);
-        //                            epoch = epoch.add(1);
-        //                        }
-        //                    } else if (debtAmount < oldPosition.debtAmount) {
-        //                        for (uint256 i = 0; i < length; ++i) {
-        //                            // Todo minus coupon amount
-        //                            coupons[i] = Coupon.from(oldPosition.debtToken, epoch, debtAmount - oldPosition.debtAmount);
-        //                            epoch = epoch.add(1);
-        //                        }
-        //                    }
-        //                    length = expiredWith.sub(epoch);
-        //                    for (uint256 i = 0; i < length; ++i) {
-        //                        coupons[i] = Coupon.from(oldPosition.debtToken, epoch, 0 - oldPosition.debtAmount);
-        //                        epoch = epoch.add(1);
-        //                    }
-        //                }
-        //                try ICouponManager(couponManager).safeBatchTransferFrom(address(this), msg.sender, coupons, data) {} catch {
-        //                    uint256 length = coupons.length;
-        //                    for (uint256 i = 0; i < length; ++i) {
-        //                        couponOwed[msg.sender][coupons[i].id()] += coupons[i].amount;
-        //                    }
-        //                }
+        if (couponsToPay.length > 0) {
+            ICouponManager(couponManager).safeBatchTransferFrom(msg.sender, address(this), couponsToPay, data);
+        }
     }
 
     function liquidate(uint256 tokenId, uint256 maxRepayAmount, bytes calldata data) external {
