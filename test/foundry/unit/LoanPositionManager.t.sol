@@ -25,7 +25,7 @@ import {MockAssetPool} from "../mocks/MockAssetPool.sol";
 import {MockOracle} from "../mocks/MockOracle.sol";
 import {Constants} from "../Constants.sol";
 
-contract LoanPositionUnitTest is Test, ILoanPositionManagerEvents, ERC1155Holder, ERC721Holder {
+contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerEvents, ERC1155Holder, ERC721Holder {
     using Coupon for Types.Coupon;
     using Epoch for Types.Epoch;
 
