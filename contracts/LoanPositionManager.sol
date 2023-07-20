@@ -474,6 +474,4 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
     function _isAssetUnregistered(address asset) internal view returns (bool) {
         return _assetConfig[asset].liquidationThreshold == 0;
     }
-
-    // Todo implement ERC1155Holder?
 }
