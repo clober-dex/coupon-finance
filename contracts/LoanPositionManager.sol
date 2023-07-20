@@ -13,6 +13,7 @@ import {ERC1155Holder, ERC1155Receiver} from "@openzeppelin/contracts/token/ERC1
 import {ILoanPositionManager} from "./interfaces/ILoanPositionManager.sol";
 import {IAssetPool} from "./interfaces/IAssetPool.sol";
 import {ILiquidateCallbackReceiver} from "./interfaces/ILiquidateCallbackReceiver.sol";
+import {ILoanPositionCallbackReceiver} from "./interfaces/ILoanPositionCallbackReceiver.sol";
 import {ICouponOracle} from "./interfaces/ICouponOracle.sol";
 import {ICouponManager} from "./interfaces/ICouponManager.sol";
 import {ERC721Permit, IERC165} from "./libraries/ERC721Permit.sol";
@@ -274,7 +275,15 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         IAssetPool(assetPool).withdraw(debtToken, debtAmount, recipient);
 
         if (data.length > 0) {
-            // todo: callback
+            ILoanPositionCallbackReceiver(msg.sender).loanPositionAdjustCallback(
+                tokenId,
+                newPosition,
+                int256(collateralAmount),
+                int256(debtAmount),
+                coupons,
+                new Types.Coupon[](0),
+                data
+            );
         }
 
         IERC20(collateralToken).safeTransferFrom(msg.sender, assetPool, collateralAmount);
@@ -325,7 +334,15 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         }
 
         if (data.length > 0) {
-            // Todo add flash adjustPosition
+            ILoanPositionCallbackReceiver(msg.sender).loanPositionAdjustCallback(
+                tokenId,
+                newPosition,
+                int256(newPosition.debtAmount) - int256(oldPosition.debtAmount),
+                int256(newPosition.collateralAmount) - int256(oldPosition.collateralAmount),
+                couponsToMint,
+                couponsToBurn,
+                data
+            );
         }
 
         if (newPosition.debtAmount < oldPosition.debtAmount) {
