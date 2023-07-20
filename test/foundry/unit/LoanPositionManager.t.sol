@@ -4,8 +4,11 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 
-import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
+import {ERC1155Holder, IERC1155Receiver} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
+import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import {Errors} from "../../../contracts/Errors.sol";
 import {Types} from "../../../contracts/Types.sol";
@@ -13,6 +16,7 @@ import {LoanPositionManager} from "../../../contracts/LoanPositionManager.sol";
 import {CouponManager} from "../../../contracts/CouponManager.sol";
 import {ILoanPositionManager, ILoanPositionManagerEvents} from "../../../contracts/interfaces/ILoanPositionManager.sol";
 import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
+import {IERC721Permit} from "../../../contracts/interfaces/IERC721Permit.sol";
 import {Coupon} from "../../../contracts/libraries/Coupon.sol";
 import {Epoch} from "../../../contracts/libraries/Epoch.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
@@ -925,6 +929,14 @@ contract LoanPositionUnitTest is Test, ILoanPositionManagerEvents, ERC1155Holder
             true,
             true
         );
+    }
+
+    function testSupportsInterface() public {
+        assertTrue(loanPositionManager.supportsInterface(type(IERC721).interfaceId));
+        assertTrue(loanPositionManager.supportsInterface(type(IERC721Metadata).interfaceId));
+        assertTrue(loanPositionManager.supportsInterface(type(IERC1155Receiver).interfaceId));
+        assertTrue(loanPositionManager.supportsInterface(type(IERC165).interfaceId));
+        assertTrue(loanPositionManager.supportsInterface(type(IERC721Permit).interfaceId));
     }
 
     function assertEq(Types.Epoch e1, Types.Epoch e2, string memory err) internal {

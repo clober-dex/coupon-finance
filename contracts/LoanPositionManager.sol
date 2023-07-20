@@ -8,13 +8,14 @@ import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IER
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {ERC1155Holder, ERC1155Receiver} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 
 import {ILoanPositionManager} from "./interfaces/ILoanPositionManager.sol";
 import {IAssetPool} from "./interfaces/IAssetPool.sol";
 import {ILiquidateCallbackReceiver} from "./interfaces/ILiquidateCallbackReceiver.sol";
 import {ICouponOracle} from "./interfaces/ICouponOracle.sol";
 import {ICouponManager} from "./interfaces/ICouponManager.sol";
-import {ERC721Permit} from "./libraries/ERC721Permit.sol";
+import {ERC721Permit, IERC165} from "./libraries/ERC721Permit.sol";
 import {ReentrancyGuard} from "./libraries/ReentrancyGuard.sol";
 import {CouponKey} from "./libraries/CouponKey.sol";
 import {Coupon} from "./libraries/Coupon.sol";
@@ -22,7 +23,7 @@ import {Epoch} from "./libraries/Epoch.sol";
 import {Types} from "./Types.sol";
 import {Errors} from "./Errors.sol";
 
-contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable {
+contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC1155Holder {
     using SafeERC20 for IERC20;
     using CouponKey for Types.CouponKey;
     using Coupon for Types.Coupon;
@@ -478,18 +479,11 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable {
         return _positionMap[tokenId].nonce++;
     }
 
-    // Todo implement ERC1155Holder?
-    function onERC1155Received(address, address, uint256, uint256, bytes memory) public returns (bytes4) {
-        return this.onERC1155Received.selector;
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ERC721Permit, ERC1155Receiver, IERC165) returns (bool) {
+        return super.supportsInterface(interfaceId);
     }
 
-    function onERC1155BatchReceived(
-        address,
-        address,
-        uint256[] memory,
-        uint256[] memory,
-        bytes memory
-    ) public returns (bytes4) {
-        return this.onERC1155BatchReceived.selector;
-    }
+    // Todo implement ERC1155Holder?
 }

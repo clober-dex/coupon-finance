@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import {ChainId} from "./ChainId.sol";
 import {IERC721Permit} from "../interfaces/IERC721Permit.sol";
@@ -79,5 +80,9 @@ abstract contract ERC721Permit is ERC721, IERC721Permit {
         }
 
         _approve(spender, tokenId);
+    }
+
+    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721, IERC165) returns (bool) {
+        return interfaceId == type(IERC721Permit).interfaceId || super.supportsInterface(interfaceId);
     }
 }
