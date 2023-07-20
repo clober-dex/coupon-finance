@@ -6,6 +6,7 @@ pragma solidity ^0.8.0;
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {Types} from "../Types.sol";
+import {Errors} from "../Errors.sol";
 import {Epoch} from "./Epoch.sol";
 import {Coupon} from "./Coupon.sol";
 
@@ -46,7 +47,7 @@ library LoanPositionLibrary {
             expiredWith = latestExpiredEpoch;
         } else {
             if (latestExpiredEpoch.compare(expiredWith) >= 0) {
-                expiredWith = latestExpiredEpoch;
+                revert(Errors.UNPAID_DEBT);
             }
         }
 
