@@ -230,7 +230,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
             minDebtValueInEth
         );
 
-        require(minDebtValue <= position.debtAmount, Errors.TOO_SMALL_DEBT);
+        require(position.debtAmount == 0 || minDebtValue <= position.debtAmount, Errors.TOO_SMALL_DEBT);
         require(
             (position.collateralAmount * collateralPrice) * config.liquidationThreshold >=
                 position.debtAmount * debtPrice * _RATE_PRECISION,
