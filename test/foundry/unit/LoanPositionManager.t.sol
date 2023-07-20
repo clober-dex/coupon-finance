@@ -248,7 +248,6 @@ contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerEvents, ERC115
     function testAdjustPositionIncreaseDebtAndEpochs() public {
         uint256 tokenId = _beforeAdjustPosition();
         uint256 increaseAmount = usdc.amount(70);
-        uint256 loanEpochs = 2;
         uint256 debtAmount = initialDebtAmount + increaseAmount;
         Types.Epoch epoch = startEpoch.add(4);
 
@@ -401,7 +400,6 @@ contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerEvents, ERC115
         Types.Epoch epoch = startEpoch;
 
         uint256 beforeDebtBalance = usdc.balanceOf(address(this));
-        uint256 beforeCollateralBalance = weth.balanceOf(address(this));
         uint256 beforeLoanPositionBalance = loanPositionManager.balanceOf(address(this));
 
         Types.Coupon[] memory couponsToRefund = new Types.Coupon[](2);
@@ -423,16 +421,10 @@ contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerEvents, ERC115
         Types.LoanPosition memory position = loanPositionManager.getPosition(tokenId);
 
         assertEq(usdc.balanceOf(address(this)), beforeDebtBalance - decreaseAmount, "DEBT_BALANCE");
-        assertEq(
-            weth.balanceOf(address(this)),
-            beforeCollateralBalance + initialCollateralAmount,
-            "COLLATERAL_BALANCE"
-        );
-        assertEq(loanPositionManager.balanceOf(address(this)), beforeLoanPositionBalance - 1, "LOAN_POSITION_BALANCE");
+        assertEq(loanPositionManager.balanceOf(address(this)), beforeLoanPositionBalance, "LOAN_POSITION_BALANCE");
+        assertEq(position.collateralAmount, initialCollateralAmount, "COLLATERAL_AMOUNT");
         assertEq(position.debtAmount, debtAmount, "DEBT_AMOUNT");
         assertEq(position.expiredWith, epoch, "EXPIRED_WITH");
-        vm.expectRevert("ERC721: invalid token ID");
-        loanPositionManager.ownerOf(tokenId);
     }
 
     function testAdjustPositionIncreaseCollateral() public {
