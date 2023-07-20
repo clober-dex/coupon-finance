@@ -690,10 +690,7 @@ contract LoanPositionUnitTest is Test, ILoanPositionManagerEvents, ERC1155Holder
         oracle.setAssetPrice(address(weth), price);
 
         vm.expectRevert(bytes(Errors.TOO_SMALL_DEBT));
-        Types.LiquidationStatus memory liquidationStatus = loanPositionManager.getLiquidationStatus(
-            tokenId,
-            maxRepayAmount
-        );
+        loanPositionManager.getLiquidationStatus(tokenId, maxRepayAmount);
 
         vm.expectRevert(bytes(Errors.TOO_SMALL_DEBT));
         loanPositionManager.liquidate(tokenId, maxRepayAmount, new bytes(0));
