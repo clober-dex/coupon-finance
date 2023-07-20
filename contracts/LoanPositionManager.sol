@@ -419,14 +419,13 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         }
         IERC20(position.debtToken).safeTransferFrom(msg.sender, assetPool, repayAmount);
         IAssetPool(assetPool).deposit(position.debtToken, repayAmount);
+        emit PositionLiquidated(tokenId);
 
-        // Todo enhance performance
         unchecked {
             address couponOwner = ownerOf(tokenId);
             Types.Epoch epoch = Epoch.current();
-            int256 result = position.expiredWith.compare(epoch);
-            if (result >= 0) {
-                uint256 length = uint256(result) + 1;
+            if (position.expiredWith.compare(epoch) >= 0) {
+                uint256 length = position.expiredWith.sub(epoch) + 1;
                 Types.Coupon[] memory coupons = new Types.Coupon[](length);
                 for (uint256 i = 0; i < length; ++i) {
                     coupons[i] = Coupon.from(position.debtToken, epoch, repayAmount);
@@ -441,7 +440,6 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
                 }
             }
         }
-        emit PositionLiquidated(tokenId);
     }
 
     function claimOwedCoupons(Types.CouponKey[] memory couponKeys, bytes calldata data) external {
