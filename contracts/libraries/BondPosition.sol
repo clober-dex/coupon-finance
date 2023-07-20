@@ -3,8 +3,11 @@
 
 pragma solidity ^0.8.0;
 
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+
 import {Types} from "../Types.sol";
 import {Epoch} from "./Epoch.sol";
+import {Coupon} from "./Coupon.sol";
 
 library BondPositionLibrary {
     using Epoch for Types.Epoch;
@@ -26,18 +29,74 @@ library BondPositionLibrary {
         uint256 amount,
         Types.Epoch expiredWith,
         Types.Epoch minEpoch
-    ) internal pure returns (Types.BondPosition memory adjustedPosition) {
-        adjustedPosition = clone(position);
-
-        adjustedPosition.amount = amount;
-
+    ) internal pure returns (Types.BondPosition memory, Types.Coupon[] memory, Types.Coupon[] memory) {
         if (amount == 0) {
-            adjustedPosition.expiredWith = minEpoch;
+            expiredWith = minEpoch;
         } else {
             if (minEpoch.compare(expiredWith) >= 0) {
                 expiredWith = minEpoch;
             }
-            adjustedPosition.expiredWith = expiredWith;
+        }
+
+        (uint256 mintCouponsLength, uint256 burnCouponsLength) = _calculateCouponCount(
+            position,
+            amount,
+            expiredWith,
+            minEpoch
+        );
+        Types.Coupon[] memory mintCoupons = new Types.Coupon[](mintCouponsLength);
+        Types.Coupon[] memory burnCoupons = new Types.Coupon[](burnCouponsLength);
+        mintCouponsLength = 0;
+        burnCouponsLength = 0;
+        uint16 farthestExpiredEpochs = expiredWith.max(position.expiredWith).sub(minEpoch);
+        for (uint16 i = 0; i < farthestExpiredEpochs; ++i) {
+            minEpoch = minEpoch.add(1); // reuse minEpoch as epoch
+            (uint256 mintAmount, uint256 burnAmount) = _calculateCouponAmount(position, amount, expiredWith, minEpoch);
+            if (mintAmount > 0) {
+                mintCoupons[mintCouponsLength++] = Coupon.from(position.asset, minEpoch, mintAmount);
+            }
+            if (burnAmount > 0) {
+                burnCoupons[burnCouponsLength++] = Coupon.from(position.asset, minEpoch, burnAmount);
+            }
+        }
+        position.amount = amount;
+        position.expiredWith = expiredWith;
+        return (position, mintCoupons, burnCoupons);
+    }
+
+    function _calculateCouponCount(
+        Types.BondPosition memory position,
+        uint256 amount,
+        Types.Epoch expiredWith,
+        Types.Epoch minEpoch
+    ) private pure returns (uint256 mintCount, uint256 burnCount) {
+        mintCount = expiredWith.sub(minEpoch);
+        burnCount = position.expiredWith.sub(minEpoch);
+        unchecked {
+            uint256 minCount = Math.min(mintCount, burnCount);
+            if (amount > position.amount) {
+                burnCount -= minCount;
+            } else if (amount < position.amount) {
+                mintCount -= minCount;
+            } else {
+                mintCount -= minCount;
+                burnCount -= minCount;
+            }
+        }
+    }
+
+    function _calculateCouponAmount(
+        Types.BondPosition memory position,
+        uint256 amount,
+        Types.Epoch expiredWith,
+        Types.Epoch epoch
+    ) private pure returns (uint256 mintAmount, uint256 burnAmount) {
+        uint256 newAmount = expiredWith.compare(epoch) < 0 ? 0 : amount;
+        uint256 oldAmount = position.expiredWith.compare(epoch) < 0 ? 0 : position.amount;
+        if (newAmount > oldAmount) {
+            mintAmount = newAmount - oldAmount;
+        } else if (newAmount < oldAmount) {
+            burnAmount = oldAmount - newAmount;
         }
     }
 

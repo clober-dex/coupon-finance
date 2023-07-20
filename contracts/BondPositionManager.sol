@@ -88,30 +88,11 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
         Types.Epoch latestExpiredEpoch = Epoch.current().sub(1);
         require(oldPosition.expiredWith.compare(latestExpiredEpoch) > 0, Errors.INVALID_EPOCH);
         address asset = oldPosition.asset;
-        Types.BondPosition memory newPosition = oldPosition.adjustPosition(amount, expiredWith, latestExpiredEpoch);
-
-        Types.Coupon[] memory couponsToMint;
-        Types.Coupon[] memory couponsToBurn;
-        if (newPosition.amount == oldPosition.amount) {
-            int256 comparisonResult = newPosition.compareEpoch(oldPosition);
-            if (comparisonResult > 0) {
-                couponsToMint = new Types.Coupon[](newPosition.expiredWith.sub(oldPosition.expiredWith));
-                for (uint16 i = 0; i < couponsToBurn.length; ++i) {
-                    couponsToMint[i] = Coupon.from(asset, oldPosition.expiredWith.add(i + 1), newPosition.amount);
-                }
-            } else {
-                couponsToBurn = new Types.Coupon[](oldPosition.expiredWith.sub(newPosition.expiredWith));
-                for (uint16 i = 0; i < couponsToBurn.length; ++i) {
-                    couponsToBurn[i] = Coupon.from(asset, newPosition.expiredWith.add(i + 1), oldPosition.amount);
-                }
-            }
-        } else {
-            if (newPosition.amount > oldPosition.amount) {
-                (couponsToMint, couponsToBurn) = _diffInCoupons(newPosition, oldPosition, latestExpiredEpoch, asset);
-            } else {
-                (couponsToBurn, couponsToMint) = _diffInCoupons(oldPosition, newPosition, latestExpiredEpoch, asset);
-            }
-        }
+        (
+            Types.BondPosition memory newPosition,
+            Types.Coupon[] memory couponsToMint,
+            Types.Coupon[] memory couponsToBurn
+        ) = oldPosition.clone().adjustPosition(amount, expiredWith, latestExpiredEpoch);
 
         _positionMap[tokenId] = newPosition;
         emit PositionUpdated(tokenId, newPosition.amount, newPosition.expiredWith);
@@ -171,36 +152,5 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
 
     function _getAndIncrementNonce(uint256 tokenId) internal override returns (uint256) {
         return _positionMap[tokenId].getAndIncrementNonce();
-    }
-
-    function _diffInCoupons(
-        Types.BondPosition memory largeAmountPosition,
-        Types.BondPosition memory smallAmountPosition,
-        Types.Epoch latestExpiredEpoch,
-        address asset
-    ) internal pure returns (Types.Coupon[] memory couponsToMint, Types.Coupon[] memory couponsToBurn) {
-        // @dev always satisfy below condition
-        // require(largeAmountBond.amount >= smallAmountBond.amount);
-
-        couponsToMint = new Types.Coupon[](largeAmountPosition.expiredWith.sub(latestExpiredEpoch));
-        uint256 amountDiff = largeAmountPosition.amount - smallAmountPosition.amount;
-        for (uint16 i = 0; i < couponsToMint.length; ++i) {
-            Types.Epoch epoch = latestExpiredEpoch.add(i + 1);
-            if (epoch.compare(smallAmountPosition.expiredWith) > 0) {
-                couponsToMint[i] = Coupon.from(asset, epoch, largeAmountPosition.amount);
-            } else {
-                couponsToMint[i] = Coupon.from(asset, epoch, amountDiff);
-            }
-        }
-        if (smallAmountPosition.compareEpoch(largeAmountPosition) > 0) {
-            couponsToBurn = new Types.Coupon[](smallAmountPosition.expiredWith.sub(largeAmountPosition.expiredWith));
-            for (uint16 i = 0; i < couponsToBurn.length; ++i) {
-                couponsToBurn[i] = Coupon.from(
-                    asset,
-                    largeAmountPosition.expiredWith.add(i + 1),
-                    smallAmountPosition.amount
-                );
-            }
-        }
     }
 }
