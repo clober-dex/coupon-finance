@@ -425,8 +425,8 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
             address couponOwner = ownerOf(tokenId);
             Types.Epoch epoch = Epoch.current();
             int256 result = position.expiredWith.compare(epoch);
-            if (result > 0) {
-                uint256 length = uint256(result);
+            if (result >= 0) {
+                uint256 length = uint256(result) + 1;
                 Types.Coupon[] memory coupons = new Types.Coupon[](length);
                 for (uint256 i = 0; i < length; ++i) {
                     coupons[i] = Coupon.from(position.debtToken, epoch, repayAmount);
