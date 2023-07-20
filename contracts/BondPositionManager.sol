@@ -92,7 +92,7 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
             Types.BondPosition memory newPosition,
             Types.Coupon[] memory couponsToMint,
             Types.Coupon[] memory couponsToBurn
-        ) = oldPosition.clone().adjustPosition(amount, expiredWith, latestExpiredEpoch);
+        ) = oldPosition.adjustPosition(amount, expiredWith, latestExpiredEpoch);
 
         _positionMap[tokenId] = newPosition;
         emit PositionUpdated(tokenId, newPosition.amount, newPosition.expiredWith);

@@ -28,13 +28,14 @@ library BondPositionLibrary {
         Types.BondPosition memory position,
         uint256 amount,
         Types.Epoch expiredWith,
-        Types.Epoch minEpoch
+        Types.Epoch latestExpiredEpoch
     ) internal pure returns (Types.BondPosition memory, Types.Coupon[] memory, Types.Coupon[] memory) {
+        position = clone(position);
         if (amount == 0) {
-            expiredWith = minEpoch;
+            expiredWith = latestExpiredEpoch;
         } else {
-            if (minEpoch.compare(expiredWith) >= 0) {
-                expiredWith = minEpoch;
+            if (latestExpiredEpoch.compare(expiredWith) >= 0) {
+                expiredWith = latestExpiredEpoch;
             }
         }
 
@@ -42,21 +43,26 @@ library BondPositionLibrary {
             position,
             amount,
             expiredWith,
-            minEpoch
+            latestExpiredEpoch
         );
         Types.Coupon[] memory mintCoupons = new Types.Coupon[](mintCouponsLength);
         Types.Coupon[] memory burnCoupons = new Types.Coupon[](burnCouponsLength);
         mintCouponsLength = 0;
         burnCouponsLength = 0;
-        uint16 farthestExpiredEpochs = expiredWith.max(position.expiredWith).sub(minEpoch);
+        uint16 farthestExpiredEpochs = expiredWith.max(position.expiredWith).sub(latestExpiredEpoch);
         for (uint16 i = 0; i < farthestExpiredEpochs; ++i) {
-            minEpoch = minEpoch.add(1); // reuse minEpoch as epoch
-            (uint256 mintAmount, uint256 burnAmount) = _calculateCouponAmount(position, amount, expiredWith, minEpoch);
+            latestExpiredEpoch = latestExpiredEpoch.add(1); // reuse minEpoch as epoch
+            (uint256 mintAmount, uint256 burnAmount) = _calculateCouponAmount(
+                position,
+                amount,
+                expiredWith,
+                latestExpiredEpoch
+            );
             if (mintAmount > 0) {
-                mintCoupons[mintCouponsLength++] = Coupon.from(position.asset, minEpoch, mintAmount);
+                mintCoupons[mintCouponsLength++] = Coupon.from(position.asset, latestExpiredEpoch, mintAmount);
             }
             if (burnAmount > 0) {
-                burnCoupons[burnCouponsLength++] = Coupon.from(position.asset, minEpoch, burnAmount);
+                burnCoupons[burnCouponsLength++] = Coupon.from(position.asset, latestExpiredEpoch, burnAmount);
             }
         }
         position.amount = amount;
@@ -68,10 +74,10 @@ library BondPositionLibrary {
         Types.BondPosition memory position,
         uint256 amount,
         Types.Epoch expiredWith,
-        Types.Epoch minEpoch
+        Types.Epoch latestExpiredEpoch
     ) private pure returns (uint256 mintCount, uint256 burnCount) {
-        mintCount = expiredWith.sub(minEpoch);
-        burnCount = position.expiredWith.sub(minEpoch);
+        mintCount = expiredWith.sub(latestExpiredEpoch);
+        burnCount = position.expiredWith.sub(latestExpiredEpoch);
         unchecked {
             uint256 minCount = Math.min(mintCount, burnCount);
             if (amount > position.amount) {
