@@ -71,7 +71,7 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
         _positionMap[tokenId] = position;
         emit PositionUpdated(tokenId, amount, expiredWith);
 
-        _safeMint(recipient, tokenId, data);
+        _mint(recipient, tokenId);
         ICouponManager(couponManager).mintBatch(recipient, coupons, data);
 
         if (data.length > 0) {
