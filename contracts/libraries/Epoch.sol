@@ -70,12 +70,11 @@ library Epoch {
 
     function compare(Types.Epoch a, Types.Epoch b) internal pure returns (int256) {
         unchecked {
-            uint256 unwrapedA = Types.Epoch.unwrap(a);
-            uint256 unwrapedB = Types.Epoch.unwrap(b);
-
             return
-                unwrapedA > unwrapedB ? int256(unwrapedA - unwrapedB) : unwrapedA < unwrapedB
-                    ? -int256(unwrapedB - unwrapedA)
+                Types.Epoch.unwrap(a) > Types.Epoch.unwrap(b)
+                    ? int256(1)
+                    : Types.Epoch.unwrap(a) < Types.Epoch.unwrap(b)
+                    ? int256(-1)
                     : int256(0);
         }
     }

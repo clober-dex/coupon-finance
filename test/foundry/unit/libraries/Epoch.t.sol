@@ -92,8 +92,8 @@ contract EpochUnitTest is Test {
         Types.Epoch b = Epoch.fromMonths(1234);
         Types.Epoch c = Epoch.fromMonths(1235);
         assertEq(a.compare(b), 0);
-        assertLe(a.compare(c), -1);
-        assertGe(c.compare(a), 1);
+        assertEq(a.compare(c), -1);
+        assertEq(c.compare(a), 1);
     }
 
     function testMax() public {
