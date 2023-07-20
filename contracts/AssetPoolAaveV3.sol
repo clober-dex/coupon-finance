@@ -31,25 +31,25 @@ contract AssetPoolAaveV3 is IAssetPool, Ownable {
     }
 
     function isAssetRegistered(address asset) public view returns (bool) {
-        return !_isUnregisteredAsset(asset);
+        return !_isAssetUnregistered(asset);
     }
 
     function withdrawable(address asset) external view returns (uint256) {
-        if (_isUnregisteredAsset(asset)) {
+        if (_isAssetUnregistered(asset)) {
             return 0;
         }
         return IERC20(asset).balanceOf(_aaveV3Pool.getReserveData(asset).aTokenAddress);
     }
 
     function claimableAmount(address asset) public view returns (uint256) {
-        if (_isUnregisteredAsset(asset)) {
+        if (_isAssetUnregistered(asset)) {
             return 0;
         }
         return IERC20(_aTokenMap[asset]).balanceOf(address(this)) - totalReservedAmount[asset];
     }
 
     function claim(address asset) external {
-        if (_isUnregisteredAsset(asset)) {
+        if (_isAssetUnregistered(asset)) {
             revert InvalidAsset();
         }
         uint256 amount = claimableAmount(asset);
@@ -57,7 +57,7 @@ contract AssetPoolAaveV3 is IAssetPool, Ownable {
     }
 
     function deposit(address asset, uint256 amount) external {
-        if (_isUnregisteredAsset(asset)) {
+        if (_isAssetUnregistered(asset)) {
             revert InvalidAsset();
         }
         if (!isOperator[msg.sender]) {
@@ -68,7 +68,7 @@ contract AssetPoolAaveV3 is IAssetPool, Ownable {
     }
 
     function withdraw(address asset, uint256 amount, address recipient) external {
-        if (_isUnregisteredAsset(asset)) {
+        if (_isAssetUnregistered(asset)) {
             revert InvalidAsset();
         }
         if (!isOperator[msg.sender]) {
@@ -113,7 +113,7 @@ contract AssetPoolAaveV3 is IAssetPool, Ownable {
         }
         // check if the asset is a registered aToken
         try IAToken(asset).UNDERLYING_ASSET_ADDRESS() returns (address underlyingAsset) {
-            if (!_isUnregisteredAsset(underlyingAsset)) {
+            if (!_isAssetUnregistered(underlyingAsset)) {
                 revert InvalidAsset();
             }
         } catch {}
@@ -121,7 +121,7 @@ contract AssetPoolAaveV3 is IAssetPool, Ownable {
         IERC20(asset).safeTransfer(recipient, IERC20(asset).balanceOf(address(this)));
     }
 
-    function _isUnregisteredAsset(address asset) internal view returns (bool) {
+    function _isAssetUnregistered(address asset) internal view returns (bool) {
         return _aTokenMap[asset] == address(0);
     }
 }

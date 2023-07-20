@@ -42,6 +42,8 @@ contract LoanPositionUnitTest is Test, ILoanPositionManagerEvents, ERC1155Holder
     uint256 public initialDebtAmount;
 
     function setUp() public {
+        vm.warp(Epoch.wrap(10).startTime());
+
         weth = new MockERC20("Collateral Token", "COL", 18);
         usdc = new MockERC20("USD coin", "USDC", 6);
 
@@ -116,19 +118,8 @@ contract LoanPositionUnitTest is Test, ILoanPositionManagerEvents, ERC1155Holder
         _mintCoupons(address(this), coupons);
         couponManager.setApprovalForAll(address(loanPositionManager), true);
 
-        snapshotId = vm.snapshot();
         vm.expectEmit(true, true, true, true);
         emit PositionUpdated(nextId, initialCollateralAmount, initialDebtAmount, epoch);
-        loanPositionManager.mint(
-            address(weth),
-            address(usdc),
-            initialCollateralAmount,
-            initialDebtAmount,
-            2,
-            Constants.USER1,
-            new bytes(0)
-        );
-        vm.revertTo(snapshotId);
         vm.expectCall(
             address(couponManager),
             abi.encodeCall(
@@ -202,6 +193,29 @@ contract LoanPositionUnitTest is Test, ILoanPositionManagerEvents, ERC1155Holder
             address(usdc),
             collateralAmount,
             debtAmount,
+            2,
+            Constants.USER1,
+            new bytes(0)
+        );
+    }
+
+    function testMintWithUnregisteredAsset() public {
+        vm.expectRevert(bytes(Errors.UNREGISTERED_ASSET));
+        loanPositionManager.mint(
+            address(0x23),
+            address(usdc),
+            initialCollateralAmount,
+            initialDebtAmount,
+            2,
+            Constants.USER1,
+            new bytes(0)
+        );
+        vm.expectRevert(bytes(Errors.UNREGISTERED_ASSET));
+        loanPositionManager.mint(
+            address(usdc),
+            address(0x123),
+            initialCollateralAmount,
+            initialDebtAmount,
             2,
             Constants.USER1,
             new bytes(0)

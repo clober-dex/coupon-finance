@@ -88,7 +88,7 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC115
         assertEq(position.expiredWith, expectedExpiredWith, "EXPIRED_WITH");
     }
 
-    function testMintWithUnregisteredToken() public {
+    function testMintWithUnregisteredAsset() public {
         vm.expectRevert(bytes(Errors.UNREGISTERED_ASSET));
         bondPositionManager.mint(address(0x123), initialAmount, 2, Constants.USER1, new bytes(0));
     }

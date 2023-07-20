@@ -20,6 +20,7 @@ import {ReentrancyGuard} from "./libraries/ReentrancyGuard.sol";
 import {CouponKey} from "./libraries/CouponKey.sol";
 import {Coupon} from "./libraries/Coupon.sol";
 import {Epoch} from "./libraries/Epoch.sol";
+import {LoanPositionLibrary} from "./libraries/LoanPosition.sol";
 import {Types} from "./Types.sol";
 import {Errors} from "./Errors.sol";
 
@@ -65,7 +66,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
     }
 
     function isAssetRegistered(address asset) external view returns (bool) {
-        return _assetConfig[asset].liquidationThreshold > 0;
+        return !_isAssetUnregistered(asset);
     }
 
     function getLoanConfiguration(address asset) external view returns (Types.AssetLoanConfiguration memory) {
@@ -219,74 +220,65 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         return Types.LiquidationStatus({liquidationAmount: liquidationAmount, repayAmount: repayAmount});
     }
 
-    // Todo Progressing
+    function _validatePosition(Types.LoanPosition memory position) internal view {
+        Types.AssetLoanConfiguration memory config = _getAssetConfig(position.debtToken, position.collateralToken);
+        (uint256 debtPrice, uint256 collateralPrice, uint256 minDebtValue) = _getPriceWithPrecisionAndEthAmountPerDebt(
+            position.debtToken,
+            position.collateralToken,
+            minDebtValueInEth
+        );
+
+        require(minDebtValue <= position.debtAmount, Errors.TOO_SMALL_DEBT);
+        require(
+            (position.collateralAmount * collateralPrice) * config.liquidationThreshold >=
+                position.debtAmount * debtPrice * _RATE_PRECISION,
+            Errors.LIQUIDATION_THRESHOLD
+        );
+    }
+
     function mint(
         address collateralToken,
         address debtToken,
         uint256 collateralAmount,
         uint256 debtAmount,
-        uint256 loanEpochs,
+        uint16 loanEpochs,
         address recipient,
         bytes calldata data
-    ) external returns (uint256) {
-        uint256 currentId = nextId;
+    ) external returns (uint256 tokenId) {
+        if (_isAssetUnregistered(collateralToken) || _isAssetUnregistered(debtToken)) {
+            revert(Errors.UNREGISTERED_ASSET);
+        }
+        require(loanEpochs > 0 && debtAmount > 0, Errors.EMPTY_INPUT);
+        tokenId = nextId++;
 
-        {
-            Types.AssetLoanConfiguration memory config = _getAssetConfig(debtToken, collateralToken);
-            (
-                uint256 assetPrice,
-                uint256 collateralPrice,
-                uint256 minDebtValue
-            ) = _getPriceWithPrecisionAndEthAmountPerDebt(debtToken, collateralToken, minDebtValueInEth);
+        Types.Epoch currentEpoch = Epoch.current();
 
-            require(minDebtValue <= debtAmount, Errors.TOO_SMALL_DEBT);
-            require(
-                (collateralAmount * collateralPrice) * config.liquidationThreshold >=
-                    debtAmount * assetPrice * _RATE_PRECISION,
-                Errors.LIQUIDATION_THRESHOLD
-            );
+        Types.LoanPosition memory position = LoanPositionLibrary.from(
+            currentEpoch.add(loanEpochs - 1),
+            collateralToken,
+            debtToken,
+            collateralAmount,
+            debtAmount
+        );
+        _validatePosition(position);
+        Types.Coupon[] memory coupons = new Types.Coupon[](loanEpochs);
+        for (uint16 i = 0; i < loanEpochs; ++i) {
+            coupons[i] = Coupon.from(debtToken, currentEpoch.add(i), debtAmount);
         }
 
-        Types.Epoch expiredWith = Epoch.wrap(uint16(loanEpochs));
+        _positionMap[tokenId] = position;
+        emit PositionUpdated(tokenId, collateralAmount, debtAmount, position.expiredWith);
 
-        // Todo nonce?
-        _positionMap[currentId] = Types.LoanPosition({
-            nonce: 0,
-            collateralToken: collateralToken,
-            debtToken: debtToken,
-            collateralAmount: collateralAmount,
-            debtAmount: debtAmount,
-            expiredWith: expiredWith
-        });
+        _mint(recipient, tokenId);
+        IAssetPool(assetPool).withdraw(debtToken, debtAmount, recipient);
 
-        emit PositionUpdated(nextId, collateralAmount, debtAmount, expiredWith);
-
-        if (data.length > 0) {} else {
-            if (debtAmount > 0) {
-                IAssetPool(assetPool).withdraw(debtToken, debtAmount, recipient);
-            }
-
-            if (collateralAmount > 0) {
-                IERC20(collateralToken).safeTransferFrom(msg.sender, assetPool, collateralAmount);
-                IAssetPool(assetPool).deposit(collateralToken, collateralAmount);
-            }
-
-            unchecked {
-                Types.Epoch epoch = Epoch.current();
-                uint256 length = expiredWith.sub(epoch);
-                Types.Coupon[] memory coupons = new Types.Coupon[](length);
-                for (uint256 i = 0; i < length; ++i) {
-                    coupons[i] = Coupon.from(debtToken, epoch, debtAmount);
-                    epoch = epoch.add(1);
-                }
-                ICouponManager(couponManager).safeBatchTransferFrom(msg.sender, address(this), coupons, new bytes(0));
-            }
+        if (data.length > 0) {
+            // todo: callback
         }
 
-        _mint(recipient, currentId);
-
-        nextId = currentId + 1;
-        return currentId;
+        IERC20(collateralToken).safeTransferFrom(msg.sender, assetPool, collateralAmount);
+        IAssetPool(assetPool).deposit(collateralToken, collateralAmount);
+        ICouponManager(couponManager).safeBatchTransferFrom(msg.sender, address(this), coupons, data);
     }
 
     // Todo Progressing
@@ -483,6 +475,10 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         bytes4 interfaceId
     ) public view virtual override(ERC721Permit, ERC1155Receiver, IERC165) returns (bool) {
         return super.supportsInterface(interfaceId);
+    }
+
+    function _isAssetUnregistered(address asset) internal view returns (bool) {
+        return _assetConfig[asset].liquidationThreshold == 0;
     }
 
     // Todo implement ERC1155Holder?
