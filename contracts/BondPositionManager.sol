@@ -92,8 +92,6 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
 
         Types.Coupon[] memory couponsToMint;
         Types.Coupon[] memory couponsToBurn;
-        uint256 assetToDeposit;
-        uint256 assetToWithdraw;
         if (newPosition.amount == oldPosition.amount) {
             int256 comparisonResult = newPosition.compareEpoch(oldPosition);
             if (comparisonResult > 0) {
@@ -110,10 +108,8 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
         } else {
             if (newPosition.amount > oldPosition.amount) {
                 (couponsToMint, couponsToBurn) = _diffInCoupons(newPosition, oldPosition, latestExpiredEpoch, asset);
-                assetToDeposit = newPosition.amount - oldPosition.amount;
             } else {
                 (couponsToBurn, couponsToMint) = _diffInCoupons(oldPosition, newPosition, latestExpiredEpoch, asset);
-                assetToWithdraw = oldPosition.amount - newPosition.amount;
             }
         }
 
@@ -123,8 +119,8 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
         if (couponsToMint.length > 0) {
             ICouponManager(couponManager).mintBatch(msg.sender, couponsToMint, data);
         }
-        if (assetToWithdraw > 0) {
-            IAssetPool(assetPool).withdraw(asset, assetToWithdraw, msg.sender);
+        if (oldPosition.amount > newPosition.amount) {
+            IAssetPool(assetPool).withdraw(asset, oldPosition.amount - newPosition.amount, msg.sender);
         }
         if (data.length > 0) {
             IBondPositionCallbackReceiver(msg.sender).bondPositionAdjustCallback(
@@ -134,7 +130,8 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
                 data
             );
         }
-        if (assetToDeposit > 0) {
+        if (newPosition.amount > oldPosition.amount) {
+            uint256 assetToDeposit = newPosition.amount - oldPosition.amount;
             IERC20(asset).safeTransferFrom(msg.sender, address(assetPool), assetToDeposit);
             IAssetPool(assetPool).deposit(asset, assetToDeposit);
         }
