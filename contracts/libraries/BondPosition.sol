@@ -26,18 +26,18 @@ library BondPositionLibrary {
         uint256 amount,
         Types.Epoch expiredWith,
         Types.Epoch minEpoch
-    ) internal pure returns (Types.BondPosition memory adjustedBond) {
-        adjustedBond = clone(position);
+    ) internal pure returns (Types.BondPosition memory adjustedPosition) {
+        adjustedPosition = clone(position);
 
-        adjustedBond.amount = amount;
+        adjustedPosition.amount = amount;
 
         if (amount == 0) {
-            adjustedBond.expiredWith = minEpoch;
+            adjustedPosition.expiredWith = minEpoch;
         } else {
             if (minEpoch.compare(expiredWith) >= 0) {
                 expiredWith = minEpoch;
             }
-            adjustedBond.expiredWith = expiredWith;
+            adjustedPosition.expiredWith = expiredWith;
         }
     }
 
