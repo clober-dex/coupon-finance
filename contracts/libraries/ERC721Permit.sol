@@ -9,7 +9,6 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 
-import {ChainId} from "./ChainId.sol";
 import {IERC721Permit} from "../interfaces/IERC721Permit.sol";
 
 abstract contract ERC721Permit is ERC721, IERC721Permit, EIP712 {
