@@ -6,6 +6,7 @@ pragma solidity ^0.8.0;
 import {IERC1155MetadataURI} from "@openzeppelin/contracts/token/ERC1155/extensions/IERC1155MetadataURI.sol";
 import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import {ERC1155Supply} from "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Supply.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 import {Errors} from "./Errors.sol";
@@ -98,6 +99,12 @@ contract CouponManager is ERC1155Permit, ERC1155Supply, ICouponManager {
     function burnBatch(address user, Coupon[] calldata coupons) external onlyMinter {
         (uint256[] memory ids, uint256[] memory amounts) = _splitCoupons(coupons);
         _burnBatch(user, ids, amounts);
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ERC1155, ERC1155Permit, IERC165) returns (bool) {
+        return super.supportsInterface(interfaceId);
     }
 
     function _beforeTokenTransfer(
