@@ -3,6 +3,9 @@ import fs from 'fs'
 
 import * as dotenv from 'dotenv'
 import readlineSync from 'readline-sync'
+import { HardhatConfig } from 'hardhat/types'
+import { hardhat, mainnet } from '@wagmi/chains'
+
 import '@nomiclabs/hardhat-waffle'
 import '@typechain/hardhat'
 import 'hardhat-deploy'
@@ -11,12 +14,8 @@ import 'hardhat-gas-reporter'
 import 'hardhat-contract-sizer'
 import 'hardhat-abi-exporter'
 import 'solidity-coverage'
-// eslint-disable-next-line import/order
-import { hardhat, mainnet } from '@wagmi/chains'
 
 dotenv.config()
-
-import { HardhatConfig } from 'hardhat/types'
 
 const networkInfos = require('@wagmi/chains')
 const chainIdMap: { [key: string]: string } = {}
