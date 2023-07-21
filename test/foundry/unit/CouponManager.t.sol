@@ -44,8 +44,16 @@ contract CouponManagerUnitTest is Test, ERC1155Holder {
         assertEq(couponManager.totalSupply(coupons[1].id()), 70, "TOTAL_SUPPLY_1");
         assertEq(couponManager.balanceOf(Constants.USER1, coupons[0].id()), 100, "BALANCE_0");
         assertEq(couponManager.balanceOf(Constants.USER1, coupons[1].id()), 70, "BALANCE_1");
-        assertEq(couponManager.uri(coupons[0].id()), "URI/0", "URI_0");
-        assertEq(couponManager.uri(coupons[1].id()), "URI/1", "URI_1");
+        assertEq(
+            couponManager.uri(coupons[0].id()),
+            "URI/89703022573294938011260130797442833617774122611401231139308567145909155669581",
+            "URI_0"
+        );
+        assertEq(
+            couponManager.uri(coupons[1].id()),
+            "URI/59947782377658177076307846606517699261912748694705227268508890040674098208110",
+            "URI_1"
+        );
     }
 
     function testMintBatchOwnership() public {
