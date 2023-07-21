@@ -7,9 +7,8 @@ import {Types} from "../Types.sol";
 interface ILoanPositionCallbackReceiver {
     function loanPositionAdjustCallback(
         uint256 tokenId,
-        Types.LoanPosition memory position,
-        int256 collateralPositionChange,
-        int256 debtPositionChange,
+        Types.LoanPosition memory oldPosition,
+        Types.LoanPosition memory newPosition,
         Types.Coupon[] memory couponsToPay,
         Types.Coupon[] memory couponsRefunded,
         bytes calldata data

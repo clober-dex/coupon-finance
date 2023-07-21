@@ -277,11 +277,11 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         IAssetPool(assetPool).withdraw(debtToken, debtAmount, recipient);
 
         if (data.length > 0) {
+            Types.LoanPosition memory emptyLoanPosition;
             ILoanPositionCallbackReceiver(msg.sender).loanPositionAdjustCallback(
                 tokenId,
+                emptyLoanPosition,
                 position,
-                int256(collateralAmount),
-                int256(debtAmount),
                 coupons,
                 new Types.Coupon[](0),
                 data
@@ -336,9 +336,8 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         if (data.length > 0) {
             ILoanPositionCallbackReceiver(msg.sender).loanPositionAdjustCallback(
                 tokenId,
+                oldPosition,
                 newPosition,
-                int256(newPosition.debtAmount) - int256(oldPosition.debtAmount),
-                int256(newPosition.collateralAmount) - int256(oldPosition.collateralAmount),
                 couponsToPay,
                 couponsToRefund,
                 data
