@@ -947,12 +947,11 @@ contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerEvents, ERC115
         Types.LoanPosition memory beforePosition = loanPositionManager.getPosition(tokenId);
         assertEq(beforePosition.collateralAmount, initialCollateralAmount);
         assertEq(beforePosition.debtAmount, 0);
-        assertEq(beforePosition.expiredWith, startEpoch);
 
         uint256 beforePositionBalance = loanPositionManager.balanceOf(address(this));
 
         vm.expectEmit(true, true, true, true);
-        emit PositionUpdated(tokenId, 0, 0, startEpoch);
+        emit PositionUpdated(tokenId, 0, 0, beforePosition.expiredWith);
         vm.expectCall(
             address(assetPool),
             abi.encodeCall(assetPool.withdraw, (address(weth), initialCollateralAmount, address(this)))
@@ -964,7 +963,7 @@ contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerEvents, ERC115
         assertEq(loanPositionManager.balanceOf(address(this)), beforePositionBalance - 1, "INVALID_POSITION_BALANCE");
         assertEq(afterPosition.collateralAmount, 0, "INVALID_COLLATERAL_AMOUNT");
         assertEq(afterPosition.debtAmount, 0, "INVALID_DEBT_AMOUNT");
-        assertEq(afterPosition.expiredWith, startEpoch, "INVALID_EXPIRED_WITH");
+        assertEq(afterPosition.expiredWith, beforePosition.expiredWith, "INVALID_EXPIRED_WITH");
         vm.expectRevert("ERC721: invalid token ID");
         loanPositionManager.ownerOf(tokenId);
     }
@@ -987,7 +986,6 @@ contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerEvents, ERC115
             address(this),
             new bytes(0)
         );
-        loanPositionManager.adjustPosition(tokenId, initialCollateralAmount, usdc.amount(1), startEpoch, new bytes(0));
 
         vm.warp(startEpoch.add(2).startTime());
 

@@ -425,7 +425,18 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
     }
 
     function burn(uint256 tokenId) external {
-        revert("not implemented");
+        require(_isApprovedOrOwner(msg.sender, tokenId), Errors.ACCESS);
+        Types.LoanPosition memory position = _positionMap[tokenId];
+        require(position.debtAmount == 0, Errors.UNPAID_DEBT);
+        uint256 collateralAmount = position.collateralAmount;
+        position.collateralAmount = 0;
+
+        _positionMap[tokenId] = position;
+        emit PositionUpdated(tokenId, 0, 0, position.expiredWith);
+
+        IAssetPool(assetPool).withdraw(position.collateralToken, collateralAmount, msg.sender);
+
+        _burn(tokenId);
     }
 
     function _getAndIncrementNonce(uint256 tokenId) internal override returns (uint256) {
