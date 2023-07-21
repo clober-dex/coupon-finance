@@ -5,21 +5,26 @@ pragma solidity ^0.8.0;
 
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
-import {Types} from "../Types.sol";
 import {Errors} from "../Errors.sol";
-import {Epoch} from "./Epoch.sol";
-import {Coupon} from "./Coupon.sol";
+import {Epoch, EpochLibrary} from "./Epoch.sol";
+import {Coupon, CouponLibrary} from "./Coupon.sol";
+
+struct LoanPosition {
+    uint64 nonce;
+    Epoch expiredWith;
+    address collateralToken;
+    address debtToken;
+    uint256 collateralAmount;
+    uint256 debtAmount;
+}
 
 library LoanPositionLibrary {
-    using Epoch for Types.Epoch;
+    using EpochLibrary for Epoch;
 
-    function empty(
-        address collateralToken,
-        address debtToken
-    ) internal pure returns (Types.LoanPosition memory position) {
-        position = Types.LoanPosition({
+    function empty(address collateralToken, address debtToken) internal pure returns (LoanPosition memory position) {
+        position = LoanPosition({
             nonce: 0,
-            expiredWith: Epoch.wrap(0),
+            expiredWith: EpochLibrary.wrap(0),
             collateralToken: collateralToken,
             debtToken: debtToken,
             collateralAmount: 0,
@@ -28,13 +33,13 @@ library LoanPositionLibrary {
     }
 
     function from(
-        Types.Epoch expiredWith,
+        Epoch expiredWith,
         address collateralToken,
         address debtToken,
         uint256 collateralAmount,
         uint256 debtAmount
-    ) internal pure returns (Types.LoanPosition memory position) {
-        position = Types.LoanPosition({
+    ) internal pure returns (LoanPosition memory position) {
+        position = LoanPosition({
             nonce: 0,
             expiredWith: expiredWith,
             collateralToken: collateralToken,
@@ -44,14 +49,14 @@ library LoanPositionLibrary {
         });
     }
 
-    function getAndIncrementNonce(Types.LoanPosition storage positionStorage) internal returns (uint64 nonce) {
+    function getAndIncrementNonce(LoanPosition storage positionStorage) internal returns (uint64 nonce) {
         nonce = positionStorage.nonce++;
     }
 
     function calculateCouponRequirement(
-        Types.LoanPosition memory oldPosition,
-        Types.LoanPosition memory newPosition
-    ) internal view returns (Types.Coupon[] memory, Types.Coupon[] memory) {
+        LoanPosition memory oldPosition,
+        LoanPosition memory newPosition
+    ) internal view returns (Coupon[] memory, Coupon[] memory) {
         require(
             oldPosition.collateralToken == newPosition.collateralToken &&
                 oldPosition.debtToken == newPosition.debtToken &&
@@ -59,7 +64,7 @@ library LoanPositionLibrary {
             Errors.INVALID_INPUT
         );
 
-        Types.Epoch latestExpiredEpoch = Epoch.current().sub(1);
+        Epoch latestExpiredEpoch = EpochLibrary.current().sub(1);
         uint256 payCouponsLength = newPosition.expiredWith.sub(latestExpiredEpoch);
         uint256 refundCouponsLength = oldPosition.expiredWith.sub(latestExpiredEpoch);
         unchecked {
@@ -74,8 +79,8 @@ library LoanPositionLibrary {
             }
         }
 
-        Types.Coupon[] memory payCoupons = new Types.Coupon[](payCouponsLength);
-        Types.Coupon[] memory refundCoupons = new Types.Coupon[](refundCouponsLength);
+        Coupon[] memory payCoupons = new Coupon[](payCouponsLength);
+        Coupon[] memory refundCoupons = new Coupon[](refundCouponsLength);
         payCouponsLength = 0;
         refundCouponsLength = 0;
         uint256 farthestExpiredEpochs = newPosition.expiredWith.max(oldPosition.expiredWith).sub(latestExpiredEpoch);
@@ -89,13 +94,13 @@ library LoanPositionLibrary {
                     ? 0
                     : oldPosition.debtAmount;
                 if (newAmount > oldAmount) {
-                    payCoupons[payCouponsLength++] = Coupon.from(
+                    payCoupons[payCouponsLength++] = CouponLibrary.from(
                         oldPosition.debtToken,
                         latestExpiredEpoch,
                         newAmount - oldAmount
                     );
                 } else if (newAmount < oldAmount) {
-                    refundCoupons[refundCouponsLength++] = Coupon.from(
+                    refundCoupons[refundCouponsLength++] = CouponLibrary.from(
                         oldPosition.debtToken,
                         latestExpiredEpoch,
                         oldAmount - newAmount
@@ -106,10 +111,7 @@ library LoanPositionLibrary {
         return (payCoupons, refundCoupons);
     }
 
-    function compareEpoch(
-        Types.LoanPosition memory position1,
-        Types.LoanPosition memory position2
-    ) internal pure returns (int256) {
+    function compareEpoch(LoanPosition memory position1, LoanPosition memory position2) internal pure returns (int256) {
         return position1.expiredWith.compare(position2.expiredWith);
     }
 }

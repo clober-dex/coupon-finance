@@ -3,10 +3,15 @@
 
 pragma solidity ^0.8.0;
 
-import {Types} from "../Types.sol";
+import {Epoch} from "./Epoch.sol";
 
-library CouponKey {
-    function toId(Types.CouponKey memory key) internal pure returns (uint256) {
+struct CouponKey {
+    address asset;
+    Epoch epoch;
+}
+
+library CouponKeyLibrary {
+    function toId(CouponKey memory key) internal pure returns (uint256) {
         return uint256(bytes32(keccak256(abi.encode(key))));
     }
 }

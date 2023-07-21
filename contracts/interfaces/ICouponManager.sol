@@ -4,15 +4,17 @@ pragma solidity ^0.8.0;
 
 import {IERC1155MetadataURI} from "@openzeppelin/contracts/token/ERC1155/extensions/IERC1155MetadataURI.sol";
 
-import {Types} from "../Types.sol";
+import {CouponKey} from "../libraries/CouponKey.sol";
+import {Coupon} from "../libraries/Coupon.sol";
+import {Epoch} from "../libraries/Epoch.sol";
 
 interface ICouponManager is IERC1155MetadataURI {
     // View Functions //
     function minter() external view returns (address);
 
-    function currentEpoch() external view returns (Types.Epoch);
+    function currentEpoch() external view returns (Epoch);
 
-    function epochEndTime(Types.Epoch epoch) external pure returns (uint256);
+    function epochEndTime(Epoch epoch) external pure returns (uint256);
 
     function baseURI() external view returns (string memory);
 
@@ -21,17 +23,12 @@ interface ICouponManager is IERC1155MetadataURI {
     function exists(uint256 id) external view returns (bool);
 
     // User Functions
-    function safeBatchTransferFrom(
-        address from,
-        address to,
-        Types.Coupon[] calldata coupons,
-        bytes calldata data
-    ) external;
+    function safeBatchTransferFrom(address from, address to, Coupon[] calldata coupons, bytes calldata data) external;
 
-    function burnExpiredCoupons(Types.CouponKey[] calldata couponKeys) external;
+    function burnExpiredCoupons(CouponKey[] calldata couponKeys) external;
 
     // Admin Functions //
-    function mintBatch(address to, Types.Coupon[] calldata coupons, bytes memory data) external;
+    function mintBatch(address to, Coupon[] calldata coupons, bytes memory data) external;
 
-    function burnBatch(address user, Types.Coupon[] calldata coupons) external;
+    function burnBatch(address user, Coupon[] calldata coupons) external;
 }

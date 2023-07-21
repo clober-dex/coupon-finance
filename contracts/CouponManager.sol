@@ -9,18 +9,17 @@ import {ERC1155Supply} from "@openzeppelin/contracts/token/ERC1155/extensions/ER
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 import {Errors} from "./Errors.sol";
-import {Types} from "./Types.sol";
-import {CouponKey} from "./libraries/CouponKey.sol";
-import {Coupon} from "./libraries/Coupon.sol";
-import {Epoch} from "./libraries/Epoch.sol";
+import {CouponKey, CouponKeyLibrary} from "./libraries/CouponKey.sol";
+import {Coupon, CouponLibrary} from "./libraries/Coupon.sol";
+import {Epoch, EpochLibrary} from "./libraries/Epoch.sol";
 import {ERC1155Permit} from "./libraries/ERC1155Permit.sol";
 import {ICouponManager} from "./interfaces/ICouponManager.sol";
 
 contract CouponManager is ERC1155Permit, ERC1155Supply, ICouponManager {
     using Strings for uint256;
-    using CouponKey for Types.CouponKey;
-    using Coupon for Types.Coupon;
-    using Epoch for Types.Epoch;
+    using CouponKeyLibrary for CouponKey;
+    using CouponLibrary for Coupon;
+    using EpochLibrary for Epoch;
 
     address public immutable override minter;
 
@@ -43,11 +42,11 @@ contract CouponManager is ERC1155Permit, ERC1155Supply, ICouponManager {
         return bytes(baseURI).length > 0 ? string(abi.encodePacked(baseURI, id.toString())) : "";
     }
 
-    function currentEpoch() external view returns (Types.Epoch) {
-        return Epoch.current();
+    function currentEpoch() external view returns (Epoch) {
+        return EpochLibrary.current();
     }
 
-    function epochEndTime(Types.Epoch epoch) external pure returns (uint256) {
+    function epochEndTime(Epoch epoch) external pure returns (uint256) {
         return epoch.endTime();
     }
 
@@ -60,20 +59,15 @@ contract CouponManager is ERC1155Permit, ERC1155Supply, ICouponManager {
     }
 
     // User Functions
-    function safeBatchTransferFrom(
-        address from,
-        address to,
-        Types.Coupon[] calldata coupons,
-        bytes calldata data
-    ) external {
+    function safeBatchTransferFrom(address from, address to, Coupon[] calldata coupons, bytes calldata data) external {
         (uint256[] memory ids, uint256[] memory amounts) = _splitCoupons(coupons);
         safeBatchTransferFrom(from, to, ids, amounts, data);
     }
 
-    function burnExpiredCoupons(Types.CouponKey[] calldata couponKeys) external {
+    function burnExpiredCoupons(CouponKey[] calldata couponKeys) external {
         uint256[] memory ids = new uint256[](couponKeys.length);
         uint256[] memory amounts = new uint256[](couponKeys.length);
-        Types.Epoch current = Epoch.current();
+        Epoch current = EpochLibrary.current();
         uint256 count;
         for (uint256 i = 0; i < couponKeys.length; ++i) {
             if (couponKeys[i].epoch.compare(current) >= 0) {
@@ -96,12 +90,12 @@ contract CouponManager is ERC1155Permit, ERC1155Supply, ICouponManager {
     }
 
     // Admin Functions //
-    function mintBatch(address to, Types.Coupon[] calldata coupons, bytes memory data) external onlyMinter {
+    function mintBatch(address to, Coupon[] calldata coupons, bytes memory data) external onlyMinter {
         (uint256[] memory ids, uint256[] memory amounts) = _splitCoupons(coupons);
         _mintBatch(to, ids, amounts, data);
     }
 
-    function burnBatch(address user, Types.Coupon[] calldata coupons) external onlyMinter {
+    function burnBatch(address user, Coupon[] calldata coupons) external onlyMinter {
         (uint256[] memory ids, uint256[] memory amounts) = _splitCoupons(coupons);
         _burnBatch(user, ids, amounts);
     }
@@ -118,7 +112,7 @@ contract CouponManager is ERC1155Permit, ERC1155Supply, ICouponManager {
     }
 
     function _splitCoupons(
-        Types.Coupon[] calldata coupons
+        Coupon[] calldata coupons
     ) internal pure returns (uint256[] memory ids, uint256[] memory amounts) {
         ids = new uint256[](coupons.length);
         amounts = new uint256[](coupons.length);
