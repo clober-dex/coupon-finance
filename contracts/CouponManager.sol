@@ -6,6 +6,7 @@ pragma solidity ^0.8.0;
 import {IERC1155MetadataURI} from "@openzeppelin/contracts/token/ERC1155/extensions/IERC1155MetadataURI.sol";
 import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import {ERC1155Supply} from "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Supply.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 import {Errors} from "./Errors.sol";
 import {Types} from "./Types.sol";
@@ -16,6 +17,7 @@ import {ERC1155Permit} from "./libraries/ERC1155Permit.sol";
 import {ICouponManager} from "./interfaces/ICouponManager.sol";
 
 contract CouponManager is ERC1155Permit, ERC1155Supply, ICouponManager {
+    using Strings for uint256;
     using CouponKey for Types.CouponKey;
     using Coupon for Types.Coupon;
     using Epoch for Types.Epoch;
@@ -38,7 +40,7 @@ contract CouponManager is ERC1155Permit, ERC1155Supply, ICouponManager {
 
     // View Functions //
     function uri(uint256 id) public view override(ERC1155, IERC1155MetadataURI) returns (string memory) {
-        revert("not implemented"); // TODO
+        return bytes(baseURI).length > 0 ? string(abi.encodePacked(baseURI, id.toString())) : "";
     }
 
     function currentEpoch() external view returns (Types.Epoch) {

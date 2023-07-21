@@ -7,6 +7,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 import {Types} from "./Types.sol";
 import {Errors} from "./Errors.sol";
@@ -21,6 +22,7 @@ import {Epoch} from "./libraries/Epoch.sol";
 
 contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
     using SafeERC20 for IERC20;
+    using Strings for uint256;
     using Epoch for Types.Epoch;
     using BondPositionLibrary for Types.BondPosition;
 
@@ -148,6 +150,10 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
         IERC20(asset).approve(address(assetPool), type(uint256).max);
         isAssetRegistered[asset] = true;
         emit AssetRegistered(asset);
+    }
+
+    function _baseURI() internal view override returns (string memory) {
+        return baseURI;
     }
 
     function _getAndIncrementNonce(uint256 tokenId) internal override returns (uint256) {

@@ -8,6 +8,7 @@ import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IER
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {ERC1155Holder, ERC1155Receiver} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 
 import {ILoanPositionManager} from "./interfaces/ILoanPositionManager.sol";
@@ -27,6 +28,7 @@ import {Errors} from "./Errors.sol";
 
 contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC1155Holder {
     using SafeERC20 for IERC20;
+    using Strings for uint256;
     using LoanPositionLibrary for Types.LoanPosition;
     using CouponKey for Types.CouponKey;
     using Coupon for Types.Coupon;
@@ -437,6 +439,10 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         IAssetPool(assetPool).withdraw(position.collateralToken, collateralAmount, msg.sender);
 
         _burn(tokenId);
+    }
+
+    function _baseURI() internal view override returns (string memory) {
+        return baseURI;
     }
 
     function _getAndIncrementNonce(uint256 tokenId) internal override returns (uint256) {
