@@ -43,9 +43,11 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
 
     string public override baseURI;
     uint256 public override nextId = 1;
+    uint32 private _assetGroupId = 1;
 
     mapping(address user => mapping(uint256 couponId => uint256)) public override couponOwed;
-    mapping(address asset => AssetLoanConfiguration) private _assetConfig;
+    mapping(uint256 groupId => LoanConfiguration) private _loanConfiguration;
+    mapping(address asset => AssetConfiguration) private _assetConfiguration;
     mapping(uint256 id => LoanPosition) private _positionMap;
 
     constructor(
@@ -72,26 +74,29 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         return !_isAssetUnregistered(asset);
     }
 
-    function getLoanConfiguration(address asset) external view returns (AssetLoanConfiguration memory) {
-        return _assetConfig[asset];
+    function getLoanConfiguration(address asset) external view returns (LoanConfiguration memory) {
+        return _loanConfiguration[_assetConfiguration[asset].groupId];
     }
 
-    function setLoanConfiguration(address asset, AssetLoanConfiguration memory config) external onlyOwner {
-        require(_assetConfig[asset].liquidationThreshold == 0, "INITIALIZED");
-        config.decimal = IERC20Metadata(asset).decimals();
-        _assetConfig[asset] = config;
+    function setLoanConfiguration(address asset, LoanConfiguration memory loanConfig) external onlyOwner {
+        require(_assetConfiguration[asset].groupId == 0, "INITIALIZED");
+        _loanConfiguration[_assetGroupId] = loanConfig;
+        _assetConfiguration[asset] = AssetConfiguration({
+            groupId: _assetGroupId++,
+            decimal: IERC20Metadata(asset).decimals()
+        });
     }
 
-    function _getAssetConfig(address asset, address collateral) private view returns (AssetLoanConfiguration memory) {
-        AssetLoanConfiguration memory debtAssetConfig = _assetConfig[asset];
-        AssetLoanConfiguration memory collateralAssetConfig = _assetConfig[collateral];
+    // Todo
+    function _getAssetConfig(address asset, address collateral) private view returns (LoanConfiguration memory) {
+        LoanConfiguration memory debtAssetConfig = _loanConfiguration[_assetConfiguration[asset].groupId];
+        LoanConfiguration memory collateralAssetConfig = _loanConfiguration[_assetConfiguration[collateral].groupId];
 
         if (collateralAssetConfig.liquidationThreshold == 0) return debtAssetConfig;
         if (debtAssetConfig.liquidationThreshold == 0) return collateralAssetConfig;
 
         return
-            AssetLoanConfiguration({
-                decimal: 0,
+            LoanConfiguration({
                 liquidationFee: debtAssetConfig.liquidationFee > collateralAssetConfig.liquidationFee
                     ? debtAssetConfig.liquidationFee
                     : collateralAssetConfig.liquidationFee,
@@ -113,8 +118,8 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         address collateral,
         uint256 ethAmount
     ) private view returns (uint256, uint256, uint256) {
-        uint256 assetDecimal = _assetConfig[debt].decimal;
-        uint256 collateralDecimal = _assetConfig[collateral].decimal;
+        uint256 assetDecimal = _assetConfiguration[debt].decimal;
+        uint256 collateralDecimal = _assetConfiguration[collateral].decimal;
 
         address[] memory assets = new address[](3);
         assets[0] = debt;
@@ -136,7 +141,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         LoanPosition memory position,
         uint256 maxRepayAmount
     ) private view returns (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount) {
-        AssetLoanConfiguration memory config = _getAssetConfig(position.debtToken, position.collateralToken);
+        LoanConfiguration memory loanConfig = _getAssetConfig(position.debtToken, position.collateralToken);
         (uint256 assetPrice, uint256 collateralPrice, uint256 minDebtValue) = _getPriceWithPrecisionAndEthAmountPerDebt(
             position.debtToken,
             position.collateralToken,
@@ -154,10 +159,10 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
 
             liquidationAmount = Math.ceilDiv(
                 repayAmount * assetPrice * _RATE_PRECISION,
-                collateralPrice * (_RATE_PRECISION - config.liquidationFee)
+                collateralPrice * (_RATE_PRECISION - loanConfig.liquidationFee)
             );
             unchecked {
-                protocolFeeAmount = (liquidationAmount * config.liquidationProtocolFee) / _RATE_PRECISION;
+                protocolFeeAmount = (liquidationAmount * loanConfig.liquidationProtocolFee) / _RATE_PRECISION;
                 return (liquidationAmount - protocolFeeAmount, repayAmount, protocolFeeAmount);
             }
         }
@@ -167,18 +172,18 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
 
         unchecked {
             if (
-                (collateralAmountInBaseCurrency / _RATE_PRECISION) * config.liquidationThreshold >=
+                (collateralAmountInBaseCurrency / _RATE_PRECISION) * loanConfig.liquidationThreshold >=
                 assetAmountInBaseCurrency
             ) return (0, 0, 0);
 
             liquidationAmount = Math.ceilDiv(
                 assetAmountInBaseCurrency -
                     (collateralAmountInBaseCurrency / _RATE_PRECISION) *
-                    config.liquidationTargetLtv,
-                collateralPrice * (_RATE_PRECISION - config.liquidationFee - config.liquidationTargetLtv)
+                    loanConfig.liquidationTargetLtv,
+                collateralPrice * (_RATE_PRECISION - loanConfig.liquidationFee - loanConfig.liquidationTargetLtv)
             );
             repayAmount =
-                (liquidationAmount * collateralPrice * (_RATE_PRECISION - config.liquidationFee)) /
+                (liquidationAmount * collateralPrice * (_RATE_PRECISION - loanConfig.liquidationFee)) /
                 assetPrice /
                 _RATE_PRECISION;
 
@@ -198,13 +203,13 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
             if (newRepayAmount != repayAmount) {
                 liquidationAmount = Math.ceilDiv(
                     newRepayAmount * assetPrice * _RATE_PRECISION,
-                    collateralPrice * (_RATE_PRECISION - config.liquidationFee)
+                    collateralPrice * (_RATE_PRECISION - loanConfig.liquidationFee)
                 );
                 repayAmount = newRepayAmount;
             }
 
             if (liquidationAmount > position.collateralAmount) liquidationAmount = position.collateralAmount;
-            protocolFeeAmount = (liquidationAmount * config.liquidationProtocolFee) / _RATE_PRECISION;
+            protocolFeeAmount = (liquidationAmount * loanConfig.liquidationProtocolFee) / _RATE_PRECISION;
             return (liquidationAmount - protocolFeeAmount, repayAmount, protocolFeeAmount);
         }
     }
@@ -225,7 +230,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
             revert(Errors.UNPAID_DEBT);
         }
 
-        AssetLoanConfiguration memory config = _getAssetConfig(position.debtToken, position.collateralToken);
+        LoanConfiguration memory loanConfig = _getAssetConfig(position.debtToken, position.collateralToken);
         (uint256 debtPrice, uint256 collateralPrice, uint256 minDebtValue) = _getPriceWithPrecisionAndEthAmountPerDebt(
             position.debtToken,
             position.collateralToken,
@@ -234,7 +239,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
 
         require(position.debtAmount == 0 || minDebtValue <= position.debtAmount, Errors.TOO_SMALL_DEBT);
         require(
-            (position.collateralAmount * collateralPrice) * config.liquidationThreshold >=
+            (position.collateralAmount * collateralPrice) * loanConfig.liquidationThreshold >=
                 position.debtAmount * debtPrice * _RATE_PRECISION,
             Errors.LIQUIDATION_THRESHOLD
         );
@@ -463,6 +468,6 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
     }
 
     function _isAssetUnregistered(address asset) internal view returns (bool) {
-        return _assetConfig[asset].liquidationThreshold == 0;
+        return _assetConfiguration[asset].groupId == 0;
     }
 }

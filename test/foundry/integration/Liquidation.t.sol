@@ -59,8 +59,7 @@ contract LiquidationIntegrationTest is Test, ERC1155Holder, ILoanPositionManager
         );
         loanPositionManager.setLoanConfiguration(
             address(usdc),
-            AssetLoanConfiguration({
-                decimal: 0,
+            LoanConfiguration({
                 liquidationThreshold: 900000,
                 liquidationFee: 15000,
                 liquidationProtocolFee: 5000,
@@ -69,8 +68,7 @@ contract LiquidationIntegrationTest is Test, ERC1155Holder, ILoanPositionManager
         );
         loanPositionManager.setLoanConfiguration(
             address(weth),
-            AssetLoanConfiguration({
-                decimal: 0,
+            LoanConfiguration({
                 liquidationThreshold: 800000,
                 liquidationFee: 20000,
                 liquidationProtocolFee: 5000,
