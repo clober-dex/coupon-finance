@@ -7,11 +7,11 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {Types} from "../Types.sol";
 import {Errors} from "../Errors.sol";
-import {Epoch} from "./Epoch.sol";
-import {Coupon} from "./Coupon.sol";
+import {EpochLibrary} from "./Epoch.sol";
+import {CouponLibrary} from "./Coupon.sol";
 
 library LoanPositionLibrary {
-    using Epoch for Types.Epoch;
+    using EpochLibrary for Types.Epoch;
 
     function empty(
         address collateralToken,
@@ -19,7 +19,7 @@ library LoanPositionLibrary {
     ) internal pure returns (Types.LoanPosition memory position) {
         position = Types.LoanPosition({
             nonce: 0,
-            expiredWith: Epoch.wrap(0),
+            expiredWith: EpochLibrary.wrap(0),
             collateralToken: collateralToken,
             debtToken: debtToken,
             collateralAmount: 0,
@@ -59,7 +59,7 @@ library LoanPositionLibrary {
             Errors.INVALID_INPUT
         );
 
-        Types.Epoch latestExpiredEpoch = Epoch.current().sub(1);
+        Types.Epoch latestExpiredEpoch = EpochLibrary.current().sub(1);
         uint256 payCouponsLength = newPosition.expiredWith.sub(latestExpiredEpoch);
         uint256 refundCouponsLength = oldPosition.expiredWith.sub(latestExpiredEpoch);
         unchecked {
@@ -89,13 +89,13 @@ library LoanPositionLibrary {
                     ? 0
                     : oldPosition.debtAmount;
                 if (newAmount > oldAmount) {
-                    payCoupons[payCouponsLength++] = Coupon.from(
+                    payCoupons[payCouponsLength++] = CouponLibrary.from(
                         oldPosition.debtToken,
                         latestExpiredEpoch,
                         newAmount - oldAmount
                     );
                 } else if (newAmount < oldAmount) {
-                    refundCoupons[refundCouponsLength++] = Coupon.from(
+                    refundCoupons[refundCouponsLength++] = CouponLibrary.from(
                         oldPosition.debtToken,
                         latestExpiredEpoch,
                         oldAmount - newAmount

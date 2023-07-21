@@ -10,17 +10,17 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 import {Errors} from "./Errors.sol";
 import {Types} from "./Types.sol";
-import {CouponKey} from "./libraries/CouponKey.sol";
-import {Coupon} from "./libraries/Coupon.sol";
-import {Epoch} from "./libraries/Epoch.sol";
+import {CouponKeyLibrary} from "./libraries/CouponKey.sol";
+import {CouponLibrary} from "./libraries/Coupon.sol";
+import {EpochLibrary} from "./libraries/Epoch.sol";
 import {ERC1155Permit} from "./libraries/ERC1155Permit.sol";
 import {ICouponManager} from "./interfaces/ICouponManager.sol";
 
 contract CouponManager is ERC1155Permit, ERC1155Supply, ICouponManager {
     using Strings for uint256;
-    using CouponKey for Types.CouponKey;
-    using Coupon for Types.Coupon;
-    using Epoch for Types.Epoch;
+    using CouponKeyLibrary for Types.CouponKey;
+    using CouponLibrary for Types.Coupon;
+    using EpochLibrary for Types.Epoch;
 
     address public immutable override minter;
 
@@ -44,7 +44,7 @@ contract CouponManager is ERC1155Permit, ERC1155Supply, ICouponManager {
     }
 
     function currentEpoch() external view returns (Types.Epoch) {
-        return Epoch.current();
+        return EpochLibrary.current();
     }
 
     function epochEndTime(Types.Epoch epoch) external pure returns (uint256) {
@@ -73,7 +73,7 @@ contract CouponManager is ERC1155Permit, ERC1155Supply, ICouponManager {
     function burnExpiredCoupons(Types.CouponKey[] calldata couponKeys) external {
         uint256[] memory ids = new uint256[](couponKeys.length);
         uint256[] memory amounts = new uint256[](couponKeys.length);
-        Types.Epoch current = Epoch.current();
+        Types.Epoch current = EpochLibrary.current();
         uint256 count;
         for (uint256 i = 0; i < couponKeys.length; ++i) {
             if (couponKeys[i].epoch.compare(current) >= 0) {

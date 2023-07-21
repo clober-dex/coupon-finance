@@ -6,11 +6,11 @@ pragma solidity ^0.8.0;
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {Types} from "../Types.sol";
-import {Epoch} from "./Epoch.sol";
-import {Coupon} from "./Coupon.sol";
+import {EpochLibrary} from "./Epoch.sol";
+import {CouponLibrary} from "./Coupon.sol";
 
 library BondPositionLibrary {
-    using Epoch for Types.Epoch;
+    using EpochLibrary for Types.Epoch;
 
     function from(
         address asset,
@@ -59,10 +59,10 @@ library BondPositionLibrary {
                 latestExpiredEpoch
             );
             if (mintAmount > 0) {
-                mintCoupons[mintCouponsLength++] = Coupon.from(position.asset, latestExpiredEpoch, mintAmount);
+                mintCoupons[mintCouponsLength++] = CouponLibrary.from(position.asset, latestExpiredEpoch, mintAmount);
             }
             if (burnAmount > 0) {
-                burnCoupons[burnCouponsLength++] = Coupon.from(position.asset, latestExpiredEpoch, burnAmount);
+                burnCoupons[burnCouponsLength++] = CouponLibrary.from(position.asset, latestExpiredEpoch, burnAmount);
             }
         }
         position.amount = amount;

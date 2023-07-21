@@ -6,7 +6,7 @@ pragma solidity ^0.8.0;
 import {Types} from "../Types.sol";
 import {BokkyPooBahsDateTimeLibrary} from "./BokkyPooBahsDateTimeLibrary.sol";
 
-library Epoch {
+library EpochLibrary {
     uint256 internal constant MONTHS_PER_EPOCH = 1;
 
     function wrap(uint16 epoch) internal pure returns (Types.Epoch) {

@@ -19,9 +19,9 @@ import {ICouponOracle} from "./interfaces/ICouponOracle.sol";
 import {ICouponManager} from "./interfaces/ICouponManager.sol";
 import {ERC721Permit, IERC165} from "./libraries/ERC721Permit.sol";
 import {ReentrancyGuard} from "./libraries/ReentrancyGuard.sol";
-import {CouponKey} from "./libraries/CouponKey.sol";
-import {Coupon} from "./libraries/Coupon.sol";
-import {Epoch} from "./libraries/Epoch.sol";
+import {CouponKeyLibrary} from "./libraries/CouponKey.sol";
+import {CouponLibrary} from "./libraries/Coupon.sol";
+import {EpochLibrary} from "./libraries/Epoch.sol";
 import {LoanPositionLibrary} from "./libraries/LoanPosition.sol";
 import {Types} from "./Types.sol";
 import {Errors} from "./Errors.sol";
@@ -30,9 +30,9 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
     using SafeERC20 for IERC20;
     using Strings for uint256;
     using LoanPositionLibrary for Types.LoanPosition;
-    using CouponKey for Types.CouponKey;
-    using Coupon for Types.Coupon;
-    using Epoch for Types.Epoch;
+    using CouponKeyLibrary for Types.CouponKey;
+    using CouponLibrary for Types.Coupon;
+    using EpochLibrary for Types.Epoch;
 
     uint256 private constant _RATE_PRECISION = 10 ** 6;
 
@@ -259,7 +259,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         require(loanEpochs > 0 && debtAmount > 0, Errors.EMPTY_INPUT);
         tokenId = nextId++;
 
-        Types.Epoch currentEpoch = Epoch.current();
+        Types.Epoch currentEpoch = EpochLibrary.current();
 
         Types.LoanPosition memory position = LoanPositionLibrary.from(
             currentEpoch.add(loanEpochs - 1),
@@ -271,7 +271,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         _validatePosition(position, currentEpoch.sub(1));
         Types.Coupon[] memory coupons = new Types.Coupon[](loanEpochs);
         for (uint16 i = 0; i < loanEpochs; ++i) {
-            coupons[i] = Coupon.from(debtToken, currentEpoch.add(i), debtAmount);
+            coupons[i] = CouponLibrary.from(debtToken, currentEpoch.add(i), debtAmount);
         }
 
         _positionMap[tokenId] = position;
@@ -306,7 +306,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         require(_isApprovedOrOwner(msg.sender, tokenId), Errors.ACCESS);
 
         Types.LoanPosition memory oldPosition = _positionMap[tokenId];
-        Types.Epoch latestExpiredEpoch = Epoch.current().sub(1);
+        Types.Epoch latestExpiredEpoch = EpochLibrary.current().sub(1);
         require(oldPosition.expiredWith.compare(latestExpiredEpoch) > 0, Errors.INVALID_EPOCH);
 
         Types.LoanPosition memory newPosition = Types.LoanPosition({
@@ -380,13 +380,13 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         require(liquidationAmount > 0 || repayAmount > 0, "LIQUIDATION_FAIL");
 
         unchecked {
-            Types.Epoch currentEpoch = Epoch.current();
+            Types.Epoch currentEpoch = EpochLibrary.current();
             address couponOwner = ownerOf(tokenId);
             if (position.expiredWith.compare(currentEpoch) >= 0) {
                 uint256 length = position.expiredWith.sub(currentEpoch) + 1;
                 Types.Coupon[] memory coupons = new Types.Coupon[](length);
                 for (uint16 i = 0; i < length; ++i) {
-                    coupons[i] = Coupon.from(position.debtToken, currentEpoch.add(i), repayAmount);
+                    coupons[i] = CouponLibrary.from(position.debtToken, currentEpoch.add(i), repayAmount);
                 }
                 try
                     ICouponManager(couponManager).safeBatchTransferFrom(address(this), couponOwner, coupons, data)

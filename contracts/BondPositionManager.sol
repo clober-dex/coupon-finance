@@ -17,13 +17,13 @@ import {IAssetPool} from "./interfaces/IAssetPool.sol";
 import {IBondPositionCallbackReceiver} from "./interfaces/IBondPositionCallbackReceiver.sol";
 import {ERC721Permit} from "./libraries/ERC721Permit.sol";
 import {BondPositionLibrary} from "./libraries/BondPosition.sol";
-import {Coupon} from "./libraries/Coupon.sol";
-import {Epoch} from "./libraries/Epoch.sol";
+import {CouponLibrary} from "./libraries/Coupon.sol";
+import {EpochLibrary} from "./libraries/Epoch.sol";
 
 contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
     using SafeERC20 for IERC20;
     using Strings for uint256;
-    using Epoch for Types.Epoch;
+    using EpochLibrary for Types.Epoch;
     using BondPositionLibrary for Types.BondPosition;
 
     address public immutable override couponManager;
@@ -62,10 +62,10 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
     ) external returns (uint256 tokenId) {
         require(isAssetRegistered[asset], Errors.UNREGISTERED_ASSET);
         require(lockEpochs > 0 && amount > 0, Errors.EMPTY_INPUT);
-        Types.Epoch currentEpoch = Epoch.current();
+        Types.Epoch currentEpoch = EpochLibrary.current();
         Types.Coupon[] memory coupons = new Types.Coupon[](lockEpochs);
         for (uint16 i = 0; i < lockEpochs; ++i) {
-            coupons[i] = Coupon.from(asset, currentEpoch.add(i), amount);
+            coupons[i] = CouponLibrary.from(asset, currentEpoch.add(i), amount);
         }
         tokenId = nextId++;
         Types.Epoch expiredWith = currentEpoch.add(lockEpochs - 1);
@@ -87,7 +87,7 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
     function adjustPosition(uint256 tokenId, uint256 amount, Types.Epoch expiredWith, bytes calldata data) external {
         require(_isApprovedOrOwner(msg.sender, tokenId), Errors.ACCESS);
         Types.BondPosition memory oldPosition = _positionMap[tokenId];
-        Types.Epoch latestExpiredEpoch = Epoch.current().sub(1);
+        Types.Epoch latestExpiredEpoch = EpochLibrary.current().sub(1);
         require(oldPosition.expiredWith.compare(latestExpiredEpoch) > 0, Errors.INVALID_EPOCH);
         address asset = oldPosition.asset;
         (
@@ -129,7 +129,7 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
     function burnExpiredPosition(uint256 tokenId) external {
         require(_isApprovedOrOwner(msg.sender, tokenId), Errors.ACCESS);
         Types.BondPosition memory position = _positionMap[tokenId];
-        require(position.expiredWith.compare(Epoch.current()) < 0, Errors.INVALID_EPOCH);
+        require(position.expiredWith.compare(EpochLibrary.current()) < 0, Errors.INVALID_EPOCH);
 
         uint256 assetToWithdraw = position.amount;
         if (assetToWithdraw > 0) {

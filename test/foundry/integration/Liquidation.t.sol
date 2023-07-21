@@ -13,16 +13,16 @@ import {ILoanPositionManager, ILoanPositionManagerEvents} from "../../../contrac
 import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
 import {IERC721Permit} from "../../../contracts/interfaces/IERC721Permit.sol";
 import {IAssetPool} from "../../../contracts/interfaces/IAssetPool.sol";
-import {Coupon} from "../../../contracts/libraries/Coupon.sol";
-import {Epoch} from "../../../contracts/libraries/Epoch.sol";
+import {CouponLibrary} from "../../../contracts/libraries/Coupon.sol";
+import {EpochLibrary} from "../../../contracts/libraries/Epoch.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {MockAssetPool} from "../mocks/MockAssetPool.sol";
 import {MockOracle} from "../mocks/MockOracle.sol";
 import {Constants} from "../Constants.sol";
 
 contract LiquidationIntegrationTest is Test, ERC1155Holder {
-    using Coupon for Types.Coupon;
-    using Epoch for Types.Epoch;
+    using CouponLibrary for Types.Coupon;
+    using EpochLibrary for Types.Epoch;
 
     MockERC20 public weth;
     MockERC20 public usdc;
@@ -38,7 +38,7 @@ contract LiquidationIntegrationTest is Test, ERC1155Holder {
     uint256 public initialDebtAmount;
 
     function setUp() public {
-        vm.warp(Epoch.wrap(10).startTime());
+        vm.warp(EpochLibrary.wrap(10).startTime());
 
         weth = new MockERC20("Collateral Token", "COL", 18);
         usdc = new MockERC20("USD coin", "USDC", 6);
@@ -88,7 +88,7 @@ contract LiquidationIntegrationTest is Test, ERC1155Holder {
         oracle.setAssetPrice(address(weth), 1800 * 10 ** 8);
         oracle.setAssetPrice(address(usdc), 10 ** 8);
 
-        startEpoch = Epoch.current();
+        startEpoch = EpochLibrary.current();
 
         initialCollateralAmount = weth.amount(10);
         initialDebtAmount = usdc.amount(100);
@@ -121,8 +121,8 @@ contract LiquidationIntegrationTest is Test, ERC1155Holder {
         bool canLiquidate
     ) private {
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
-        coupons[0] = Coupon.from(address(isEthCollateral ? usdc : weth), startEpoch, debtAmount);
-        coupons[1] = Coupon.from(address(isEthCollateral ? usdc : weth), startEpoch.add(1), debtAmount);
+        coupons[0] = CouponLibrary.from(address(isEthCollateral ? usdc : weth), startEpoch, debtAmount);
+        coupons[1] = CouponLibrary.from(address(isEthCollateral ? usdc : weth), startEpoch.add(1), debtAmount);
         _mintCoupons(address(this), coupons);
 
         couponManager.setApprovalForAll(address(loanPositionManager), true);

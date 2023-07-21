@@ -4,10 +4,10 @@
 pragma solidity ^0.8.0;
 
 import {Types} from "../Types.sol";
-import {CouponKey} from "./CouponKey.sol";
+import {CouponKeyLibrary} from "./CouponKey.sol";
 
-library Coupon {
-    using CouponKey for Types.CouponKey;
+library CouponLibrary {
+    using CouponKeyLibrary for Types.CouponKey;
 
     function from(address asset, Types.Epoch epoch, uint256 amount) internal pure returns (Types.Coupon memory) {
         return Types.Coupon({key: Types.CouponKey({asset: asset, epoch: epoch}), amount: amount});

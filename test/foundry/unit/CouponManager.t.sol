@@ -10,15 +10,15 @@ import {Errors} from "../../../contracts/Errors.sol";
 import {Types} from "../../../contracts/Types.sol";
 import {CouponManager} from "../../../contracts/CouponManager.sol";
 import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
-import {CouponKey} from "../../../contracts/libraries/CouponKey.sol";
-import {Coupon} from "../../../contracts/libraries/Coupon.sol";
-import {Epoch} from "../../../contracts/libraries/Epoch.sol";
+import {CouponKeyLibrary} from "../../../contracts/libraries/CouponKey.sol";
+import {CouponLibrary} from "../../../contracts/libraries/Coupon.sol";
+import {EpochLibrary} from "../../../contracts/libraries/Epoch.sol";
 import {Constants} from "../Constants.sol";
 
 contract CouponManagerUnitTest is Test, ERC1155Holder {
-    using CouponKey for Types.CouponKey;
-    using Coupon for Types.Coupon;
-    using Epoch for Types.Epoch;
+    using CouponKeyLibrary for Types.CouponKey;
+    using CouponLibrary for Types.Coupon;
+    using EpochLibrary for Types.Epoch;
 
     ICouponManager public couponManager;
 
@@ -26,7 +26,7 @@ contract CouponManagerUnitTest is Test, ERC1155Holder {
 
     function setUp() public {
         couponManager = new CouponManager(address(this), "URI/");
-        startEpoch = Epoch.current();
+        startEpoch = EpochLibrary.current();
     }
 
     function testBaseURI() public {
@@ -35,8 +35,8 @@ contract CouponManagerUnitTest is Test, ERC1155Holder {
 
     function testMintBatch() public {
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
-        coupons[0] = Coupon.from(Constants.USDC, startEpoch, 100);
-        coupons[1] = Coupon.from(Constants.USDC, startEpoch.add(1), 70);
+        coupons[0] = CouponLibrary.from(Constants.USDC, startEpoch, 100);
+        coupons[1] = CouponLibrary.from(Constants.USDC, startEpoch.add(1), 70);
 
         couponManager.mintBatch(Constants.USER1, coupons, new bytes(0));
 
@@ -58,8 +58,8 @@ contract CouponManagerUnitTest is Test, ERC1155Holder {
 
     function testMintBatchOwnership() public {
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
-        coupons[0] = Coupon.from(Constants.USDC, startEpoch, 100);
-        coupons[1] = Coupon.from(Constants.USDC, startEpoch.add(1), 70);
+        coupons[0] = CouponLibrary.from(Constants.USDC, startEpoch, 100);
+        coupons[1] = CouponLibrary.from(Constants.USDC, startEpoch.add(1), 70);
 
         vm.expectRevert(bytes(Errors.ACCESS));
         vm.prank(address(0x123));
@@ -68,8 +68,8 @@ contract CouponManagerUnitTest is Test, ERC1155Holder {
 
     function testSafeBatchTransferFrom() public {
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
-        coupons[0] = Coupon.from(Constants.USDC, startEpoch, 100);
-        coupons[1] = Coupon.from(Constants.USDC, startEpoch.add(1), 70);
+        coupons[0] = CouponLibrary.from(Constants.USDC, startEpoch, 100);
+        coupons[1] = CouponLibrary.from(Constants.USDC, startEpoch.add(1), 70);
         couponManager.mintBatch(Constants.USER1, coupons, new bytes(0));
 
         vm.prank(Constants.USER1);
@@ -83,12 +83,12 @@ contract CouponManagerUnitTest is Test, ERC1155Holder {
 
     function testBurnExpiredCoupons() public {
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
-        coupons[0] = Coupon.from(Constants.USDC, startEpoch, 100);
-        coupons[1] = Coupon.from(Constants.USDC, startEpoch.add(1), 70);
+        coupons[0] = CouponLibrary.from(Constants.USDC, startEpoch, 100);
+        coupons[1] = CouponLibrary.from(Constants.USDC, startEpoch.add(1), 70);
 
         couponManager.mintBatch(Constants.USER1, coupons, new bytes(0));
 
-        vm.warp(Epoch.current().add(1).startTime());
+        vm.warp(EpochLibrary.current().add(1).startTime());
 
         Types.CouponKey[] memory couponKeys = new Types.CouponKey[](3);
         couponKeys[0] = coupons[0].key;
@@ -106,14 +106,14 @@ contract CouponManagerUnitTest is Test, ERC1155Holder {
 
     function testBurnBatch() public {
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
-        coupons[0] = Coupon.from(Constants.USDC, startEpoch, 100);
-        coupons[1] = Coupon.from(Constants.USDC, startEpoch.add(1), 70);
+        coupons[0] = CouponLibrary.from(Constants.USDC, startEpoch, 100);
+        coupons[1] = CouponLibrary.from(Constants.USDC, startEpoch.add(1), 70);
 
         couponManager.mintBatch(Constants.USER1, coupons, new bytes(0));
 
         Types.Coupon[] memory couponsToBurn = new Types.Coupon[](2);
-        couponsToBurn[0] = Coupon.from(Constants.USDC, startEpoch, 50);
-        couponsToBurn[1] = Coupon.from(Constants.USDC, startEpoch.add(1), 30);
+        couponsToBurn[0] = CouponLibrary.from(Constants.USDC, startEpoch, 50);
+        couponsToBurn[1] = CouponLibrary.from(Constants.USDC, startEpoch.add(1), 30);
         couponManager.burnBatch(Constants.USER1, couponsToBurn);
 
         assertEq(couponManager.totalSupply(coupons[0].id()), 50, "TOTAL_SUPPLY_0");
@@ -124,14 +124,14 @@ contract CouponManagerUnitTest is Test, ERC1155Holder {
 
     function testBurnBatchOwnership() public {
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
-        coupons[0] = Coupon.from(Constants.USDC, startEpoch, 100);
-        coupons[1] = Coupon.from(Constants.USDC, startEpoch.add(1), 70);
+        coupons[0] = CouponLibrary.from(Constants.USDC, startEpoch, 100);
+        coupons[1] = CouponLibrary.from(Constants.USDC, startEpoch.add(1), 70);
 
         couponManager.mintBatch(Constants.USER1, coupons, new bytes(0));
 
         Types.Coupon[] memory couponsToBurn = new Types.Coupon[](2);
-        couponsToBurn[0] = Coupon.from(Constants.USDC, startEpoch, 50);
-        couponsToBurn[1] = Coupon.from(Constants.USDC, startEpoch.add(1), 30);
+        couponsToBurn[0] = CouponLibrary.from(Constants.USDC, startEpoch, 50);
+        couponsToBurn[1] = CouponLibrary.from(Constants.USDC, startEpoch.add(1), 30);
 
         vm.expectRevert(bytes(Errors.ACCESS));
         vm.prank(Constants.USER2);

@@ -15,16 +15,16 @@ import {BondPositionManager} from "../../../contracts/BondPositionManager.sol";
 import {IAssetPool} from "../../../contracts/interfaces/IAssetPool.sol";
 import {IBondPositionManager, IBondPositionManagerEvents} from "../../../contracts/interfaces/IBondPositionManager.sol";
 import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
-import {Coupon} from "../../../contracts/libraries/Coupon.sol";
-import {Epoch} from "../../../contracts/libraries/Epoch.sol";
+import {CouponLibrary} from "../../../contracts/libraries/Coupon.sol";
+import {EpochLibrary} from "../../../contracts/libraries/Epoch.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {MockAssetPool} from "../mocks/MockAssetPool.sol";
 import {Constants} from "../Constants.sol";
 import {Utils} from "../Utils.sol";
 
 contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC1155Holder, ERC721Holder {
-    using Coupon for Types.Coupon;
-    using Epoch for Types.Epoch;
+    using CouponLibrary for Types.Coupon;
+    using EpochLibrary for Types.Epoch;
 
     MockERC20 public usdc;
 
@@ -40,8 +40,8 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC115
 
         usdc.mint(address(this), usdc.amount(1_000_000_000));
 
-        vm.warp(Epoch.wrap(10).startTime());
-        startEpoch = Epoch.current();
+        vm.warp(EpochLibrary.wrap(10).startTime());
+        startEpoch = EpochLibrary.current();
 
         initialAmount = usdc.amount(100);
         assetPool = new MockAssetPool();
@@ -65,8 +65,8 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC115
         Types.Epoch expectedExpiredWith = startEpoch.add(1);
 
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
-        coupons[0] = Coupon.from(address(usdc), startEpoch, amount);
-        coupons[1] = Coupon.from(address(usdc), startEpoch.add(1), amount);
+        coupons[0] = CouponLibrary.from(address(usdc), startEpoch, amount);
+        coupons[1] = CouponLibrary.from(address(usdc), startEpoch.add(1), amount);
         vm.expectCall(
             address(couponManager),
             abi.encodeCall(ICouponManager.mintBatch, (Constants.USER1, coupons, new bytes(0))),
@@ -108,11 +108,11 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC115
         Types.BondPosition memory beforePosition = bondPositionManager.getPosition(tokenId);
 
         Types.Coupon[] memory coupons = new Types.Coupon[](5);
-        coupons[0] = Coupon.from(address(usdc), startEpoch.add(1), increaseAmount);
-        coupons[1] = Coupon.from(address(usdc), startEpoch.add(2), increaseAmount);
-        coupons[2] = Coupon.from(address(usdc), startEpoch.add(3), usdc.amount(170));
-        coupons[3] = Coupon.from(address(usdc), startEpoch.add(4), usdc.amount(170));
-        coupons[4] = Coupon.from(address(usdc), startEpoch.add(5), usdc.amount(170));
+        coupons[0] = CouponLibrary.from(address(usdc), startEpoch.add(1), increaseAmount);
+        coupons[1] = CouponLibrary.from(address(usdc), startEpoch.add(2), increaseAmount);
+        coupons[2] = CouponLibrary.from(address(usdc), startEpoch.add(3), usdc.amount(170));
+        coupons[3] = CouponLibrary.from(address(usdc), startEpoch.add(4), usdc.amount(170));
+        coupons[4] = CouponLibrary.from(address(usdc), startEpoch.add(5), usdc.amount(170));
         vm.expectCall(
             address(couponManager),
             abi.encodeCall(ICouponManager.mintBatch, (address(this), coupons, new bytes(0))),
@@ -144,9 +144,9 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC115
         Types.BondPosition memory beforePosition = bondPositionManager.getPosition(tokenId);
 
         Types.Coupon[] memory couponsToMint = new Types.Coupon[](1);
-        couponsToMint[0] = Coupon.from(address(usdc), startEpoch.add(1), increaseAmount);
+        couponsToMint[0] = CouponLibrary.from(address(usdc), startEpoch.add(1), increaseAmount);
         Types.Coupon[] memory couponsToBurn = new Types.Coupon[](1);
-        couponsToBurn[0] = Coupon.from(address(usdc), startEpoch.add(2), initialAmount);
+        couponsToBurn[0] = CouponLibrary.from(address(usdc), startEpoch.add(2), initialAmount);
         vm.expectCall(
             address(couponManager),
             abi.encodeCall(ICouponManager.mintBatch, (address(this), couponsToMint, new bytes(0))),
@@ -178,12 +178,12 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC115
         Types.BondPosition memory beforePosition = bondPositionManager.getPosition(tokenId);
 
         Types.Coupon[] memory couponsToMint = new Types.Coupon[](3);
-        couponsToMint[0] = Coupon.from(address(usdc), startEpoch.add(3), amount);
-        couponsToMint[1] = Coupon.from(address(usdc), startEpoch.add(4), amount);
-        couponsToMint[2] = Coupon.from(address(usdc), startEpoch.add(5), amount);
+        couponsToMint[0] = CouponLibrary.from(address(usdc), startEpoch.add(3), amount);
+        couponsToMint[1] = CouponLibrary.from(address(usdc), startEpoch.add(4), amount);
+        couponsToMint[2] = CouponLibrary.from(address(usdc), startEpoch.add(5), amount);
         Types.Coupon[] memory couponsToBurn = new Types.Coupon[](2);
-        couponsToBurn[0] = Coupon.from(address(usdc), startEpoch.add(1), decreaseAmount);
-        couponsToBurn[1] = Coupon.from(address(usdc), startEpoch.add(2), decreaseAmount);
+        couponsToBurn[0] = CouponLibrary.from(address(usdc), startEpoch.add(1), decreaseAmount);
+        couponsToBurn[1] = CouponLibrary.from(address(usdc), startEpoch.add(2), decreaseAmount);
         vm.expectCall(
             address(couponManager),
             abi.encodeCall(ICouponManager.mintBatch, (address(this), couponsToMint, new bytes(0))),
@@ -219,8 +219,8 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC115
         Types.BondPosition memory beforePosition = bondPositionManager.getPosition(tokenId);
 
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
-        coupons[0] = Coupon.from(address(usdc), startEpoch.add(1), decreaseAmount);
-        coupons[1] = Coupon.from(address(usdc), startEpoch.add(2), initialAmount);
+        coupons[0] = CouponLibrary.from(address(usdc), startEpoch.add(1), decreaseAmount);
+        coupons[1] = CouponLibrary.from(address(usdc), startEpoch.add(2), initialAmount);
 
         vm.expectCall(
             address(couponManager),
@@ -249,8 +249,8 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC115
         uint256 beforeBondPositionBalance = bondPositionManager.balanceOf(address(this));
 
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
-        coupons[0] = Coupon.from(address(usdc), startEpoch.add(1), initialAmount);
-        coupons[1] = Coupon.from(address(usdc), startEpoch.add(2), initialAmount);
+        coupons[0] = CouponLibrary.from(address(usdc), startEpoch.add(1), initialAmount);
+        coupons[1] = CouponLibrary.from(address(usdc), startEpoch.add(2), initialAmount);
         vm.expectCall(
             address(couponManager),
             abi.encodeCall(ICouponManager.mintBatch, (address(this), new Types.Coupon[](0), new bytes(0))),
@@ -282,8 +282,8 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC115
         uint256 beforeBondPositionBalance = bondPositionManager.balanceOf(address(this));
 
         Types.Coupon[] memory coupons = new Types.Coupon[](2);
-        coupons[0] = Coupon.from(address(usdc), startEpoch.add(1), initialAmount);
-        coupons[1] = Coupon.from(address(usdc), startEpoch.add(2), initialAmount);
+        coupons[0] = CouponLibrary.from(address(usdc), startEpoch.add(1), initialAmount);
+        coupons[1] = CouponLibrary.from(address(usdc), startEpoch.add(2), initialAmount);
         vm.expectCall(
             address(couponManager),
             abi.encodeCall(ICouponManager.mintBatch, (address(this), new Types.Coupon[](0), new bytes(0))),
