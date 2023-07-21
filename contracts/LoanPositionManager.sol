@@ -304,13 +304,26 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
 
         Types.LoanPosition memory oldPosition = _positionMap[tokenId];
         Types.Epoch latestExpiredEpoch = Epoch.current().sub(1);
+
+        Types.LoanPosition memory newPosition = Types.LoanPosition({
+            nonce: oldPosition.nonce,
+            expiredWith: debtAmount == 0 ? latestExpiredEpoch : expiredWith,
+            collateralToken: oldPosition.collateralToken,
+            debtToken: oldPosition.debtToken,
+            collateralAmount: collateralAmount,
+            debtAmount: debtAmount
+        });
+
         require(oldPosition.expiredWith.compare(latestExpiredEpoch) > 0, Errors.INVALID_EPOCH);
-        (
-            Types.LoanPosition memory newPosition,
-            Types.Coupon[] memory couponsToPay,
-            Types.Coupon[] memory couponsToRefund
-        ) = oldPosition.adjustPosition(collateralAmount, debtAmount, expiredWith, latestExpiredEpoch);
+        if (debtAmount > 0 && newPosition.expiredWith.compare(latestExpiredEpoch) <= 0) {
+            revert(Errors.UNPAID_DEBT);
+        }
+
         _validatePosition(newPosition);
+
+        (Types.Coupon[] memory couponsToPay, Types.Coupon[] memory couponsToRefund) = oldPosition.calcCouponRequirement(
+            newPosition
+        );
 
         _positionMap[tokenId] = newPosition;
         emit PositionUpdated(tokenId, newPosition.collateralAmount, newPosition.debtAmount, newPosition.expiredWith);
