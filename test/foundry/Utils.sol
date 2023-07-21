@@ -7,7 +7,7 @@ import "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-import {Types} from "../../contracts/Types.sol";
+import {Coupon} from "../../contracts/libraries/Coupon.sol";
 
 library ERC20Utils {
     function amount(IERC20 token, uint256 ethers) internal view returns (uint256) {
@@ -16,8 +16,8 @@ library ERC20Utils {
 }
 
 library Utils {
-    function toArr(Types.Coupon memory coupon) internal pure returns (Types.Coupon[] memory arr) {
-        arr = new Types.Coupon[](1);
+    function toArr(Coupon memory coupon) internal pure returns (Coupon[] memory arr) {
+        arr = new Coupon[](1);
         arr[0] = coupon;
     }
 

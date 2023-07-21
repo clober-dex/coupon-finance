@@ -4,12 +4,11 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 
-import {Types} from "../../../../contracts/Types.sol";
 import {BokkyPooBahsDateTimeLibrary} from "../../../../contracts/libraries/BokkyPooBahsDateTimeLibrary.sol";
-import {EpochLibrary} from "../../../../contracts/libraries/Epoch.sol";
+import {Epoch, EpochLibrary} from "../../../../contracts/libraries/Epoch.sol";
 
 contract EpochUnitTest is Test {
-    using EpochLibrary for Types.Epoch;
+    using EpochLibrary for Epoch;
 
     function testFromMonths() public {
         assertEq(EpochLibrary.fromMonths(0).unwrap(), 0);
@@ -78,28 +77,28 @@ contract EpochUnitTest is Test {
     }
 
     function testAdd() public {
-        Types.Epoch a = EpochLibrary.fromMonths(1234);
+        Epoch a = EpochLibrary.fromMonths(1234);
         assertEq(a.add(324).unwrap(), 1558);
     }
 
     function testSub() public {
-        Types.Epoch a = EpochLibrary.fromMonths(1234);
+        Epoch a = EpochLibrary.fromMonths(1234);
         assertEq(a.sub(324).unwrap(), 910);
     }
 
     function testCompare() public {
-        Types.Epoch a = EpochLibrary.fromMonths(1234);
-        Types.Epoch b = EpochLibrary.fromMonths(1234);
-        Types.Epoch c = EpochLibrary.fromMonths(1235);
+        Epoch a = EpochLibrary.fromMonths(1234);
+        Epoch b = EpochLibrary.fromMonths(1234);
+        Epoch c = EpochLibrary.fromMonths(1235);
         assertEq(a.compare(b), 0);
         assertEq(a.compare(c), -1);
         assertEq(c.compare(a), 1);
     }
 
     function testMax() public {
-        Types.Epoch a = EpochLibrary.fromMonths(1234);
-        Types.Epoch b = EpochLibrary.fromMonths(1234);
-        Types.Epoch c = EpochLibrary.fromMonths(1235);
+        Epoch a = EpochLibrary.fromMonths(1234);
+        Epoch b = EpochLibrary.fromMonths(1234);
+        Epoch c = EpochLibrary.fromMonths(1235);
         assertEq(EpochLibrary.max(a, b).unwrap(), a.unwrap());
         assertEq(EpochLibrary.max(a, c).unwrap(), c.unwrap());
         assertEq(EpochLibrary.max(c, a).unwrap(), c.unwrap());

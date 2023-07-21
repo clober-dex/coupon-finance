@@ -4,21 +4,40 @@ pragma solidity ^0.8.0;
 
 import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
 
-import {Types} from "../Types.sol";
 import {IERC721Permit} from "./IERC721Permit.sol";
+import {CouponKey} from "../libraries/CouponKey.sol";
+import {Epoch} from "../libraries/Epoch.sol";
+import {LoanPosition} from "../libraries/LoanPosition.sol";
+
+interface ILoanPositionManagerStructs {
+    struct LiquidationStatus {
+        uint256 liquidationAmount;
+        uint256 repayAmount;
+    }
+
+    // liquidationFee = liquidator fee + protocol fee
+    // debt = collateral * (1 - liquidationFee)
+    struct AssetLoanConfiguration {
+        uint32 decimal;
+        uint32 liquidationThreshold;
+        uint32 liquidationFee;
+        uint32 liquidationProtocolFee;
+        uint32 liquidationTargetLtv;
+    }
+}
 
 interface ILoanPositionManagerEvents {
     event AssetRegistered(address indexed asset);
-    event PositionUpdated(
-        uint256 indexed tokenId,
-        uint256 collateralAmount,
-        uint256 debtAmount,
-        Types.Epoch unlockedAt
-    );
+    event PositionUpdated(uint256 indexed tokenId, uint256 collateralAmount, uint256 debtAmount, Epoch unlockedAt);
     event PositionLiquidated(uint256 indexed tokenId);
 }
 
-interface ILoanPositionManager is IERC721Metadata, IERC721Permit, ILoanPositionManagerEvents {
+interface ILoanPositionManager is
+    IERC721Metadata,
+    IERC721Permit,
+    ILoanPositionManagerEvents,
+    ILoanPositionManagerStructs
+{
     function baseURI() external view returns (string memory);
 
     function treasury() external view returns (address);
@@ -35,18 +54,18 @@ interface ILoanPositionManager is IERC721Metadata, IERC721Permit, ILoanPositionM
 
     function couponOwed(address user, uint256 couponId) external view returns (uint256);
 
-    function getPosition(uint256 tokenId) external view returns (Types.LoanPosition memory);
+    function getPosition(uint256 tokenId) external view returns (LoanPosition memory);
 
     function isAssetRegistered(address asset) external view returns (bool);
 
-    function getLoanConfiguration(address asset) external view returns (Types.AssetLoanConfiguration memory);
+    function getLoanConfiguration(address asset) external view returns (AssetLoanConfiguration memory);
 
-    function setLoanConfiguration(address asset, Types.AssetLoanConfiguration memory config) external;
+    function setLoanConfiguration(address asset, AssetLoanConfiguration memory config) external;
 
     function getLiquidationStatus(
         uint256 tokenId,
         uint256 maxRepayAmount
-    ) external view returns (Types.LiquidationStatus memory);
+    ) external view returns (LiquidationStatus memory);
 
     function mint(
         address collateralToken,
@@ -62,13 +81,13 @@ interface ILoanPositionManager is IERC721Metadata, IERC721Permit, ILoanPositionM
         uint256 tokenId,
         uint256 collateralAmount,
         uint256 debtAmount,
-        Types.Epoch expiredWith,
+        Epoch expiredWith,
         bytes calldata data
     ) external;
 
     function liquidate(uint256 tokenId, uint256 maxRepayAmount, bytes calldata data) external;
 
-    function claimOwedCoupons(Types.CouponKey[] memory couponKeys, bytes calldata data) external;
+    function claimOwedCoupons(CouponKey[] memory couponKeys, bytes calldata data) external;
 
     function burn(uint256 tokenId) external;
 }

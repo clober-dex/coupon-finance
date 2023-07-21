@@ -19,20 +19,19 @@ import {ICouponOracle} from "./interfaces/ICouponOracle.sol";
 import {ICouponManager} from "./interfaces/ICouponManager.sol";
 import {ERC721Permit, IERC165} from "./libraries/ERC721Permit.sol";
 import {ReentrancyGuard} from "./libraries/ReentrancyGuard.sol";
-import {CouponKeyLibrary} from "./libraries/CouponKey.sol";
-import {CouponLibrary} from "./libraries/Coupon.sol";
-import {EpochLibrary} from "./libraries/Epoch.sol";
-import {LoanPositionLibrary} from "./libraries/LoanPosition.sol";
-import {Types} from "./Types.sol";
+import {CouponKey, CouponKeyLibrary} from "./libraries/CouponKey.sol";
+import {Coupon, CouponLibrary} from "./libraries/Coupon.sol";
+import {Epoch, EpochLibrary} from "./libraries/Epoch.sol";
+import {LoanPosition, LoanPositionLibrary} from "./libraries/LoanPosition.sol";
 import {Errors} from "./Errors.sol";
 
 contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC1155Holder {
     using SafeERC20 for IERC20;
     using Strings for uint256;
-    using LoanPositionLibrary for Types.LoanPosition;
-    using CouponKeyLibrary for Types.CouponKey;
-    using CouponLibrary for Types.Coupon;
-    using EpochLibrary for Types.Epoch;
+    using LoanPositionLibrary for LoanPosition;
+    using CouponKeyLibrary for CouponKey;
+    using CouponLibrary for Coupon;
+    using EpochLibrary for Epoch;
 
     uint256 private constant _RATE_PRECISION = 10 ** 6;
 
@@ -46,8 +45,8 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
     uint256 public override nextId = 1;
 
     mapping(address user => mapping(uint256 couponId => uint256)) public override couponOwed;
-    mapping(address asset => Types.AssetLoanConfiguration) private _assetConfig;
-    mapping(uint256 id => Types.LoanPosition) private _positionMap;
+    mapping(address asset => AssetLoanConfiguration) private _assetConfig;
+    mapping(uint256 id => LoanPosition) private _positionMap;
 
     constructor(
         address couponManager_,
@@ -65,7 +64,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         minDebtValueInEth = minDebtValueInEth_;
     }
 
-    function getPosition(uint256 tokenId) external view returns (Types.LoanPosition memory) {
+    function getPosition(uint256 tokenId) external view returns (LoanPosition memory) {
         return _positionMap[tokenId];
     }
 
@@ -73,28 +72,25 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         return !_isAssetUnregistered(asset);
     }
 
-    function getLoanConfiguration(address asset) external view returns (Types.AssetLoanConfiguration memory) {
+    function getLoanConfiguration(address asset) external view returns (AssetLoanConfiguration memory) {
         return _assetConfig[asset];
     }
 
-    function setLoanConfiguration(address asset, Types.AssetLoanConfiguration memory config) external onlyOwner {
+    function setLoanConfiguration(address asset, AssetLoanConfiguration memory config) external onlyOwner {
         require(_assetConfig[asset].liquidationThreshold == 0, "INITIALIZED");
         config.decimal = IERC20Metadata(asset).decimals();
         _assetConfig[asset] = config;
     }
 
-    function _getAssetConfig(
-        address asset,
-        address collateral
-    ) private view returns (Types.AssetLoanConfiguration memory) {
-        Types.AssetLoanConfiguration memory debtAssetConfig = _assetConfig[asset];
-        Types.AssetLoanConfiguration memory collateralAssetConfig = _assetConfig[collateral];
+    function _getAssetConfig(address asset, address collateral) private view returns (AssetLoanConfiguration memory) {
+        AssetLoanConfiguration memory debtAssetConfig = _assetConfig[asset];
+        AssetLoanConfiguration memory collateralAssetConfig = _assetConfig[collateral];
 
         if (collateralAssetConfig.liquidationThreshold == 0) return debtAssetConfig;
         if (debtAssetConfig.liquidationThreshold == 0) return collateralAssetConfig;
 
         return
-            Types.AssetLoanConfiguration({
+            AssetLoanConfiguration({
                 decimal: 0,
                 liquidationFee: debtAssetConfig.liquidationFee > collateralAssetConfig.liquidationFee
                     ? debtAssetConfig.liquidationFee
@@ -137,10 +133,10 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
     }
 
     function _getLiquidationAmount(
-        Types.LoanPosition memory position,
+        LoanPosition memory position,
         uint256 maxRepayAmount
     ) private view returns (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount) {
-        Types.AssetLoanConfiguration memory config = _getAssetConfig(position.debtToken, position.collateralToken);
+        AssetLoanConfiguration memory config = _getAssetConfig(position.debtToken, position.collateralToken);
         (uint256 assetPrice, uint256 collateralPrice, uint256 minDebtValue) = _getPriceWithPrecisionAndEthAmountPerDebt(
             position.debtToken,
             position.collateralToken,
@@ -216,20 +212,20 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
     function getLiquidationStatus(
         uint256 tokenId,
         uint256 maxRepayAmount
-    ) external view returns (Types.LiquidationStatus memory) {
+    ) external view returns (LiquidationStatus memory) {
         (uint256 liquidationAmount, uint256 repayAmount, ) = _getLiquidationAmount(
             _positionMap[tokenId],
             maxRepayAmount > 0 ? maxRepayAmount : type(uint256).max
         );
-        return Types.LiquidationStatus({liquidationAmount: liquidationAmount, repayAmount: repayAmount});
+        return LiquidationStatus({liquidationAmount: liquidationAmount, repayAmount: repayAmount});
     }
 
-    function _validatePosition(Types.LoanPosition memory position, Types.Epoch latestExpiredEpoch) internal view {
+    function _validatePosition(LoanPosition memory position, Epoch latestExpiredEpoch) internal view {
         if (position.debtAmount > 0 && position.expiredWith.compare(latestExpiredEpoch) <= 0) {
             revert(Errors.UNPAID_DEBT);
         }
 
-        Types.AssetLoanConfiguration memory config = _getAssetConfig(position.debtToken, position.collateralToken);
+        AssetLoanConfiguration memory config = _getAssetConfig(position.debtToken, position.collateralToken);
         (uint256 debtPrice, uint256 collateralPrice, uint256 minDebtValue) = _getPriceWithPrecisionAndEthAmountPerDebt(
             position.debtToken,
             position.collateralToken,
@@ -259,9 +255,9 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         require(loanEpochs > 0 && debtAmount > 0, Errors.EMPTY_INPUT);
         tokenId = nextId++;
 
-        Types.Epoch currentEpoch = EpochLibrary.current();
+        Epoch currentEpoch = EpochLibrary.current();
 
-        Types.LoanPosition memory position = LoanPositionLibrary.from(
+        LoanPosition memory position = LoanPositionLibrary.from(
             currentEpoch.add(loanEpochs - 1),
             collateralToken,
             debtToken,
@@ -269,7 +265,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
             debtAmount
         );
         _validatePosition(position, currentEpoch.sub(1));
-        Types.Coupon[] memory coupons = new Types.Coupon[](loanEpochs);
+        Coupon[] memory coupons = new Coupon[](loanEpochs);
         for (uint16 i = 0; i < loanEpochs; ++i) {
             coupons[i] = CouponLibrary.from(debtToken, currentEpoch.add(i), debtAmount);
         }
@@ -286,7 +282,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
                 LoanPositionLibrary.empty(collateralToken, debtToken),
                 position,
                 coupons,
-                new Types.Coupon[](0),
+                new Coupon[](0),
                 data
             );
         }
@@ -300,16 +296,16 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         uint256 tokenId,
         uint256 collateralAmount,
         uint256 debtAmount,
-        Types.Epoch expiredWith,
+        Epoch expiredWith,
         bytes calldata data
     ) external {
         require(_isApprovedOrOwner(msg.sender, tokenId), Errors.ACCESS);
 
-        Types.LoanPosition memory oldPosition = _positionMap[tokenId];
-        Types.Epoch latestExpiredEpoch = EpochLibrary.current().sub(1);
+        LoanPosition memory oldPosition = _positionMap[tokenId];
+        Epoch latestExpiredEpoch = EpochLibrary.current().sub(1);
         require(oldPosition.expiredWith.compare(latestExpiredEpoch) > 0, Errors.INVALID_EPOCH);
 
-        Types.LoanPosition memory newPosition = Types.LoanPosition({
+        LoanPosition memory newPosition = LoanPosition({
             nonce: oldPosition.nonce,
             expiredWith: debtAmount == 0 ? latestExpiredEpoch : expiredWith,
             collateralToken: oldPosition.collateralToken,
@@ -320,8 +316,9 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
 
         _validatePosition(newPosition, latestExpiredEpoch);
 
-        (Types.Coupon[] memory couponsToPay, Types.Coupon[] memory couponsToRefund) = oldPosition
-            .calculateCouponRequirement(newPosition);
+        (Coupon[] memory couponsToPay, Coupon[] memory couponsToRefund) = oldPosition.calculateCouponRequirement(
+            newPosition
+        );
 
         _positionMap[tokenId] = newPosition;
         emit PositionUpdated(tokenId, newPosition.collateralAmount, newPosition.debtAmount, newPosition.expiredWith);
@@ -371,7 +368,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
     }
 
     function liquidate(uint256 tokenId, uint256 maxRepayAmount, bytes calldata data) external {
-        Types.LoanPosition memory position = _positionMap[tokenId];
+        LoanPosition memory position = _positionMap[tokenId];
         (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount) = _getLiquidationAmount(
             position,
             maxRepayAmount > 0 ? maxRepayAmount : type(uint256).max
@@ -380,11 +377,11 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         require(liquidationAmount > 0 || repayAmount > 0, "LIQUIDATION_FAIL");
 
         unchecked {
-            Types.Epoch currentEpoch = EpochLibrary.current();
+            Epoch currentEpoch = EpochLibrary.current();
             address couponOwner = ownerOf(tokenId);
             if (position.expiredWith.compare(currentEpoch) >= 0) {
                 uint256 length = position.expiredWith.sub(currentEpoch) + 1;
-                Types.Coupon[] memory coupons = new Types.Coupon[](length);
+                Coupon[] memory coupons = new Coupon[](length);
                 for (uint16 i = 0; i < length; ++i) {
                     coupons[i] = CouponLibrary.from(position.debtToken, currentEpoch.add(i), repayAmount);
                 }
@@ -423,7 +420,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         emit PositionUpdated(tokenId, position.collateralAmount, position.debtAmount, position.expiredWith);
     }
 
-    function claimOwedCoupons(Types.CouponKey[] memory couponKeys, bytes calldata data) external {
+    function claimOwedCoupons(CouponKey[] memory couponKeys, bytes calldata data) external {
         uint256 length = couponKeys.length;
         uint256[] memory ids = new uint256[](length);
         uint256[] memory amounts = new uint256[](length);
@@ -438,7 +435,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
 
     function burn(uint256 tokenId) external {
         require(_isApprovedOrOwner(msg.sender, tokenId), Errors.ACCESS);
-        Types.LoanPosition memory position = _positionMap[tokenId];
+        LoanPosition memory position = _positionMap[tokenId];
         require(position.debtAmount == 0, Errors.UNPAID_DEBT);
         uint256 collateralAmount = position.collateralAmount;
         position.collateralAmount = 0;

@@ -2,15 +2,16 @@
 
 pragma solidity ^0.8.0;
 
-import {Types} from "../Types.sol";
+import {Coupon} from "../libraries/Coupon.sol";
+import {LoanPosition} from "../libraries/LoanPosition.sol";
 
 interface ILoanPositionCallbackReceiver {
     function loanPositionAdjustCallback(
         uint256 tokenId,
-        Types.LoanPosition memory oldPosition,
-        Types.LoanPosition memory newPosition,
-        Types.Coupon[] memory couponsToPay,
-        Types.Coupon[] memory couponsRefunded,
+        LoanPosition memory oldPosition,
+        LoanPosition memory newPosition,
+        Coupon[] memory couponsToPay,
+        Coupon[] memory couponsRefunded,
         bytes calldata data
     ) external;
 }

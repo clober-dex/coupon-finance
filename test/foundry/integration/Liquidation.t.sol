@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
+
 pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
@@ -6,23 +7,22 @@ import "forge-std/Test.sol";
 import {ERC1155Holder, IERC1155Receiver} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 
 import {Errors} from "../../../contracts/Errors.sol";
-import {Types} from "../../../contracts/Types.sol";
-import {LoanPositionManager} from "../../../contracts/LoanPositionManager.sol";
+import {LoanPosition, LoanPositionManager} from "../../../contracts/LoanPositionManager.sol";
 import {CouponManager} from "../../../contracts/CouponManager.sol";
-import {ILoanPositionManager, ILoanPositionManagerEvents} from "../../../contracts/interfaces/ILoanPositionManager.sol";
+import {ILoanPositionManager, ILoanPositionManagerEvents, ILoanPositionManagerStructs} from "../../../contracts/interfaces/ILoanPositionManager.sol";
 import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
 import {IERC721Permit} from "../../../contracts/interfaces/IERC721Permit.sol";
 import {IAssetPool} from "../../../contracts/interfaces/IAssetPool.sol";
-import {CouponLibrary} from "../../../contracts/libraries/Coupon.sol";
-import {EpochLibrary} from "../../../contracts/libraries/Epoch.sol";
+import {Coupon, CouponLibrary} from "../../../contracts/libraries/Coupon.sol";
+import {Epoch, EpochLibrary} from "../../../contracts/libraries/Epoch.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {MockAssetPool} from "../mocks/MockAssetPool.sol";
 import {MockOracle} from "../mocks/MockOracle.sol";
 import {Constants} from "../Constants.sol";
 
-contract LiquidationIntegrationTest is Test, ERC1155Holder {
-    using CouponLibrary for Types.Coupon;
-    using EpochLibrary for Types.Epoch;
+contract LiquidationIntegrationTest is Test, ERC1155Holder, ILoanPositionManagerEvents, ILoanPositionManagerStructs {
+    using CouponLibrary for Coupon;
+    using EpochLibrary for Epoch;
 
     MockERC20 public weth;
     MockERC20 public usdc;
@@ -32,7 +32,7 @@ contract LiquidationIntegrationTest is Test, ERC1155Holder {
     ICouponManager public couponManager;
     ILoanPositionManager public loanPositionManager;
 
-    Types.Epoch public startEpoch;
+    Epoch public startEpoch;
     uint256 public snapshotId;
     uint256 public initialCollateralAmount;
     uint256 public initialDebtAmount;
@@ -59,7 +59,7 @@ contract LiquidationIntegrationTest is Test, ERC1155Holder {
         );
         loanPositionManager.setLoanConfiguration(
             address(usdc),
-            Types.AssetLoanConfiguration({
+            AssetLoanConfiguration({
                 decimal: 0,
                 liquidationThreshold: 900000,
                 liquidationFee: 15000,
@@ -69,7 +69,7 @@ contract LiquidationIntegrationTest is Test, ERC1155Holder {
         );
         loanPositionManager.setLoanConfiguration(
             address(weth),
-            Types.AssetLoanConfiguration({
+            AssetLoanConfiguration({
                 decimal: 0,
                 liquidationThreshold: 800000,
                 liquidationFee: 20000,
@@ -94,7 +94,7 @@ contract LiquidationIntegrationTest is Test, ERC1155Holder {
         initialDebtAmount = usdc.amount(100);
     }
 
-    function _mintCoupons(address to, Types.Coupon[] memory coupons) internal {
+    function _mintCoupons(address to, Coupon[] memory coupons) internal {
         address minter = couponManager.minter();
         vm.startPrank(minter);
         couponManager.mintBatch(to, coupons, new bytes(0));
@@ -120,7 +120,7 @@ contract LiquidationIntegrationTest is Test, ERC1155Holder {
         bool isEthCollateral,
         bool canLiquidate
     ) private {
-        Types.Coupon[] memory coupons = new Types.Coupon[](2);
+        Coupon[] memory coupons = new Coupon[](2);
         coupons[0] = CouponLibrary.from(address(isEthCollateral ? usdc : weth), startEpoch, debtAmount);
         coupons[1] = CouponLibrary.from(address(isEthCollateral ? usdc : weth), startEpoch.add(1), debtAmount);
         _mintCoupons(address(this), coupons);
@@ -142,15 +142,12 @@ contract LiquidationIntegrationTest is Test, ERC1155Holder {
         if (changeData == 0) vm.warp(loanPositionManager.getPosition(tokenId).expiredWith.endTime() + 1);
         else oracle.setAssetPrice(address(weth), changeData);
 
-        Types.LiquidationStatus memory liquidationStatus = loanPositionManager.getLiquidationStatus(
-            tokenId,
-            maxRepayAmount
-        );
+        LiquidationStatus memory liquidationStatus = loanPositionManager.getLiquidationStatus(tokenId, maxRepayAmount);
 
         assertEq(liquidationStatus.liquidationAmount, liquidationAmount, "LIQUIDATION_AMOUNT");
         assertEq(liquidationStatus.repayAmount, repayAmount, "REPAY_AMOUNT");
 
-        Types.LoanPosition memory beforePosition = loanPositionManager.getPosition(tokenId);
+        LoanPosition memory beforePosition = loanPositionManager.getPosition(tokenId);
         Balance memory balances = Balance({
             beforeUserCoupon1Balance: couponManager.balanceOf(Constants.USER1, coupons[0].id()),
             beforeUserCoupon2Balance: couponManager.balanceOf(Constants.USER1, coupons[1].id()),
@@ -161,7 +158,7 @@ contract LiquidationIntegrationTest is Test, ERC1155Holder {
 
         loanPositionManager.liquidate(tokenId, maxRepayAmount, new bytes(0));
 
-        Types.LoanPosition memory afterPosition = loanPositionManager.getPosition(tokenId);
+        LoanPosition memory afterPosition = loanPositionManager.getPosition(tokenId);
 
         assertEq(beforePosition.debtAmount - afterPosition.debtAmount, repayAmount, "DEBT_AMOUNT");
         assertEq(
