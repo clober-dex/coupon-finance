@@ -321,9 +321,8 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
 
         _validatePosition(newPosition, latestExpiredEpoch);
 
-        (Types.Coupon[] memory couponsToPay, Types.Coupon[] memory couponsToRefund) = oldPosition.calcCouponRequirement(
-            newPosition
-        );
+        (Types.Coupon[] memory couponsToPay, Types.Coupon[] memory couponsToRefund) = oldPosition
+            .calculateCouponRequirement(newPosition);
 
         _positionMap[tokenId] = newPosition;
         emit PositionUpdated(tokenId, newPosition.collateralAmount, newPosition.debtAmount, newPosition.expiredWith);

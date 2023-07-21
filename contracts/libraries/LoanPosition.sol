@@ -34,7 +34,7 @@ library LoanPositionLibrary {
         nonce = positionStorage.nonce++;
     }
 
-    function calcCouponRequirement(
+    function calculateCouponRequirement(
         Types.LoanPosition memory oldPosition,
         Types.LoanPosition memory newPosition
     ) internal view returns (Types.Coupon[] memory, Types.Coupon[] memory) {
