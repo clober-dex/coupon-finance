@@ -224,7 +224,11 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         return Types.LiquidationStatus({liquidationAmount: liquidationAmount, repayAmount: repayAmount});
     }
 
-    function _validatePosition(Types.LoanPosition memory position) internal view {
+    function _validatePosition(Types.LoanPosition memory position, Types.Epoch latestExpiredEpoch) internal view {
+        if (position.debtAmount > 0 && position.expiredWith.compare(latestExpiredEpoch) <= 0) {
+            revert(Errors.UNPAID_DEBT);
+        }
+
         Types.AssetLoanConfiguration memory config = _getAssetConfig(position.debtToken, position.collateralToken);
         (uint256 debtPrice, uint256 collateralPrice, uint256 minDebtValue) = _getPriceWithPrecisionAndEthAmountPerDebt(
             position.debtToken,
@@ -264,7 +268,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
             collateralAmount,
             debtAmount
         );
-        _validatePosition(position);
+        _validatePosition(position, currentEpoch.sub(1));
         Types.Coupon[] memory coupons = new Types.Coupon[](loanEpochs);
         for (uint16 i = 0; i < loanEpochs; ++i) {
             coupons[i] = Coupon.from(debtToken, currentEpoch.add(i), debtAmount);
@@ -304,12 +308,20 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         Types.LoanPosition memory oldPosition = _positionMap[tokenId];
         Types.Epoch latestExpiredEpoch = Epoch.current().sub(1);
         require(oldPosition.expiredWith.compare(latestExpiredEpoch) > 0, Errors.INVALID_EPOCH);
-        (
-            Types.LoanPosition memory newPosition,
-            Types.Coupon[] memory couponsToPay,
-            Types.Coupon[] memory couponsToRefund
-        ) = oldPosition.adjustPosition(collateralAmount, debtAmount, expiredWith, latestExpiredEpoch);
-        _validatePosition(newPosition);
+
+        Types.LoanPosition memory newPosition = Types.LoanPosition({
+            nonce: oldPosition.nonce,
+            expiredWith: debtAmount == 0 ? latestExpiredEpoch : expiredWith,
+            collateralToken: oldPosition.collateralToken,
+            debtToken: oldPosition.debtToken,
+            collateralAmount: collateralAmount,
+            debtAmount: debtAmount
+        });
+
+        _validatePosition(newPosition, latestExpiredEpoch);
+
+        (Types.Coupon[] memory couponsToPay, Types.Coupon[] memory couponsToRefund) = oldPosition
+            .calculateCouponRequirement(newPosition);
 
         _positionMap[tokenId] = newPosition;
         emit PositionUpdated(tokenId, newPosition.collateralAmount, newPosition.debtAmount, newPosition.expiredWith);
