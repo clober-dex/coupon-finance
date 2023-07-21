@@ -13,6 +13,20 @@ import {Coupon} from "./Coupon.sol";
 library LoanPositionLibrary {
     using Epoch for Types.Epoch;
 
+    function empty(
+        address collateralToken,
+        address debtToken
+    ) internal pure returns (Types.LoanPosition memory position) {
+        position = Types.LoanPosition({
+            nonce: 0,
+            expiredWith: Epoch.wrap(0),
+            collateralToken: collateralToken,
+            debtToken: debtToken,
+            collateralAmount: 0,
+            debtAmount: 0
+        });
+    }
+
     function from(
         Types.Epoch expiredWith,
         address collateralToken,
