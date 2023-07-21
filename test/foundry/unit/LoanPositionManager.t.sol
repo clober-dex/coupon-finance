@@ -24,6 +24,7 @@ import {MockERC20} from "../mocks/MockERC20.sol";
 import {MockAssetPool} from "../mocks/MockAssetPool.sol";
 import {MockOracle} from "../mocks/MockOracle.sol";
 import {Constants} from "../Constants.sol";
+import {Utils} from "../Utils.sol";
 
 contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerEvents, ERC1155Holder, ERC721Holder {
     using Coupon for Types.Coupon;
@@ -83,6 +84,8 @@ contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerEvents, ERC115
             })
         );
 
+        couponManager.setApprovalForAll(address(loanPositionManager), true);
+
         weth.approve(address(loanPositionManager), type(uint256).max);
         usdc.approve(address(loanPositionManager), type(uint256).max);
         weth.transfer(address(assetPool), weth.amount(1_000_000_000));
@@ -117,7 +120,6 @@ contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerEvents, ERC115
         coupons[0] = Coupon.from(address(usdc), startEpoch, initialDebtAmount);
         coupons[1] = Coupon.from(address(usdc), startEpoch.add(1), initialDebtAmount);
         _mintCoupons(address(this), coupons);
-        couponManager.setApprovalForAll(address(loanPositionManager), true);
 
         vm.expectEmit(true, true, true, true);
         emit PositionUpdated(nextId, initialCollateralAmount, initialDebtAmount, epoch);
@@ -230,7 +232,6 @@ contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerEvents, ERC115
         }
         _mintCoupons(address(this), coupons);
 
-        couponManager.setApprovalForAll(address(loanPositionManager), true);
         tokenId = loanPositionManager.mint(
             address(weth),
             address(usdc),
@@ -534,7 +535,6 @@ contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerEvents, ERC115
         coupons[1] = Coupon.from(address(isEthCollateral ? usdc : weth), startEpoch.add(1), debtAmount);
         _mintCoupons(address(this), coupons);
 
-        couponManager.setApprovalForAll(address(loanPositionManager), true);
         uint256 tokenId = loanPositionManager.mint(
             address(isEthCollateral ? weth : usdc),
             address(isEthCollateral ? usdc : weth),
@@ -667,7 +667,6 @@ contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerEvents, ERC115
         MockERC20 collateralToken = isEthCollateral ? weth : usdc;
         MockERC20 debtToken = isEthCollateral ? usdc : weth;
 
-        couponManager.setApprovalForAll(address(loanPositionManager), true);
         uint256 tokenId = loanPositionManager.mint(
             address(collateralToken),
             address(debtToken),
@@ -926,12 +925,86 @@ contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerEvents, ERC115
         );
     }
 
+    function _beforeBurn() internal returns (uint256 tokenId) {
+        _mintCoupons(address(this), Utils.toArr(Coupon.from(address(usdc), startEpoch, initialDebtAmount)));
+        tokenId = loanPositionManager.mint(
+            address(weth),
+            address(usdc),
+            initialCollateralAmount,
+            initialDebtAmount,
+            1,
+            address(this),
+            new bytes(0)
+        );
+        loanPositionManager.adjustPosition(tokenId, initialCollateralAmount, 0, startEpoch, new bytes(0));
+
+        vm.warp(startEpoch.add(2).startTime());
+    }
+
+    function testBurn() public {
+        uint256 tokenId = _beforeBurn();
+
+        Types.LoanPosition memory beforePosition = loanPositionManager.getPosition(tokenId);
+        assertEq(beforePosition.collateralAmount, initialCollateralAmount);
+        assertEq(beforePosition.debtAmount, 0);
+        assertEq(beforePosition.expiredWith, startEpoch);
+
+        uint256 beforePositionBalance = loanPositionManager.balanceOf(address(this));
+
+        vm.expectEmit(true, true, true, true);
+        emit PositionUpdated(tokenId, 0, 0, startEpoch);
+        vm.expectCall(
+            address(assetPool),
+            abi.encodeCall(assetPool.withdraw, (address(weth), initialCollateralAmount, address(this)))
+        );
+        loanPositionManager.burn(tokenId);
+
+        Types.LoanPosition memory afterPosition = loanPositionManager.getPosition(tokenId);
+
+        assertEq(loanPositionManager.balanceOf(address(this)), beforePositionBalance - 1, "INVALID_POSITION_BALANCE");
+        assertEq(afterPosition.collateralAmount, 0, "INVALID_COLLATERAL_AMOUNT");
+        assertEq(afterPosition.debtAmount, 0, "INVALID_DEBT_AMOUNT");
+        assertEq(afterPosition.expiredWith, startEpoch, "INVALID_EXPIRED_WITH");
+        vm.expectRevert("ERC721: invalid token ID");
+        loanPositionManager.ownerOf(tokenId);
+    }
+
+    function testBurnOwnership() public {
+        uint256 tokenId = _beforeBurn();
+        vm.expectRevert(bytes(Errors.ACCESS));
+        vm.prank(address(0x23));
+        loanPositionManager.burn(tokenId);
+    }
+
+    function testBurnWhenDebtIsNotZero() public {
+        _mintCoupons(address(this), Utils.toArr(Coupon.from(address(usdc), startEpoch, initialDebtAmount)));
+        uint256 tokenId = loanPositionManager.mint(
+            address(weth),
+            address(usdc),
+            initialCollateralAmount,
+            initialDebtAmount,
+            1,
+            address(this),
+            new bytes(0)
+        );
+        loanPositionManager.adjustPosition(tokenId, initialCollateralAmount, usdc.amount(1), startEpoch, new bytes(0));
+
+        vm.warp(startEpoch.add(2).startTime());
+
+        vm.expectRevert(bytes(Errors.UNPAID_DEBT));
+        loanPositionManager.burn(tokenId);
+    }
+
     function testSupportsInterface() public {
         assertTrue(loanPositionManager.supportsInterface(type(IERC721).interfaceId));
         assertTrue(loanPositionManager.supportsInterface(type(IERC721Metadata).interfaceId));
         assertTrue(loanPositionManager.supportsInterface(type(IERC1155Receiver).interfaceId));
         assertTrue(loanPositionManager.supportsInterface(type(IERC165).interfaceId));
         assertTrue(loanPositionManager.supportsInterface(type(IERC721Permit).interfaceId));
+    }
+
+    function assertEq(Types.Epoch e1, Types.Epoch e2) internal {
+        assertEq(e1.unwrap(), e2.unwrap());
     }
 
     function assertEq(Types.Epoch e1, Types.Epoch e2, string memory err) internal {
