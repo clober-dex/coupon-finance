@@ -62,7 +62,7 @@ interface ILoanPositionManager is
 
     function getPosition(uint256 tokenId) external view returns (LoanPosition memory);
 
-    function isAssetRegistered(address asset) external view returns (bool);
+    function isPairRegistered(address collateral, address debt) external view returns (bool);
 
     function getLoanConfiguration(address collateral, address debt) external view returns (LoanConfiguration memory);
 

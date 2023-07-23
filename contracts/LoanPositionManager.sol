@@ -68,8 +68,8 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         return _positionMap[tokenId];
     }
 
-    function isAssetRegistered(address asset) external view returns (bool) {
-        return !_isAssetUnregistered(asset);
+    function isPairRegistered(address collateral, address debt) external view returns (bool) {
+        return !_isPairUnregistered(collateral, debt);
     }
 
     function getLoanConfiguration(address collateral, address debt) external view returns (LoanConfiguration memory) {
@@ -96,7 +96,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         });
     }
 
-    function _getPriceWithPrecisionAndEthAmountPerDebt(
+    function _getPriceWithPrecisionComplementAndEthAmountPerDebt(
         address collateral,
         address debt,
         LoanConfiguration memory loanConfig,
@@ -128,12 +128,16 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         LoanConfiguration memory loanConfig = _loanConfiguration[
             keccak256(abi.encodePacked(position.collateralToken, position.debtToken))
         ];
-        (uint256 collateralPrice, uint256 debtPrice, uint256 minDebtValue) = _getPriceWithPrecisionAndEthAmountPerDebt(
-            position.collateralToken,
-            position.debtToken,
-            loanConfig,
-            minDebtValueInEth
-        );
+        (
+            uint256 collateralPrice,
+            uint256 debtPrice,
+            uint256 minDebtValue
+        ) = _getPriceWithPrecisionComplementAndEthAmountPerDebt(
+                position.collateralToken,
+                position.debtToken,
+                loanConfig,
+                minDebtValueInEth
+            );
 
         if (position.expiredWith.isExpired()) {
             unchecked {
@@ -154,18 +158,18 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
             }
         }
 
-        uint256 collateralAmountInBaseCurrency = position.collateralAmount * collateralPrice * _RATE_PRECISION;
-        uint256 debtAmountInBaseCurrency = position.debtAmount * debtPrice * _RATE_PRECISION;
+        uint256 collateralAmountInBaseCurrency = position.collateralAmount * collateralPrice;
+        uint256 debtAmountInBaseCurrencyMulRatePrecision = position.debtAmount * debtPrice * _RATE_PRECISION;
 
         unchecked {
             if (
-                (collateralAmountInBaseCurrency / _RATE_PRECISION) * loanConfig.liquidationThreshold >=
-                debtAmountInBaseCurrency
+                collateralAmountInBaseCurrency * loanConfig.liquidationThreshold >=
+                debtAmountInBaseCurrencyMulRatePrecision
             ) return (0, 0, 0);
 
             liquidationAmount = Math.ceilDiv(
-                debtAmountInBaseCurrency -
-                    (collateralAmountInBaseCurrency / _RATE_PRECISION) *
+                debtAmountInBaseCurrencyMulRatePrecision -
+                    collateralAmountInBaseCurrency *
                     loanConfig.liquidationTargetLtv,
                 collateralPrice * (_RATE_PRECISION - loanConfig.liquidationFee - loanConfig.liquidationTargetLtv)
             );
@@ -220,12 +224,16 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         LoanConfiguration memory loanConfig = _loanConfiguration[
             keccak256(abi.encodePacked(position.collateralToken, position.debtToken))
         ];
-        (uint256 collateralPrice, uint256 debtPrice, uint256 minDebtValue) = _getPriceWithPrecisionAndEthAmountPerDebt(
-            position.collateralToken,
-            position.debtToken,
-            loanConfig,
-            minDebtValueInEth
-        );
+        (
+            uint256 collateralPrice,
+            uint256 debtPrice,
+            uint256 minDebtValue
+        ) = _getPriceWithPrecisionComplementAndEthAmountPerDebt(
+                position.collateralToken,
+                position.debtToken,
+                loanConfig,
+                minDebtValueInEth
+            );
 
         require(position.debtAmount == 0 || minDebtValue <= position.debtAmount, Errors.TOO_SMALL_DEBT);
         require(
@@ -244,8 +252,8 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         address recipient,
         bytes calldata data
     ) external returns (uint256 tokenId) {
-        if (_isAssetUnregistered(collateralToken) || _isAssetUnregistered(debtToken)) {
-            revert(Errors.UNREGISTERED_ASSET);
+        if (_isPairUnregistered(collateralToken, debtToken)) {
+            revert(Errors.UNREGISTERED_PAIR);
         }
         require(loanEpochs > 0 && debtAmount > 0, Errors.EMPTY_INPUT);
         tokenId = nextId++;
@@ -457,8 +465,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         return super.supportsInterface(interfaceId);
     }
 
-    // Todo
-    function _isAssetUnregistered(address asset) internal view returns (bool) {
-        return false;
+    function _isPairUnregistered(address collateral, address debt) internal view returns (bool) {
+        return _loanConfiguration[keccak256(abi.encodePacked(collateral, debt))].liquidationThreshold == 0;
     }
 }

@@ -190,7 +190,7 @@ contract LoanPositionManagerUnitTest is
     }
 
     function testMintWithUnregisteredAsset() public {
-        vm.expectRevert(bytes(Errors.UNREGISTERED_ASSET));
+        vm.expectRevert(bytes(Errors.UNREGISTERED_PAIR));
         loanPositionManager.mint(
             address(0x23),
             address(usdc),
@@ -200,7 +200,7 @@ contract LoanPositionManagerUnitTest is
             Constants.USER1,
             new bytes(0)
         );
-        vm.expectRevert(bytes(Errors.UNREGISTERED_ASSET));
+        vm.expectRevert(bytes(Errors.UNREGISTERED_PAIR));
         loanPositionManager.mint(
             address(usdc),
             address(0x123),
