@@ -52,13 +52,13 @@ interface ILoanPositionManager is
 
     function minDebtValueInEth() external view returns (uint256);
 
-    function couponOwed(address user, uint256 couponId) external view returns (uint256);
-
     function getPosition(uint256 tokenId) external view returns (LoanPosition memory);
 
     function isAssetRegistered(address asset) external view returns (bool);
 
     function getLoanConfiguration(address asset) external view returns (AssetLoanConfiguration memory);
+
+    function getOwedCouponAmount(address user, uint256 couponId) external view returns (uint256);
 
     function setLoanConfiguration(address asset, AssetLoanConfiguration memory config) external;
 
