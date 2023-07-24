@@ -86,7 +86,7 @@ library LoanPositionLibrary {
         uint256 farthestExpiredEpochs = newPosition.expiredWith.max(oldPosition.expiredWith).sub(latestExpiredEpoch);
         unchecked {
             for (uint256 i = 0; i < farthestExpiredEpochs; ++i) {
-                latestExpiredEpoch = latestExpiredEpoch.add(1); // reuse minEpoch as epoch
+                latestExpiredEpoch = latestExpiredEpoch.add(1); // reuse latestExpiredEpoch as epoch
                 uint256 newAmount = newPosition.expiredWith.compare(latestExpiredEpoch) < 0
                     ? 0
                     : newPosition.debtAmount;

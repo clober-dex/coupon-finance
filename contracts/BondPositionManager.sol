@@ -85,12 +85,24 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
 
     function adjustPosition(uint256 tokenId, uint256 amount, Epoch expiredWith, bytes calldata data) external {
         require(_isApprovedOrOwner(msg.sender, tokenId), Errors.ACCESS);
+
         BondPosition memory oldPosition = _positionMap[tokenId];
         Epoch latestExpiredEpoch = EpochLibrary.current().sub(1);
         require(oldPosition.expiredWith.compare(latestExpiredEpoch) > 0, Errors.INVALID_EPOCH);
+
         address asset = oldPosition.asset;
-        (BondPosition memory newPosition, Coupon[] memory couponsToMint, Coupon[] memory couponsToBurn) = oldPosition
-            .adjustPosition(amount, expiredWith, latestExpiredEpoch);
+        BondPosition memory newPosition = BondPosition({
+            asset: asset,
+            nonce: oldPosition.nonce,
+            expiredWith: (amount == 0 || latestExpiredEpoch.compare(expiredWith) > 0)
+                ? latestExpiredEpoch
+                : expiredWith,
+            amount: amount
+        });
+
+        (Coupon[] memory couponsToMint, Coupon[] memory couponsToBurn) = oldPosition.calculateCouponRequirement(
+            newPosition
+        );
 
         _positionMap[tokenId] = newPosition;
         emit PositionUpdated(tokenId, newPosition.amount, newPosition.expiredWith);
