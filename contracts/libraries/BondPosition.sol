@@ -59,7 +59,7 @@ library BondPositionLibrary {
         uint16 farthestExpiredEpochs = newPosition.expiredWith.max(oldPosition.expiredWith).sub(latestExpiredEpoch);
         unchecked {
             for (uint16 i = 0; i < farthestExpiredEpochs; ++i) {
-                latestExpiredEpoch = latestExpiredEpoch.add(1); // reuse minEpoch as latestExpiredEpoch
+                latestExpiredEpoch = latestExpiredEpoch.add(1); // reuse latestExpiredEpoch as epoch
                 uint256 newAmount = newPosition.expiredWith.compare(latestExpiredEpoch) < 0 ? 0 : newPosition.amount;
                 uint256 oldAmount = oldPosition.expiredWith.compare(latestExpiredEpoch) < 0 ? 0 : oldPosition.amount;
                 if (newAmount > oldAmount) {
