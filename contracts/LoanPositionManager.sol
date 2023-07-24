@@ -84,7 +84,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         return keccak256(abi.encodePacked(collateral, debt));
     }
 
-    function _getPriceAndEthAmountEquivalentInDebtCurrency(
+    function _calculatePricesAndMinDebtAmount(
         address collateral,
         address debt,
         LoanConfiguration memory loanConfig,
@@ -128,7 +128,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
             uint256 collateralPriceWithPrecisionComplement,
             uint256 debtPriceWithPrecisionComplement,
             uint256 minDebtAmount
-        ) = _getPriceAndEthAmountEquivalentInDebtCurrency(
+        ) = _calculatePricesAndMinDebtAmount(
                 position.collateralToken,
                 position.debtToken,
                 loanConfig,
@@ -229,7 +229,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
             uint256 collateralPriceWithPrecisionComplement,
             uint256 debtPriceWithPrecisionComplement,
             uint256 minDebtAmount
-        ) = _getPriceAndEthAmountEquivalentInDebtCurrency(
+        ) = _calculatePricesAndMinDebtAmount(
                 position.collateralToken,
                 position.debtToken,
                 loanConfig,
