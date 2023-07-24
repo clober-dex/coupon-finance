@@ -17,8 +17,9 @@ interface ILoanPositionManagerStructs {
 
     // liquidationFee = liquidator fee + protocol fee
     // debt = collateral * (1 - liquidationFee)
-    struct AssetLoanConfiguration {
-        uint32 decimal;
+    struct LoanConfiguration {
+        uint32 collateralDecimal;
+        uint32 debtDecimal;
         uint32 liquidationThreshold;
         uint32 liquidationFee;
         uint32 liquidationProtocolFee;
@@ -54,13 +55,11 @@ interface ILoanPositionManager is
 
     function getPosition(uint256 tokenId) external view returns (LoanPosition memory);
 
-    function isAssetRegistered(address asset) external view returns (bool);
+    function isPairRegistered(address collateral, address debt) external view returns (bool);
 
-    function getLoanConfiguration(address asset) external view returns (AssetLoanConfiguration memory);
+    function getLoanConfiguration(address collateral, address debt) external view returns (LoanConfiguration memory);
 
     function getOwedCouponAmount(address user, uint256 couponId) external view returns (uint256);
-
-    function setLoanConfiguration(address asset, AssetLoanConfiguration memory config) external;
 
     function getLiquidationStatus(
         uint256 tokenId,
@@ -90,4 +89,13 @@ interface ILoanPositionManager is
     function claimOwedCoupons(CouponKey[] memory couponKeys, bytes calldata data) external;
 
     function burn(uint256 tokenId) external;
+
+    function setLoanConfiguration(
+        address collateral,
+        address debt,
+        uint32 liquidationThreshold,
+        uint32 liquidationFee,
+        uint32 liquidationProtocolFee,
+        uint32 liquidationTargetLtv
+    ) external;
 }

@@ -68,26 +68,8 @@ contract LoanPositionManagerUnitTest is
             10 ** 16,
             ""
         );
-        loanPositionManager.setLoanConfiguration(
-            address(usdc),
-            AssetLoanConfiguration({
-                decimal: 0,
-                liquidationThreshold: 900000,
-                liquidationFee: 15000,
-                liquidationProtocolFee: 5000,
-                liquidationTargetLtv: 800000
-            })
-        );
-        loanPositionManager.setLoanConfiguration(
-            address(weth),
-            AssetLoanConfiguration({
-                decimal: 0,
-                liquidationThreshold: 800000,
-                liquidationFee: 20000,
-                liquidationProtocolFee: 5000,
-                liquidationTargetLtv: 700000
-            })
-        );
+        loanPositionManager.setLoanConfiguration(address(usdc), address(weth), 800000, 20000, 5000, 700000);
+        loanPositionManager.setLoanConfiguration(address(weth), address(usdc), 800000, 20000, 5000, 700000);
 
         couponManager.setApprovalForAll(address(loanPositionManager), true);
 
@@ -208,7 +190,7 @@ contract LoanPositionManagerUnitTest is
     }
 
     function testMintWithUnregisteredAsset() public {
-        vm.expectRevert(bytes(Errors.UNREGISTERED_ASSET));
+        vm.expectRevert(bytes(Errors.UNREGISTERED_PAIR));
         loanPositionManager.mint(
             address(0x23),
             address(usdc),
@@ -218,7 +200,7 @@ contract LoanPositionManagerUnitTest is
             Constants.USER1,
             new bytes(0)
         );
-        vm.expectRevert(bytes(Errors.UNREGISTERED_ASSET));
+        vm.expectRevert(bytes(Errors.UNREGISTERED_PAIR));
         loanPositionManager.mint(
             address(usdc),
             address(0x123),
