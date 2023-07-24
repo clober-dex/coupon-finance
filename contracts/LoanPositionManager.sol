@@ -154,21 +154,14 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
             }
         }
 
-        uint256 collateralAmountInBaseCurrency = position.collateralAmount *
-            collateralPriceWithPrecisionComplement *
-            _RATE_PRECISION;
-        uint256 debtAmountInBaseCurrency = position.debtAmount * debtPriceWithPrecisionComplement * _RATE_PRECISION;
+        uint256 collateralValue = position.collateralAmount * collateralPriceWithPrecisionComplement * _RATE_PRECISION;
+        uint256 debtValue = position.debtAmount * debtPriceWithPrecisionComplement * _RATE_PRECISION;
 
         unchecked {
-            if (
-                (collateralAmountInBaseCurrency / _RATE_PRECISION) * loanConfig.liquidationThreshold >=
-                debtAmountInBaseCurrency
-            ) return (0, 0, 0);
+            if ((collateralValue / _RATE_PRECISION) * loanConfig.liquidationThreshold >= debtValue) return (0, 0, 0);
 
             liquidationAmount = Math.ceilDiv(
-                debtAmountInBaseCurrency -
-                    (collateralAmountInBaseCurrency / _RATE_PRECISION) *
-                    loanConfig.liquidationTargetLtv,
+                debtValue - (collateralValue / _RATE_PRECISION) * loanConfig.liquidationTargetLtv,
                 collateralPriceWithPrecisionComplement *
                     (_RATE_PRECISION - loanConfig.liquidationFee - loanConfig.liquidationTargetLtv)
             );
