@@ -77,7 +77,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
     }
 
     function getLoanConfiguration(address collateral, address debt) external view returns (LoanConfiguration memory) {
-        return _loanConfiguration[keccak256(abi.encodePacked(collateral, debt))];
+        return _loanConfiguration[_buildLoanPairId(collateral, debt)];
     }
 
     function setLoanConfiguration(
@@ -88,7 +88,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         uint32 liquidationProtocolFee,
         uint32 liquidationTargetLtv
     ) external onlyOwner {
-        bytes32 hash = keccak256(abi.encodePacked(collateral, debt));
+        bytes32 hash = _buildLoanPairId(collateral, debt);
         require(_loanConfiguration[hash].liquidationThreshold == 0, "INITIALIZED");
         _loanConfiguration[hash] = LoanConfiguration({
             collateralDecimal: IERC20Metadata(collateral).decimals(),
@@ -98,6 +98,10 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
             liquidationProtocolFee: liquidationProtocolFee,
             liquidationTargetLtv: liquidationTargetLtv
         });
+    }
+
+    function _buildLoanPairId(address collateral, address debt) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked(collateral, debt));
     }
 
     function _getPriceWithPrecisionComplementAndEthAmountPerDebt(
@@ -130,7 +134,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         uint256 maxRepayAmount
     ) private view returns (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount) {
         LoanConfiguration memory loanConfig = _loanConfiguration[
-            keccak256(abi.encodePacked(position.collateralToken, position.debtToken))
+            _buildLoanPairId(position.collateralToken, position.debtToken)
         ];
         (
             uint256 collateralPrice,
@@ -226,7 +230,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         }
 
         LoanConfiguration memory loanConfig = _loanConfiguration[
-            keccak256(abi.encodePacked(position.collateralToken, position.debtToken))
+            _buildLoanPairId(position.collateralToken, position.debtToken)
         ];
         (
             uint256 collateralPrice,
@@ -470,6 +474,6 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
     }
 
     function _isPairUnregistered(address collateral, address debt) internal view returns (bool) {
-        return _loanConfiguration[keccak256(abi.encodePacked(collateral, debt))].liquidationThreshold == 0;
+        return _loanConfiguration[_buildLoanPairId(collateral, debt)].liquidationThreshold == 0;
     }
 }
