@@ -80,26 +80,6 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         return _loanConfiguration[_buildLoanPairId(collateral, debt)];
     }
 
-    function setLoanConfiguration(
-        address collateral,
-        address debt,
-        uint32 liquidationThreshold,
-        uint32 liquidationFee,
-        uint32 liquidationProtocolFee,
-        uint32 liquidationTargetLtv
-    ) external onlyOwner {
-        bytes32 hash = _buildLoanPairId(collateral, debt);
-        require(_loanConfiguration[hash].liquidationThreshold == 0, "INITIALIZED");
-        _loanConfiguration[hash] = LoanConfiguration({
-            collateralDecimal: IERC20Metadata(collateral).decimals(),
-            debtDecimal: IERC20Metadata(debt).decimals(),
-            liquidationThreshold: liquidationThreshold,
-            liquidationFee: liquidationFee,
-            liquidationProtocolFee: liquidationProtocolFee,
-            liquidationTargetLtv: liquidationTargetLtv
-        });
-    }
-
     function _buildLoanPairId(address collateral, address debt) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(collateral, debt));
     }
@@ -457,6 +437,26 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         IAssetPool(assetPool).withdraw(position.collateralToken, collateralAmount, msg.sender);
 
         _burn(tokenId);
+    }
+
+    function setLoanConfiguration(
+        address collateral,
+        address debt,
+        uint32 liquidationThreshold,
+        uint32 liquidationFee,
+        uint32 liquidationProtocolFee,
+        uint32 liquidationTargetLtv
+    ) external onlyOwner {
+        bytes32 hash = _buildLoanPairId(collateral, debt);
+        require(_loanConfiguration[hash].liquidationThreshold == 0, "INITIALIZED");
+        _loanConfiguration[hash] = LoanConfiguration({
+            collateralDecimal: IERC20Metadata(collateral).decimals(),
+            debtDecimal: IERC20Metadata(debt).decimals(),
+            liquidationThreshold: liquidationThreshold,
+            liquidationFee: liquidationFee,
+            liquidationProtocolFee: liquidationProtocolFee,
+            liquidationTargetLtv: liquidationTargetLtv
+        });
     }
 
     function _baseURI() internal view override returns (string memory) {

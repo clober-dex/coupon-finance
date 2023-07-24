@@ -59,15 +59,6 @@ interface ILoanPositionManager is
 
     function getLoanConfiguration(address collateral, address debt) external view returns (LoanConfiguration memory);
 
-    function setLoanConfiguration(
-        address collateral,
-        address debt,
-        uint32 liquidationThreshold,
-        uint32 liquidationFee,
-        uint32 liquidationProtocolFee,
-        uint32 liquidationTargetLtv
-    ) external;
-
     function getOwedCouponAmount(address user, uint256 couponId) external view returns (uint256);
 
     function getLiquidationStatus(
@@ -98,4 +89,13 @@ interface ILoanPositionManager is
     function claimOwedCoupons(CouponKey[] memory couponKeys, bytes calldata data) external;
 
     function burn(uint256 tokenId) external;
+
+    function setLoanConfiguration(
+        address collateral,
+        address debt,
+        uint32 liquidationThreshold,
+        uint32 liquidationFee,
+        uint32 liquidationProtocolFee,
+        uint32 liquidationTargetLtv
+    ) external;
 }
