@@ -70,8 +70,6 @@ interface ILoanPositionManager is
 
     function getOwedCouponAmount(address user, uint256 couponId) external view returns (uint256);
 
-    function setLoanConfiguration(address asset, AssetLoanConfiguration memory config) external;
-
     function getLiquidationStatus(
         uint256 tokenId,
         uint256 maxRepayAmount

@@ -72,19 +72,9 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         return !_isPairUnregistered(collateral, debt);
     }
 
-    function getLoanConfiguration(address asset) external view returns (AssetLoanConfiguration memory) {
-        return _assetConfig[asset];
-    }
-
     function getOwedCouponAmount(address user, uint256 couponId) external view returns (uint256) {
         return _couponOwed[user][couponId];
     }
-
-    function setLoanConfiguration(address asset, AssetLoanConfiguration memory config) external onlyOwner {
-        require(_assetConfig[asset].liquidationThreshold == 0, "INITIALIZED");
-        config.decimal = IERC20Metadata(asset).decimals();
-        _assetConfig[asset] = config;
-
 
     function getLoanConfiguration(address collateral, address debt) external view returns (LoanConfiguration memory) {
         return _loanConfiguration[keccak256(abi.encodePacked(collateral, debt))];
