@@ -44,7 +44,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
     string public override baseURI;
     uint256 public override nextId = 1;
 
-    mapping(address user => mapping(uint256 couponId => uint256)) public override couponOwed;
+    mapping(address user => mapping(uint256 couponId => uint256)) private _couponOwed;
     mapping(bytes32 => LoanConfiguration) private _loanConfiguration;
     mapping(uint256 id => LoanPosition) private _positionMap;
 
@@ -71,6 +71,20 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
     function isPairRegistered(address collateral, address debt) external view returns (bool) {
         return !_isPairUnregistered(collateral, debt);
     }
+
+    function getLoanConfiguration(address asset) external view returns (AssetLoanConfiguration memory) {
+        return _assetConfig[asset];
+    }
+
+    function getOwedCouponAmount(address user, uint256 couponId) external view returns (uint256) {
+        return _couponOwed[user][couponId];
+    }
+
+    function setLoanConfiguration(address asset, AssetLoanConfiguration memory config) external onlyOwner {
+        require(_assetConfig[asset].liquidationThreshold == 0, "INITIALIZED");
+        config.decimal = IERC20Metadata(asset).decimals();
+        _assetConfig[asset] = config;
+
 
     function getLoanConfiguration(address collateral, address debt) external view returns (LoanConfiguration memory) {
         return _loanConfiguration[keccak256(abi.encodePacked(collateral, debt))];
@@ -392,7 +406,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
                     ICouponManager(couponManager).safeBatchTransferFrom(address(this), couponOwner, coupons, data)
                 {} catch {
                     for (uint256 i = 0; i < length; ++i) {
-                        couponOwed[couponOwner][coupons[i].id()] += coupons[i].amount;
+                        _couponOwed[couponOwner][coupons[i].id()] += coupons[i].amount;
                     }
                 }
             }
@@ -430,8 +444,8 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         for (uint256 i = 0; i < length; ++i) {
             uint256 id = couponKeys[i].toId();
             ids[i] = id;
-            amounts[i] = couponOwed[msg.sender][id];
-            couponOwed[msg.sender][id] = 0;
+            amounts[i] = _couponOwed[msg.sender][id];
+            _couponOwed[msg.sender][id] = 0;
         }
         ICouponManager(couponManager).safeBatchTransferFrom(address(this), msg.sender, ids, amounts, data);
     }

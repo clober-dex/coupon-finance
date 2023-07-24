@@ -25,11 +25,6 @@ interface ILoanPositionManagerStructs {
         uint32 liquidationProtocolFee;
         uint32 liquidationTargetLtv;
     }
-
-    struct AssetConfiguration {
-        uint32 decimal;
-        uint32 groupId;
-    }
 }
 
 interface ILoanPositionManagerEvents {
@@ -58,8 +53,6 @@ interface ILoanPositionManager is
 
     function minDebtValueInEth() external view returns (uint256);
 
-    function couponOwed(address user, uint256 couponId) external view returns (uint256);
-
     function getPosition(uint256 tokenId) external view returns (LoanPosition memory);
 
     function isPairRegistered(address collateral, address debt) external view returns (bool);
@@ -74,6 +67,10 @@ interface ILoanPositionManager is
         uint32 liquidationProtocolFee,
         uint32 liquidationTargetLtv
     ) external;
+
+    function getOwedCouponAmount(address user, uint256 couponId) external view returns (uint256);
+
+    function setLoanConfiguration(address asset, AssetLoanConfiguration memory config) external;
 
     function getLiquidationStatus(
         uint256 tokenId,
