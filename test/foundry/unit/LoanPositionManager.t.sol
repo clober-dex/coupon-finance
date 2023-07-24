@@ -24,7 +24,6 @@ import {MockAssetPool} from "../mocks/MockAssetPool.sol";
 import {MockOracle} from "../mocks/MockOracle.sol";
 import {Constants} from "../Constants.sol";
 import {Utils} from "../Utils.sol";
-import {CouponOracle} from "../../../contracts/CouponOracle.sol";
 
 contract LoanPositionManagerUnitTest is
     Test,
@@ -39,8 +38,7 @@ contract LoanPositionManagerUnitTest is
     MockERC20 public weth;
     MockERC20 public usdc;
 
-    CouponOracle public oracle;
-    MockOracle public mockOracle;
+    MockOracle public oracle;
     MockAssetPool public assetPool;
     ICouponManager public couponManager;
     ILoanPositionManager public loanPositionManager;
@@ -60,8 +58,7 @@ contract LoanPositionManagerUnitTest is
         usdc.mint(address(this), usdc.amount(2_000_000_000));
 
         assetPool = new MockAssetPool();
-        mockOracle = new MockOracle(address(weth));
-        oracle = new CouponOracle(address(weth), address(mockOracle), address(0));
+        oracle = new MockOracle(address(weth));
         couponManager = new CouponManager(address(this), "URI/");
         loanPositionManager = new LoanPositionManager(
             address(couponManager),
@@ -101,8 +98,8 @@ contract LoanPositionManagerUnitTest is
         assetPool.deposit(address(weth), weth.amount(1_000_000_000));
         assetPool.deposit(address(usdc), usdc.amount(1_000_000_000));
 
-        mockOracle.setAssetPrice(address(weth), 1800 * 10 ** 8);
-        mockOracle.setAssetPrice(address(usdc), 10 ** 8);
+        oracle.setAssetPrice(address(weth), 1800 * 10 ** 8);
+        oracle.setAssetPrice(address(usdc), 10 ** 8);
 
         startEpoch = EpochLibrary.current();
 
@@ -557,7 +554,7 @@ contract LoanPositionManagerUnitTest is
         MockERC20 debtToken = isEthCollateral ? usdc : weth;
 
         if (changeData == 0) vm.warp(loanPositionManager.getPosition(tokenId).expiredWith.endTime() + 1);
-        else mockOracle.setAssetPrice(address(weth), changeData);
+        else oracle.setAssetPrice(address(weth), changeData);
 
         LiquidationStatus memory liquidationStatus = loanPositionManager.getLiquidationStatus(tokenId, maxRepayAmount);
 
@@ -683,7 +680,7 @@ contract LoanPositionManagerUnitTest is
         );
 
         if (epochEnds) vm.warp(loanPositionManager.getPosition(tokenId).expiredWith.endTime() + 1);
-        mockOracle.setAssetPrice(address(weth), price);
+        oracle.setAssetPrice(address(weth), price);
 
         vm.expectRevert(bytes(Errors.TOO_SMALL_DEBT));
         loanPositionManager.getLiquidationStatus(tokenId, maxRepayAmount);
@@ -763,7 +760,7 @@ contract LoanPositionManagerUnitTest is
     }
 
     function testLiquidationWhenPriceChangesWithSmallDebt() public {
-        mockOracle.setAssetPrice(address(weth), 1002 * 10 ** 8);
+        oracle.setAssetPrice(address(weth), 1002 * 10 ** 8);
         _testLiquidation(
             usdc.amount(12),
             0.015 ether,
@@ -778,7 +775,7 @@ contract LoanPositionManagerUnitTest is
     }
 
     function testLiquidationWhenPriceChangesWithSmallDebtWithMaxRepayAmount() public {
-        mockOracle.setAssetPrice(address(weth), 1002 * 10 ** 8);
+        oracle.setAssetPrice(address(weth), 1002 * 10 ** 8);
         _testLiquidation(
             usdc.amount(12),
             0.015 ether,
@@ -793,7 +790,7 @@ contract LoanPositionManagerUnitTest is
     }
 
     function testRevertLiquidationWhenPriceChangesWithSmallDebtWithMaxRepayAmount() public {
-        mockOracle.setAssetPrice(address(weth), 999 * 10 ** 8);
+        oracle.setAssetPrice(address(weth), 999 * 10 ** 8);
         _testRevertLiquidation(usdc.amount(10), 0.0126 ether, 1001 * 10 ** 8, true, usdc.amount(8), true);
     }
 
@@ -826,7 +823,7 @@ contract LoanPositionManagerUnitTest is
     }
 
     function testLiquidationWhenPriceChangesWithSmallLiquidation() public {
-        mockOracle.setAssetPrice(address(weth), 3000 * 10 ** 8);
+        oracle.setAssetPrice(address(weth), 3000 * 10 ** 8);
         _testLiquidation(
             usdc.amount(32) + 1,
             0.02 ether,
@@ -869,7 +866,7 @@ contract LoanPositionManagerUnitTest is
     }
 
     function testLiquidationWhenEpochEndsWithSmallDebt() public {
-        mockOracle.setAssetPrice(address(weth), 100 * 10 ** 8);
+        oracle.setAssetPrice(address(weth), 100 * 10 ** 8);
         _testLiquidation(
             usdc.amount(10),
             1 ether,
@@ -898,7 +895,7 @@ contract LoanPositionManagerUnitTest is
     }
 
     function testRevertLiquidationWhenEpochEndsWithSmallDebtWithMaxRepayAmount() public {
-        mockOracle.setAssetPrice(address(weth), 100 * 10 ** 8);
+        oracle.setAssetPrice(address(weth), 100 * 10 ** 8);
         _testRevertLiquidation(usdc.amount(10), 1 ether, 1800 * 10 ** 8, true, usdc.amount(8), true);
     }
 

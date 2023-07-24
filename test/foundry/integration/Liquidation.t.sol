@@ -19,7 +19,6 @@ import {MockERC20} from "../mocks/MockERC20.sol";
 import {MockAssetPool} from "../mocks/MockAssetPool.sol";
 import {MockOracle} from "../mocks/MockOracle.sol";
 import {Constants} from "../Constants.sol";
-import {CouponOracle} from "../../../contracts/CouponOracle.sol";
 
 contract LiquidationIntegrationTest is Test, ERC1155Holder, ILoanPositionManagerEvents, ILoanPositionManagerStructs {
     using CouponLibrary for Coupon;
@@ -28,8 +27,7 @@ contract LiquidationIntegrationTest is Test, ERC1155Holder, ILoanPositionManager
     MockERC20 public weth;
     MockERC20 public usdc;
 
-    MockOracle public mockOracle;
-    CouponOracle public oracle;
+    MockOracle public oracle;
     MockAssetPool public assetPool;
     ICouponManager public couponManager;
     ILoanPositionManager public loanPositionManager;
@@ -49,8 +47,7 @@ contract LiquidationIntegrationTest is Test, ERC1155Holder, ILoanPositionManager
         usdc.mint(address(this), usdc.amount(2_000_000_000));
 
         assetPool = new MockAssetPool();
-        mockOracle = new MockOracle(address(weth));
-        oracle = new CouponOracle(address(weth), address(mockOracle), address(0));
+        oracle = new MockOracle(address(weth));
         couponManager = new CouponManager(address(this), "URI/");
         loanPositionManager = new LoanPositionManager(
             address(couponManager),
@@ -88,8 +85,8 @@ contract LiquidationIntegrationTest is Test, ERC1155Holder, ILoanPositionManager
         assetPool.deposit(address(weth), weth.amount(1_000_000_000));
         assetPool.deposit(address(usdc), usdc.amount(1_000_000_000));
 
-        mockOracle.setAssetPrice(address(weth), 1800 * 10 ** 8);
-        mockOracle.setAssetPrice(address(usdc), 10 ** 8);
+        oracle.setAssetPrice(address(weth), 1800 * 10 ** 8);
+        oracle.setAssetPrice(address(usdc), 10 ** 8);
 
         startEpoch = EpochLibrary.current();
 
@@ -143,7 +140,7 @@ contract LiquidationIntegrationTest is Test, ERC1155Holder, ILoanPositionManager
         MockERC20 debtToken = isEthCollateral ? usdc : weth;
 
         if (changeData == 0) vm.warp(loanPositionManager.getPosition(tokenId).expiredWith.endTime() + 1);
-        else mockOracle.setAssetPrice(address(weth), changeData);
+        else oracle.setAssetPrice(address(weth), changeData);
 
         LiquidationStatus memory liquidationStatus = loanPositionManager.getLiquidationStatus(tokenId, maxRepayAmount);
 
