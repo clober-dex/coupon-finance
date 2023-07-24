@@ -3,10 +3,9 @@
 pragma solidity ^0.8.0;
 
 import {Constants} from "../Constants.sol";
-import {IAaveOracle} from "../../../contracts/external/aave-v3/IAaveOracle.sol";
-import {IPoolAddressesProvider} from "../../../contracts/external/aave-v3/IPoolAddressesProvider.sol";
+import {ICouponOracle} from "../../../contracts/interfaces/ICouponOracle.sol";
 
-contract MockOracle is IAaveOracle {
+contract MockOracle is ICouponOracle {
     address private _weth;
 
     mapping(address => uint256) private _priceMap;
@@ -31,33 +30,5 @@ contract MockOracle is IAaveOracle {
 
     function setAssetPrice(address asset, uint256 price) external {
         _priceMap[asset] = price;
-    }
-
-    function BASE_CURRENCY() external view returns (address) {
-        revert("not implemented");
-    }
-
-    function BASE_CURRENCY_UNIT() external view returns (uint256) {
-        revert("not implemented");
-    }
-
-    function ADDRESSES_PROVIDER() external view returns (IPoolAddressesProvider) {
-        revert("not implemented");
-    }
-
-    function setAssetSources(address[] calldata assets, address[] calldata sources) external {
-        revert("not implemented");
-    }
-
-    function setFallbackOracle(address fallbackOracle) external {
-        revert("not implemented");
-    }
-
-    function getSourceOfAsset(address asset) external view returns (address) {
-        revert("not implemented");
-    }
-
-    function getFallbackOracle() external view returns (address) {
-        revert("not implemented");
     }
 }
