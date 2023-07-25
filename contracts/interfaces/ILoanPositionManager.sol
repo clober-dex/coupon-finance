@@ -9,7 +9,7 @@ import {CouponKey} from "../libraries/CouponKey.sol";
 import {Epoch} from "../libraries/Epoch.sol";
 import {LoanPosition} from "../libraries/LoanPosition.sol";
 
-interface ILoanPositionManagerStructs {
+interface ILoanPositionManagerTypes {
     struct LiquidationStatus {
         uint256 liquidationAmount;
         uint256 repayAmount;
@@ -25,20 +25,13 @@ interface ILoanPositionManagerStructs {
         uint32 liquidationProtocolFee;
         uint32 liquidationTargetLtv;
     }
-}
 
-interface ILoanPositionManagerEvents {
     event AssetRegistered(address indexed asset);
     event PositionUpdated(uint256 indexed tokenId, uint256 collateralAmount, uint256 debtAmount, Epoch unlockedAt);
     event PositionLiquidated(uint256 indexed tokenId);
 }
 
-interface ILoanPositionManager is
-    IERC721Metadata,
-    IERC721Permit,
-    ILoanPositionManagerEvents,
-    ILoanPositionManagerStructs
-{
+interface ILoanPositionManager is IERC721Metadata, IERC721Permit, ILoanPositionManagerTypes {
     function baseURI() external view returns (string memory);
 
     function treasury() external view returns (address);
