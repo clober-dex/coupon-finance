@@ -6,12 +6,16 @@ pragma solidity ^0.8.0;
 import {Epoch} from "./Epoch.sol";
 
 struct CouponKey {
-    address asset;
     Epoch epoch;
+    address asset;
 }
 
 library CouponKeyLibrary {
-    function toId(CouponKey memory key) internal pure returns (uint256) {
-        return uint256(bytes32(keccak256(abi.encode(key))));
+    function toId(CouponKey memory key) internal pure returns (uint256 id) {
+        uint16 epoch = Epoch.unwrap(key.epoch);
+        uint160 asset = uint160(key.asset);
+        assembly {
+            id := add(asset, shl(160, epoch))
+        }
     }
 }
