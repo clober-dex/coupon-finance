@@ -504,7 +504,7 @@ contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerTypes, ERC1155
         uint256 collateralAmount,
         uint256 changeData,
         uint256 maxRepayAmount,
-        uint256 liquidationAmount,
+        uint256 workableAmount,
         uint256 repayAmount,
         uint256 protocolFee,
         bool isEthCollateral,
@@ -533,8 +533,9 @@ contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerTypes, ERC1155
 
         LiquidationStatus memory liquidationStatus = loanPositionManager.getLiquidationStatus(tokenId, maxRepayAmount);
 
-        assertEq(liquidationStatus.liquidationAmount, liquidationAmount, "LIQUIDATION_AMOUNT");
+        assertEq(liquidationStatus.liquidationAmount, workableAmount + protocolFee, "LIQUIDATION_AMOUNT");
         assertEq(liquidationStatus.repayAmount, repayAmount, "REPAY_AMOUNT");
+        assertEq(liquidationStatus.protocolFeeAmount, protocolFee, "PROTOCOL_FEE_AMOUNT");
 
         LoanPosition memory beforePosition = loanPositionManager.getPosition(tokenId);
         Balance memory balances = Balance({
@@ -552,7 +553,7 @@ contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerTypes, ERC1155
         assertEq(beforePosition.debtAmount - afterPosition.debtAmount, repayAmount, "DEBT_AMOUNT");
         assertEq(
             beforePosition.collateralAmount - afterPosition.collateralAmount,
-            liquidationAmount + protocolFee,
+            workableAmount + protocolFee,
             "COLLATERAL_AMOUNT"
         );
 
@@ -570,7 +571,7 @@ contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerTypes, ERC1155
         }
         assertEq(
             beforePosition.collateralAmount - afterPosition.collateralAmount,
-            liquidationAmount + protocolFee,
+            workableAmount + protocolFee,
             "COLLATERAL_AMOUNT"
         );
         assertEq(
@@ -580,7 +581,7 @@ contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerTypes, ERC1155
         );
         assertEq(
             collateralToken.balanceOf(address(this)) - balances.beforeLiquidatorCollateralBalance,
-            liquidationAmount,
+            workableAmount,
             "LIQUIDATOR_COLLATERAL_BALANCE"
         );
         assertEq(

@@ -13,6 +13,7 @@ interface ILoanPositionManagerTypes {
     struct LiquidationStatus {
         uint256 liquidationAmount;
         uint256 repayAmount;
+        uint256 protocolFeeAmount;
     }
 
     // liquidationFee = liquidator fee + protocol fee
