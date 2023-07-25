@@ -7,7 +7,7 @@ interface ILiquidateCallbackReceiver {
         uint256 tokenId,
         address collateralToken,
         address debtToken,
-        uint256 liquidationAmount,
+        uint256 workableAmount,
         uint256 repayAmount,
         bytes calldata data
     ) external;

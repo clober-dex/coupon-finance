@@ -95,7 +95,7 @@ contract LiquidationIntegrationTest is Test, ERC1155Holder, ILoanPositionManager
         uint256 collateralAmount,
         uint256 changeData,
         uint256 maxRepayAmount,
-        uint256 liquidationAmount,
+        uint256 workableAmount,
         uint256 repayAmount,
         uint256 protocolFee,
         bool isEthCollateral,
@@ -125,7 +125,7 @@ contract LiquidationIntegrationTest is Test, ERC1155Holder, ILoanPositionManager
 
         LiquidationStatus memory liquidationStatus = loanPositionManager.getLiquidationStatus(tokenId, maxRepayAmount);
 
-        assertEq(liquidationStatus.liquidationAmount, liquidationAmount, "LIQUIDATION_AMOUNT");
+        assertEq(liquidationStatus.liquidationAmount, workableAmount + protocolFee, "LIQUIDATION_AMOUNT");
         assertEq(liquidationStatus.repayAmount, repayAmount, "REPAY_AMOUNT");
 
         LoanPosition memory beforePosition = loanPositionManager.getPosition(tokenId);
@@ -144,7 +144,7 @@ contract LiquidationIntegrationTest is Test, ERC1155Holder, ILoanPositionManager
         assertEq(beforePosition.debtAmount - afterPosition.debtAmount, repayAmount, "DEBT_AMOUNT");
         assertEq(
             beforePosition.collateralAmount - afterPosition.collateralAmount,
-            liquidationAmount + protocolFee,
+            workableAmount + protocolFee,
             "COLLATERAL_AMOUNT"
         );
 
@@ -162,7 +162,7 @@ contract LiquidationIntegrationTest is Test, ERC1155Holder, ILoanPositionManager
         }
         assertEq(
             beforePosition.collateralAmount - afterPosition.collateralAmount,
-            liquidationAmount + protocolFee,
+            workableAmount + protocolFee,
             "COLLATERAL_AMOUNT"
         );
         assertEq(
@@ -172,7 +172,7 @@ contract LiquidationIntegrationTest is Test, ERC1155Holder, ILoanPositionManager
         );
         assertEq(
             collateralToken.balanceOf(address(this)) - balances.beforeLiquidatorCollateralBalance,
-            liquidationAmount,
+            workableAmount,
             "LIQUIDATOR_COLLATERAL_BALANCE"
         );
         assertEq(
