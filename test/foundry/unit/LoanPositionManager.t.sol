@@ -10,10 +10,9 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
-import {Errors} from "../../../contracts/Errors.sol";
 import {LoanPosition, LoanPositionManager} from "../../../contracts/LoanPositionManager.sol";
 import {CouponManager} from "../../../contracts/CouponManager.sol";
-import {ILoanPositionManager, ILoanPositionManagerEvents, ILoanPositionManagerStructs} from "../../../contracts/interfaces/ILoanPositionManager.sol";
+import {ILoanPositionManager, ILoanPositionManagerTypes} from "../../../contracts/interfaces/ILoanPositionManager.sol";
 import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
 import {IERC721Permit} from "../../../contracts/interfaces/IERC721Permit.sol";
 import {IAssetPool} from "../../../contracts/interfaces/IAssetPool.sol";
@@ -25,13 +24,7 @@ import {MockOracle} from "../mocks/MockOracle.sol";
 import {Constants} from "../Constants.sol";
 import {Utils} from "../Utils.sol";
 
-contract LoanPositionManagerUnitTest is
-    Test,
-    ILoanPositionManagerEvents,
-    ILoanPositionManagerStructs,
-    ERC1155Holder,
-    ERC721Holder
-{
+contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerTypes, ERC1155Holder, ERC721Holder {
     using CouponLibrary for Coupon;
     using EpochLibrary for Epoch;
 
@@ -68,26 +61,8 @@ contract LoanPositionManagerUnitTest is
             10 ** 16,
             ""
         );
-        loanPositionManager.setLoanConfiguration(
-            address(usdc),
-            AssetLoanConfiguration({
-                decimal: 0,
-                liquidationThreshold: 900000,
-                liquidationFee: 15000,
-                liquidationProtocolFee: 5000,
-                liquidationTargetLtv: 800000
-            })
-        );
-        loanPositionManager.setLoanConfiguration(
-            address(weth),
-            AssetLoanConfiguration({
-                decimal: 0,
-                liquidationThreshold: 800000,
-                liquidationFee: 20000,
-                liquidationProtocolFee: 5000,
-                liquidationTargetLtv: 700000
-            })
-        );
+        loanPositionManager.setLoanConfiguration(address(usdc), address(weth), 800000, 20000, 5000, 700000);
+        loanPositionManager.setLoanConfiguration(address(weth), address(usdc), 800000, 20000, 5000, 700000);
 
         couponManager.setApprovalForAll(address(loanPositionManager), true);
 
@@ -175,7 +150,7 @@ contract LoanPositionManagerUnitTest is
         coupons[1] = CouponLibrary.from(address(usdc), startEpoch.add(1), initialDebtAmount);
         _mintCoupons(address(this), coupons);
 
-        vm.expectRevert(bytes(Errors.TOO_SMALL_DEBT));
+        vm.expectRevert(abi.encodeWithSelector(TooSmallDebt.selector));
         loanPositionManager.mint(
             address(weth),
             address(usdc),
@@ -195,7 +170,7 @@ contract LoanPositionManagerUnitTest is
         coupons[1] = CouponLibrary.from(address(usdc), startEpoch.add(1), debtAmount);
         _mintCoupons(address(this), coupons);
 
-        vm.expectRevert(bytes(Errors.LIQUIDATION_THRESHOLD));
+        vm.expectRevert(abi.encodeWithSelector(LiquidationThreshold.selector));
         loanPositionManager.mint(
             address(weth),
             address(usdc),
@@ -208,7 +183,7 @@ contract LoanPositionManagerUnitTest is
     }
 
     function testMintWithUnregisteredAsset() public {
-        vm.expectRevert(bytes(Errors.UNREGISTERED_ASSET));
+        vm.expectRevert(abi.encodeWithSelector(InvalidPair.selector));
         loanPositionManager.mint(
             address(0x23),
             address(usdc),
@@ -218,7 +193,7 @@ contract LoanPositionManagerUnitTest is
             Constants.USER1,
             new bytes(0)
         );
-        vm.expectRevert(bytes(Errors.UNREGISTERED_ASSET));
+        vm.expectRevert(abi.encodeWithSelector(InvalidPair.selector));
         loanPositionManager.mint(
             address(usdc),
             address(0x123),
@@ -475,21 +450,21 @@ contract LoanPositionManagerUnitTest is
     function testAdjustPositionDecreaseDebtToTooSmallAmount() public {
         uint256 tokenId = _beforeAdjustPosition();
         Epoch epoch = startEpoch.add(2);
-        vm.expectRevert(bytes(Errors.TOO_SMALL_DEBT));
+        vm.expectRevert(abi.encodeWithSelector(TooSmallDebt.selector));
         loanPositionManager.adjustPosition(tokenId, initialCollateralAmount, 1, epoch, new bytes(0));
     }
 
     function testAdjustPositionDecreaseEpochsToPast() public {
         uint256 tokenId = _beforeAdjustPosition();
         Epoch epoch = EpochLibrary.current().sub(1);
-        vm.expectRevert(bytes(Errors.UNPAID_DEBT));
+        vm.expectRevert(abi.encodeWithSelector(UnpaidDebt.selector));
         loanPositionManager.adjustPosition(tokenId, initialCollateralAmount, initialDebtAmount, epoch, new bytes(0));
     }
 
     function testAdjustPositionDecreaseTooMuchCollateral() public {
         uint256 tokenId = _beforeAdjustPosition();
         Epoch epoch = startEpoch.add(2);
-        vm.expectRevert(bytes(Errors.LIQUIDATION_THRESHOLD));
+        vm.expectRevert(abi.encodeWithSelector(LiquidationThreshold.selector));
         loanPositionManager.adjustPosition(tokenId, 1, initialDebtAmount, epoch, new bytes(0));
     }
 
@@ -497,7 +472,7 @@ contract LoanPositionManagerUnitTest is
         uint256 tokenId = _beforeAdjustPosition();
         uint256 debtAmount = initialDebtAmount + usdc.amount(18000);
         Epoch epoch = startEpoch.add(2);
-        vm.expectRevert(bytes(Errors.LIQUIDATION_THRESHOLD));
+        vm.expectRevert(abi.encodeWithSelector(LiquidationThreshold.selector));
         loanPositionManager.adjustPosition(tokenId, initialCollateralAmount, debtAmount, epoch, new bytes(0));
     }
 
@@ -505,7 +480,7 @@ contract LoanPositionManagerUnitTest is
         uint256 tokenId = _beforeAdjustPosition();
         Epoch epoch = EpochLibrary.current();
         vm.startPrank(address(0x123));
-        vm.expectRevert(bytes(Errors.ACCESS));
+        vm.expectRevert(abi.encodeWithSelector(InvalidAccess.selector));
         loanPositionManager.adjustPosition(tokenId, 0, 0, epoch, new bytes(0));
         vm.stopPrank();
     }
@@ -529,7 +504,7 @@ contract LoanPositionManagerUnitTest is
         uint256 collateralAmount,
         uint256 changeData,
         uint256 maxRepayAmount,
-        uint256 liquidationAmount,
+        uint256 workableAmount,
         uint256 repayAmount,
         uint256 protocolFee,
         bool isEthCollateral,
@@ -558,8 +533,9 @@ contract LoanPositionManagerUnitTest is
 
         LiquidationStatus memory liquidationStatus = loanPositionManager.getLiquidationStatus(tokenId, maxRepayAmount);
 
-        assertEq(liquidationStatus.liquidationAmount, liquidationAmount, "LIQUIDATION_AMOUNT");
+        assertEq(liquidationStatus.liquidationAmount, workableAmount + protocolFee, "LIQUIDATION_AMOUNT");
         assertEq(liquidationStatus.repayAmount, repayAmount, "REPAY_AMOUNT");
+        assertEq(liquidationStatus.protocolFeeAmount, protocolFee, "PROTOCOL_FEE_AMOUNT");
 
         LoanPosition memory beforePosition = loanPositionManager.getPosition(tokenId);
         Balance memory balances = Balance({
@@ -577,7 +553,7 @@ contract LoanPositionManagerUnitTest is
         assertEq(beforePosition.debtAmount - afterPosition.debtAmount, repayAmount, "DEBT_AMOUNT");
         assertEq(
             beforePosition.collateralAmount - afterPosition.collateralAmount,
-            liquidationAmount + protocolFee,
+            workableAmount + protocolFee,
             "COLLATERAL_AMOUNT"
         );
 
@@ -595,7 +571,7 @@ contract LoanPositionManagerUnitTest is
         }
         assertEq(
             beforePosition.collateralAmount - afterPosition.collateralAmount,
-            liquidationAmount + protocolFee,
+            workableAmount + protocolFee,
             "COLLATERAL_AMOUNT"
         );
         assertEq(
@@ -605,7 +581,7 @@ contract LoanPositionManagerUnitTest is
         );
         assertEq(
             collateralToken.balanceOf(address(this)) - balances.beforeLiquidatorCollateralBalance,
-            liquidationAmount,
+            workableAmount,
             "LIQUIDATOR_COLLATERAL_BALANCE"
         );
         assertEq(
@@ -682,10 +658,10 @@ contract LoanPositionManagerUnitTest is
         if (epochEnds) vm.warp(loanPositionManager.getPosition(tokenId).expiredWith.endTime() + 1);
         oracle.setAssetPrice(address(weth), price);
 
-        vm.expectRevert(bytes(Errors.TOO_SMALL_DEBT));
+        vm.expectRevert(abi.encodeWithSelector(TooSmallDebt.selector));
         loanPositionManager.getLiquidationStatus(tokenId, maxRepayAmount);
 
-        vm.expectRevert(bytes(Errors.TOO_SMALL_DEBT));
+        vm.expectRevert(abi.encodeWithSelector(TooSmallDebt.selector));
         loanPositionManager.liquidate(tokenId, maxRepayAmount, new bytes(0));
     }
 
@@ -972,7 +948,7 @@ contract LoanPositionManagerUnitTest is
 
     function testBurnOwnership() public {
         uint256 tokenId = _beforeBurn();
-        vm.expectRevert(bytes(Errors.ACCESS));
+        vm.expectRevert(abi.encodeWithSelector(InvalidAccess.selector));
         vm.prank(address(0x23));
         loanPositionManager.burn(tokenId);
     }
@@ -991,7 +967,7 @@ contract LoanPositionManagerUnitTest is
 
         vm.warp(startEpoch.add(2).startTime());
 
-        vm.expectRevert(bytes(Errors.UNPAID_DEBT));
+        vm.expectRevert(abi.encodeWithSelector(UnpaidDebt.selector));
         loanPositionManager.burn(tokenId);
     }
 

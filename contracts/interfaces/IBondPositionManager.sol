@@ -8,12 +8,17 @@ import {IERC721Permit} from "./IERC721Permit.sol";
 import {Epoch} from "../libraries/Epoch.sol";
 import {BondPosition} from "../libraries/BondPosition.sol";
 
-interface IBondPositionManagerEvents {
+interface IBondPositionManagerTypes {
     event AssetRegistered(address indexed asset);
     event PositionUpdated(uint256 indexed tokenId, uint256 amount, Epoch expiredWith);
+
+    error InvalidAccess();
+    error UnregisteredAsset();
+    error EmptyInput();
+    error InvalidEpoch();
 }
 
-interface IBondPositionManager is IERC721Metadata, IERC721Permit, IBondPositionManagerEvents {
+interface IBondPositionManager is IERC721Metadata, IERC721Permit, IBondPositionManagerTypes {
     // View Functions //
     function baseURI() external view returns (string memory);
 

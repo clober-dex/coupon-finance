@@ -5,12 +5,16 @@ pragma solidity ^0.8.0;
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 
 import {IERC1155Permit} from "../interfaces/IERC1155Permit.sol";
 
 contract ERC1155Permit is ERC1155, IERC1155Permit, EIP712 {
+    error InvalidSignature();
+    error PermitExpired();
+
     mapping(address => uint256) public override nonces;
 
     bytes32 public constant override PERMIT_TYPEHASH =
@@ -27,7 +31,7 @@ contract ERC1155Permit is ERC1155, IERC1155Permit, EIP712 {
         bytes32 r,
         bytes32 s
     ) external override {
-        require(block.timestamp <= deadline, "Permit expired");
+        if (block.timestamp > deadline) revert PermitExpired();
 
         bytes32 structHash;
         unchecked {
@@ -37,10 +41,11 @@ contract ERC1155Permit is ERC1155, IERC1155Permit, EIP712 {
         bytes32 digest = _hashTypedDataV4(structHash);
 
         if (Address.isContract(owner)) {
-            require(IERC1271(owner).isValidSignature(digest, abi.encodePacked(r, s, v)) == 0x1626ba7e, "Unauthorized");
+            if (IERC1271(owner).isValidSignature(digest, abi.encodePacked(r, s, v)) != 0x1626ba7e)
+                revert InvalidSignature();
         } else {
             address signer = ECDSA.recover(digest, v, r, s);
-            require(signer == owner, "Unauthorized");
+            if (signer != owner) revert InvalidSignature();
         }
 
         _setApprovalForAll(owner, operator, approved);
@@ -48,5 +53,9 @@ contract ERC1155Permit is ERC1155, IERC1155Permit, EIP712 {
 
     function DOMAIN_SEPARATOR() external view override returns (bytes32) {
         return _domainSeparatorV4();
+    }
+
+    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC1155, IERC165) returns (bool) {
+        return interfaceId == type(IERC1155Permit).interfaceId || super.supportsInterface(interfaceId);
     }
 }

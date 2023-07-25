@@ -23,7 +23,6 @@ import {CouponKey, CouponKeyLibrary} from "./libraries/CouponKey.sol";
 import {Coupon, CouponLibrary} from "./libraries/Coupon.sol";
 import {Epoch, EpochLibrary} from "./libraries/Epoch.sol";
 import {LoanPosition, LoanPositionLibrary} from "./libraries/LoanPosition.sol";
-import {Errors} from "./Errors.sol";
 
 contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC1155Holder {
     using SafeERC20 for IERC20;
@@ -44,8 +43,8 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
     string public override baseURI;
     uint256 public override nextId = 1;
 
-    mapping(address user => mapping(uint256 couponId => uint256)) public override couponOwed;
-    mapping(address asset => AssetLoanConfiguration) private _assetConfig;
+    mapping(address user => mapping(uint256 couponId => uint256)) private _couponOwed;
+    mapping(bytes32 => LoanConfiguration) private _loanConfiguration;
     mapping(uint256 id => LoanPosition) private _positionMap;
 
     constructor(
@@ -68,128 +67,118 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         return _positionMap[tokenId];
     }
 
-    function isAssetRegistered(address asset) external view returns (bool) {
-        return !_isAssetUnregistered(asset);
+    function isPairRegistered(address collateral, address debt) external view returns (bool) {
+        return !_isPairUnregistered(collateral, debt);
     }
 
-    function getLoanConfiguration(address asset) external view returns (AssetLoanConfiguration memory) {
-        return _assetConfig[asset];
+    function getOwedCouponAmount(address user, uint256 couponId) external view returns (uint256) {
+        return _couponOwed[user][couponId];
     }
 
-    function setLoanConfiguration(address asset, AssetLoanConfiguration memory config) external onlyOwner {
-        require(_assetConfig[asset].liquidationThreshold == 0, "INITIALIZED");
-        config.decimal = IERC20Metadata(asset).decimals();
-        _assetConfig[asset] = config;
+    function getLoanConfiguration(address collateral, address debt) external view returns (LoanConfiguration memory) {
+        return _loanConfiguration[_buildLoanPairId(collateral, debt)];
     }
 
-    function _getAssetConfig(address asset, address collateral) private view returns (AssetLoanConfiguration memory) {
-        AssetLoanConfiguration memory debtAssetConfig = _assetConfig[asset];
-        AssetLoanConfiguration memory collateralAssetConfig = _assetConfig[collateral];
-
-        if (collateralAssetConfig.liquidationThreshold == 0) return debtAssetConfig;
-        if (debtAssetConfig.liquidationThreshold == 0) return collateralAssetConfig;
-
-        return
-            AssetLoanConfiguration({
-                decimal: 0,
-                liquidationFee: debtAssetConfig.liquidationFee > collateralAssetConfig.liquidationFee
-                    ? debtAssetConfig.liquidationFee
-                    : collateralAssetConfig.liquidationFee,
-                liquidationProtocolFee: debtAssetConfig.liquidationProtocolFee >
-                    collateralAssetConfig.liquidationProtocolFee
-                    ? debtAssetConfig.liquidationProtocolFee
-                    : collateralAssetConfig.liquidationProtocolFee,
-                liquidationThreshold: debtAssetConfig.liquidationThreshold > collateralAssetConfig.liquidationThreshold
-                    ? collateralAssetConfig.liquidationThreshold
-                    : debtAssetConfig.liquidationThreshold,
-                liquidationTargetLtv: debtAssetConfig.liquidationTargetLtv > collateralAssetConfig.liquidationTargetLtv
-                    ? collateralAssetConfig.liquidationTargetLtv
-                    : debtAssetConfig.liquidationTargetLtv
-            });
+    function _buildLoanPairId(address collateral, address debt) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked(collateral, debt));
     }
 
-    function _getPriceWithPrecisionAndEthAmountPerDebt(
-        address debt,
+    function _calculatePricesAndMinDebtAmount(
         address collateral,
-        uint256 ethAmount
-    ) private view returns (uint256, uint256, uint256) {
-        uint256 assetDecimal = _assetConfig[debt].decimal;
-        uint256 collateralDecimal = _assetConfig[collateral].decimal;
+        address debt,
+        LoanConfiguration memory loanConfig,
+        uint256 minEthAmount
+    )
+        private
+        view
+        returns (
+            uint256 collateralPriceWithPrecisionComplement,
+            uint256 debtPriceWithPrecisionComplement,
+            uint256 minDebtAmount
+        )
+    {
+        uint256 collateralDecimal = loanConfig.collateralDecimal;
+        uint256 debtDecimal = loanConfig.debtDecimal;
 
         address[] memory assets = new address[](3);
-        assets[0] = debt;
-        assets[1] = collateral;
+        assets[0] = collateral;
+        assets[1] = debt;
         assets[2] = address(0);
 
         uint256[] memory prices = ICouponOracle(oracle).getAssetsPrices(assets);
-        uint256 precisionComplement;
-        ethAmount = (ethAmount * prices[2]) / 10 ** (18 - assetDecimal) / prices[0];
-        if (assetDecimal > collateralDecimal) {
-            precisionComplement = 10 ** (assetDecimal - collateralDecimal);
-            return (prices[0], prices[1] * precisionComplement, ethAmount);
+        minDebtAmount = (minEthAmount * prices[2]) / 10 ** (18 - debtDecimal) / prices[1];
+        if (debtDecimal > collateralDecimal) {
+            collateralPriceWithPrecisionComplement = prices[0] * 10 ** (debtDecimal - collateralDecimal);
+            debtPriceWithPrecisionComplement = prices[1];
+        } else {
+            collateralPriceWithPrecisionComplement = prices[0];
+            debtPriceWithPrecisionComplement = prices[1] * 10 ** (collateralDecimal - debtDecimal);
         }
-        precisionComplement = 10 ** (collateralDecimal - assetDecimal);
-        return (prices[0] * precisionComplement, prices[1], ethAmount);
     }
 
     function _getLiquidationAmount(
         LoanPosition memory position,
         uint256 maxRepayAmount
     ) private view returns (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount) {
-        AssetLoanConfiguration memory config = _getAssetConfig(position.debtToken, position.collateralToken);
-        (uint256 assetPrice, uint256 collateralPrice, uint256 minDebtValue) = _getPriceWithPrecisionAndEthAmountPerDebt(
-            position.debtToken,
-            position.collateralToken,
-            minDebtValueInEth
-        );
+        LoanConfiguration memory loanConfig = _loanConfiguration[
+            _buildLoanPairId(position.collateralToken, position.debtToken)
+        ];
+        (
+            uint256 collateralPriceWithPrecisionComplement,
+            uint256 debtPriceWithPrecisionComplement,
+            uint256 minDebtAmount
+        ) = _calculatePricesAndMinDebtAmount(
+                position.collateralToken,
+                position.debtToken,
+                loanConfig,
+                minDebtValueInEth
+            );
 
         if (position.expiredWith.isExpired()) {
             unchecked {
                 if (maxRepayAmount >= position.debtAmount) repayAmount = position.debtAmount;
-                else if (maxRepayAmount + minDebtValue > position.debtAmount) {
-                    require(position.debtAmount >= minDebtValue, Errors.TOO_SMALL_DEBT);
-                    repayAmount = position.debtAmount - minDebtValue;
+                else if (maxRepayAmount + minDebtAmount > position.debtAmount) {
+                    if (position.debtAmount < minDebtAmount) revert TooSmallDebt();
+                    repayAmount = position.debtAmount - minDebtAmount;
                 } else repayAmount = maxRepayAmount;
             }
 
             liquidationAmount = Math.ceilDiv(
-                repayAmount * assetPrice * _RATE_PRECISION,
-                collateralPrice * (_RATE_PRECISION - config.liquidationFee)
+                repayAmount * debtPriceWithPrecisionComplement * _RATE_PRECISION,
+                collateralPriceWithPrecisionComplement * (_RATE_PRECISION - loanConfig.liquidationFee)
             );
             unchecked {
-                protocolFeeAmount = (liquidationAmount * config.liquidationProtocolFee) / _RATE_PRECISION;
-                return (liquidationAmount - protocolFeeAmount, repayAmount, protocolFeeAmount);
+                protocolFeeAmount = (liquidationAmount * loanConfig.liquidationProtocolFee) / _RATE_PRECISION;
+                return (liquidationAmount, repayAmount, protocolFeeAmount);
             }
         }
 
-        uint256 assetAmountInBaseCurrency = position.debtAmount * assetPrice * _RATE_PRECISION;
-        uint256 collateralAmountInBaseCurrency = position.collateralAmount * collateralPrice * _RATE_PRECISION;
+        uint256 collateralValue = position.collateralAmount * collateralPriceWithPrecisionComplement * _RATE_PRECISION;
+        uint256 debtValue = position.debtAmount * debtPriceWithPrecisionComplement * _RATE_PRECISION;
 
         unchecked {
-            if (
-                (collateralAmountInBaseCurrency / _RATE_PRECISION) * config.liquidationThreshold >=
-                assetAmountInBaseCurrency
-            ) return (0, 0, 0);
+            if ((collateralValue / _RATE_PRECISION) * loanConfig.liquidationThreshold >= debtValue) return (0, 0, 0);
 
             liquidationAmount = Math.ceilDiv(
-                assetAmountInBaseCurrency -
-                    (collateralAmountInBaseCurrency / _RATE_PRECISION) *
-                    config.liquidationTargetLtv,
-                collateralPrice * (_RATE_PRECISION - config.liquidationFee - config.liquidationTargetLtv)
+                debtValue - (collateralValue / _RATE_PRECISION) * loanConfig.liquidationTargetLtv,
+                collateralPriceWithPrecisionComplement *
+                    (_RATE_PRECISION - loanConfig.liquidationFee - loanConfig.liquidationTargetLtv)
             );
             repayAmount =
-                (liquidationAmount * collateralPrice * (_RATE_PRECISION - config.liquidationFee)) /
-                assetPrice /
+                (liquidationAmount *
+                    collateralPriceWithPrecisionComplement *
+                    (_RATE_PRECISION - loanConfig.liquidationFee)) /
+                debtPriceWithPrecisionComplement /
                 _RATE_PRECISION;
 
             // reuse newRepayAmount
             uint256 newRepayAmount = position.debtAmount;
 
-            if (newRepayAmount <= minDebtValue) {
-                require(maxRepayAmount >= newRepayAmount, Errors.TOO_SMALL_DEBT);
-            } else if (repayAmount > newRepayAmount || newRepayAmount < minDebtValue + repayAmount) {
+            if (newRepayAmount <= minDebtAmount) {
+                if (maxRepayAmount < newRepayAmount) revert TooSmallDebt();
+            } else if (repayAmount > newRepayAmount || newRepayAmount < minDebtAmount + repayAmount) {
                 if (maxRepayAmount < newRepayAmount) {
-                    newRepayAmount = Math.min(maxRepayAmount, newRepayAmount - minDebtValue);
+                    newRepayAmount = Math.min(maxRepayAmount, newRepayAmount - minDebtAmount);
                 }
             } else {
                 newRepayAmount = Math.min(maxRepayAmount, repayAmount);
@@ -197,15 +186,14 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
 
             if (newRepayAmount != repayAmount) {
                 liquidationAmount = Math.ceilDiv(
-                    newRepayAmount * assetPrice * _RATE_PRECISION,
-                    collateralPrice * (_RATE_PRECISION - config.liquidationFee)
+                    newRepayAmount * debtPriceWithPrecisionComplement * _RATE_PRECISION,
+                    collateralPriceWithPrecisionComplement * (_RATE_PRECISION - loanConfig.liquidationFee)
                 );
                 repayAmount = newRepayAmount;
             }
 
             if (liquidationAmount > position.collateralAmount) liquidationAmount = position.collateralAmount;
-            protocolFeeAmount = (liquidationAmount * config.liquidationProtocolFee) / _RATE_PRECISION;
-            return (liquidationAmount - protocolFeeAmount, repayAmount, protocolFeeAmount);
+            protocolFeeAmount = (liquidationAmount * loanConfig.liquidationProtocolFee) / _RATE_PRECISION;
         }
     }
 
@@ -213,31 +201,42 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         uint256 tokenId,
         uint256 maxRepayAmount
     ) external view returns (LiquidationStatus memory) {
-        (uint256 liquidationAmount, uint256 repayAmount, ) = _getLiquidationAmount(
+        (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount) = _getLiquidationAmount(
             _positionMap[tokenId],
             maxRepayAmount > 0 ? maxRepayAmount : type(uint256).max
         );
-        return LiquidationStatus({liquidationAmount: liquidationAmount, repayAmount: repayAmount});
+        return
+            LiquidationStatus({
+                liquidationAmount: liquidationAmount,
+                repayAmount: repayAmount,
+                protocolFeeAmount: protocolFeeAmount
+            });
     }
 
     function _validatePosition(LoanPosition memory position, Epoch latestExpiredEpoch) internal view {
         if (position.debtAmount > 0 && position.expiredWith.compare(latestExpiredEpoch) <= 0) {
-            revert(Errors.UNPAID_DEBT);
+            revert UnpaidDebt();
         }
 
-        AssetLoanConfiguration memory config = _getAssetConfig(position.debtToken, position.collateralToken);
-        (uint256 debtPrice, uint256 collateralPrice, uint256 minDebtValue) = _getPriceWithPrecisionAndEthAmountPerDebt(
-            position.debtToken,
-            position.collateralToken,
-            minDebtValueInEth
-        );
+        LoanConfiguration memory loanConfig = _loanConfiguration[
+            _buildLoanPairId(position.collateralToken, position.debtToken)
+        ];
+        (
+            uint256 collateralPriceWithPrecisionComplement,
+            uint256 debtPriceWithPrecisionComplement,
+            uint256 minDebtAmount
+        ) = _calculatePricesAndMinDebtAmount(
+                position.collateralToken,
+                position.debtToken,
+                loanConfig,
+                minDebtValueInEth
+            );
 
-        require(position.debtAmount == 0 || minDebtValue <= position.debtAmount, Errors.TOO_SMALL_DEBT);
-        require(
-            (position.collateralAmount * collateralPrice) * config.liquidationThreshold >=
-                position.debtAmount * debtPrice * _RATE_PRECISION,
-            Errors.LIQUIDATION_THRESHOLD
-        );
+        if (position.debtAmount > 0 && minDebtAmount > position.debtAmount) revert TooSmallDebt();
+        if (
+            (position.collateralAmount * collateralPriceWithPrecisionComplement) * loanConfig.liquidationThreshold <
+            position.debtAmount * debtPriceWithPrecisionComplement * _RATE_PRECISION
+        ) revert LiquidationThreshold();
     }
 
     function mint(
@@ -249,10 +248,10 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         address recipient,
         bytes calldata data
     ) external returns (uint256 tokenId) {
-        if (_isAssetUnregistered(collateralToken) || _isAssetUnregistered(debtToken)) {
-            revert(Errors.UNREGISTERED_ASSET);
+        if (_isPairUnregistered(collateralToken, debtToken)) {
+            revert InvalidPair();
         }
-        require(loanEpochs > 0 && debtAmount > 0, Errors.EMPTY_INPUT);
+        if (loanEpochs == 0 || debtAmount == 0) revert EmptyInput();
         tokenId = nextId++;
 
         Epoch currentEpoch = EpochLibrary.current();
@@ -299,11 +298,11 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         Epoch expiredWith,
         bytes calldata data
     ) external {
-        require(_isApprovedOrOwner(msg.sender, tokenId), Errors.ACCESS);
+        if (!_isApprovedOrOwner(msg.sender, tokenId)) revert InvalidAccess();
 
         LoanPosition memory oldPosition = _positionMap[tokenId];
         Epoch latestExpiredEpoch = EpochLibrary.current().sub(1);
-        require(oldPosition.expiredWith.compare(latestExpiredEpoch) > 0, Errors.INVALID_EPOCH);
+        if (oldPosition.expiredWith.compare(latestExpiredEpoch) <= 0) revert InvalidEpoch();
 
         LoanPosition memory newPosition = LoanPosition({
             nonce: oldPosition.nonce,
@@ -374,7 +373,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
             maxRepayAmount > 0 ? maxRepayAmount : type(uint256).max
         );
 
-        require(liquidationAmount > 0 || repayAmount > 0, "LIQUIDATION_FAIL");
+        if (liquidationAmount == 0 && repayAmount == 0) revert UnableToLiquidate();
 
         unchecked {
             Epoch currentEpoch = EpochLibrary.current();
@@ -389,18 +388,18 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
                     ICouponManager(couponManager).safeBatchTransferFrom(address(this), couponOwner, coupons, data)
                 {} catch {
                     for (uint256 i = 0; i < length; ++i) {
-                        couponOwed[couponOwner][coupons[i].id()] += coupons[i].amount;
+                        _couponOwed[couponOwner][coupons[i].id()] += coupons[i].amount;
                     }
                 }
             }
-            position.collateralAmount -= liquidationAmount + protocolFeeAmount;
+            position.collateralAmount -= liquidationAmount;
             position.debtAmount -= repayAmount;
             if (position.debtAmount == 0) position.expiredWith = currentEpoch.sub(1);
         }
         _positionMap[tokenId].collateralAmount = position.collateralAmount;
         _positionMap[tokenId].debtAmount = position.debtAmount;
 
-        IAssetPool(assetPool).withdraw(position.collateralToken, liquidationAmount, msg.sender);
+        IAssetPool(assetPool).withdraw(position.collateralToken, liquidationAmount - protocolFeeAmount, msg.sender);
         IAssetPool(assetPool).withdraw(position.collateralToken, protocolFeeAmount, treasury);
 
         if (data.length > 0) {
@@ -408,7 +407,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
                 tokenId,
                 position.collateralToken,
                 position.debtToken,
-                liquidationAmount,
+                liquidationAmount - protocolFeeAmount,
                 repayAmount,
                 data
             );
@@ -427,16 +426,16 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         for (uint256 i = 0; i < length; ++i) {
             uint256 id = couponKeys[i].toId();
             ids[i] = id;
-            amounts[i] = couponOwed[msg.sender][id];
-            couponOwed[msg.sender][id] = 0;
+            amounts[i] = _couponOwed[msg.sender][id];
+            _couponOwed[msg.sender][id] = 0;
         }
         ICouponManager(couponManager).safeBatchTransferFrom(address(this), msg.sender, ids, amounts, data);
     }
 
     function burn(uint256 tokenId) external {
-        require(_isApprovedOrOwner(msg.sender, tokenId), Errors.ACCESS);
+        if (!_isApprovedOrOwner(msg.sender, tokenId)) revert InvalidAccess();
         LoanPosition memory position = _positionMap[tokenId];
-        require(position.debtAmount == 0, Errors.UNPAID_DEBT);
+        if (position.debtAmount > 0) revert UnpaidDebt();
         uint256 collateralAmount = position.collateralAmount;
         position.collateralAmount = 0;
 
@@ -446,6 +445,26 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         IAssetPool(assetPool).withdraw(position.collateralToken, collateralAmount, msg.sender);
 
         _burn(tokenId);
+    }
+
+    function setLoanConfiguration(
+        address collateral,
+        address debt,
+        uint32 liquidationThreshold,
+        uint32 liquidationFee,
+        uint32 liquidationProtocolFee,
+        uint32 liquidationTargetLtv
+    ) external onlyOwner {
+        bytes32 hash = _buildLoanPairId(collateral, debt);
+        if (_loanConfiguration[hash].liquidationThreshold > 0) revert InvalidPair();
+        _loanConfiguration[hash] = LoanConfiguration({
+            collateralDecimal: IERC20Metadata(collateral).decimals(),
+            debtDecimal: IERC20Metadata(debt).decimals(),
+            liquidationThreshold: liquidationThreshold,
+            liquidationFee: liquidationFee,
+            liquidationProtocolFee: liquidationProtocolFee,
+            liquidationTargetLtv: liquidationTargetLtv
+        });
     }
 
     function _baseURI() internal view override returns (string memory) {
@@ -462,7 +481,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         return super.supportsInterface(interfaceId);
     }
 
-    function _isAssetUnregistered(address asset) internal view returns (bool) {
-        return _assetConfig[asset].liquidationThreshold == 0;
+    function _isPairUnregistered(address collateral, address debt) internal view returns (bool) {
+        return _loanConfiguration[_buildLoanPairId(collateral, debt)].liquidationThreshold == 0;
     }
 }

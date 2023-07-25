@@ -9,35 +9,39 @@ import {CouponKey} from "../libraries/CouponKey.sol";
 import {Epoch} from "../libraries/Epoch.sol";
 import {LoanPosition} from "../libraries/LoanPosition.sol";
 
-interface ILoanPositionManagerStructs {
+interface ILoanPositionManagerTypes {
     struct LiquidationStatus {
         uint256 liquidationAmount;
         uint256 repayAmount;
+        uint256 protocolFeeAmount;
     }
 
     // liquidationFee = liquidator fee + protocol fee
     // debt = collateral * (1 - liquidationFee)
-    struct AssetLoanConfiguration {
-        uint32 decimal;
+    struct LoanConfiguration {
+        uint32 collateralDecimal;
+        uint32 debtDecimal;
         uint32 liquidationThreshold;
         uint32 liquidationFee;
         uint32 liquidationProtocolFee;
         uint32 liquidationTargetLtv;
     }
-}
 
-interface ILoanPositionManagerEvents {
     event AssetRegistered(address indexed asset);
     event PositionUpdated(uint256 indexed tokenId, uint256 collateralAmount, uint256 debtAmount, Epoch unlockedAt);
     event PositionLiquidated(uint256 indexed tokenId);
+
+    error EmptyInput();
+    error InvalidEpoch();
+    error TooSmallDebt();
+    error InvalidAccess();
+    error UnpaidDebt();
+    error LiquidationThreshold();
+    error InvalidPair();
+    error UnableToLiquidate();
 }
 
-interface ILoanPositionManager is
-    IERC721Metadata,
-    IERC721Permit,
-    ILoanPositionManagerEvents,
-    ILoanPositionManagerStructs
-{
+interface ILoanPositionManager is IERC721Metadata, IERC721Permit, ILoanPositionManagerTypes {
     function baseURI() external view returns (string memory);
 
     function treasury() external view returns (address);
@@ -52,15 +56,13 @@ interface ILoanPositionManager is
 
     function minDebtValueInEth() external view returns (uint256);
 
-    function couponOwed(address user, uint256 couponId) external view returns (uint256);
-
     function getPosition(uint256 tokenId) external view returns (LoanPosition memory);
 
-    function isAssetRegistered(address asset) external view returns (bool);
+    function isPairRegistered(address collateral, address debt) external view returns (bool);
 
-    function getLoanConfiguration(address asset) external view returns (AssetLoanConfiguration memory);
+    function getLoanConfiguration(address collateral, address debt) external view returns (LoanConfiguration memory);
 
-    function setLoanConfiguration(address asset, AssetLoanConfiguration memory config) external;
+    function getOwedCouponAmount(address user, uint256 couponId) external view returns (uint256);
 
     function getLiquidationStatus(
         uint256 tokenId,
@@ -90,4 +92,13 @@ interface ILoanPositionManager is
     function claimOwedCoupons(CouponKey[] memory couponKeys, bytes calldata data) external;
 
     function burn(uint256 tokenId) external;
+
+    function setLoanConfiguration(
+        address collateral,
+        address debt,
+        uint32 liquidationThreshold,
+        uint32 liquidationFee,
+        uint32 liquidationProtocolFee,
+        uint32 liquidationTargetLtv
+    ) external;
 }

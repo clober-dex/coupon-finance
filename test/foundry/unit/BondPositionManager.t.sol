@@ -8,11 +8,10 @@ import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import {Create1} from "@clober/library/contracts/Create1.sol";
 
-import {Errors} from "../../../contracts/Errors.sol";
 import {CouponManager} from "../../../contracts/CouponManager.sol";
 import {BondPosition, BondPositionManager} from "../../../contracts/BondPositionManager.sol";
 import {IAssetPool} from "../../../contracts/interfaces/IAssetPool.sol";
-import {IBondPositionManager, IBondPositionManagerEvents} from "../../../contracts/interfaces/IBondPositionManager.sol";
+import {IBondPositionManager, IBondPositionManagerTypes} from "../../../contracts/interfaces/IBondPositionManager.sol";
 import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
 import {Coupon, CouponLibrary} from "../../../contracts/libraries/Coupon.sol";
 import {Epoch, EpochLibrary} from "../../../contracts/libraries/Epoch.sol";
@@ -21,7 +20,7 @@ import {MockAssetPool} from "../mocks/MockAssetPool.sol";
 import {Constants} from "../Constants.sol";
 import {Utils} from "../Utils.sol";
 
-contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC1155Holder, ERC721Holder {
+contract BondPositionManagerUnitTest is Test, IBondPositionManagerTypes, ERC1155Holder, ERC721Holder {
     using CouponLibrary for Coupon;
     using EpochLibrary for Epoch;
 
@@ -88,7 +87,7 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC115
     }
 
     function testMintWithUnregisteredAsset() public {
-        vm.expectRevert(bytes(Errors.UNREGISTERED_ASSET));
+        vm.expectRevert(abi.encodeWithSelector(UnregisteredAsset.selector));
         bondPositionManager.mint(address(0x123), initialAmount, 2, Constants.USER1, new bytes(0));
     }
 
@@ -305,14 +304,14 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC115
         uint256 tokenId = _beforeAdjustPosition();
         vm.warp(startEpoch.add(10).startTime());
 
-        vm.expectRevert(bytes(Errors.INVALID_EPOCH));
+        vm.expectRevert(abi.encodeWithSelector(InvalidEpoch.selector));
         bondPositionManager.adjustPosition(tokenId, initialAmount - 100, startEpoch.add(2), new bytes(0));
     }
 
     function testAdjustPositionOwnership() public {
         uint256 tokenId = _beforeAdjustPosition();
         vm.startPrank(address(0x123));
-        vm.expectRevert(bytes(Errors.ACCESS));
+        vm.expectRevert(abi.encodeWithSelector(InvalidAccess.selector));
         bondPositionManager.adjustPosition(tokenId, initialAmount + 12342, startEpoch.add(3), new bytes(0));
         vm.stopPrank();
     }
@@ -345,7 +344,7 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC115
     function testBurnExpiredPositionWhenPositionNotExpired() public {
         uint256 tokenId = _beforeAdjustPosition();
 
-        vm.expectRevert(bytes(Errors.INVALID_EPOCH));
+        vm.expectRevert(abi.encodeWithSelector(InvalidEpoch.selector));
         bondPositionManager.burnExpiredPosition(tokenId);
     }
 
@@ -353,7 +352,7 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC115
         uint256 tokenId = _beforeAdjustPosition();
         vm.warp(startEpoch.add(10).startTime());
 
-        vm.expectRevert(bytes(Errors.ACCESS));
+        vm.expectRevert(abi.encodeWithSelector(InvalidAccess.selector));
         vm.prank(address(0x123));
         bondPositionManager.burnExpiredPosition(tokenId);
     }

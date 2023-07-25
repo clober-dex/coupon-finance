@@ -17,7 +17,7 @@ contract EpochUnitTest is Test {
     }
 
     function testFromMonthsOverflow() public {
-        vm.expectRevert("Epoch: Overflow");
+        vm.expectRevert(abi.encodeWithSelector(EpochLibrary.EpochOverflow.selector));
         EpochLibrary.fromMonths(uint256(type(uint16).max) + 1);
     }
 

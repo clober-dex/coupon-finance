@@ -6,10 +6,12 @@ pragma solidity >=0.8.0;
 /// @author Clober (https://github.com/clober-dex/coupon-finance/blob/main/contracts/libraries/ReentrancyGuard.sol)
 /// @author Modified from Solmate (https://github.com/transmissions11/solmate/blob/main/src/utils/ReentrancyGuard.sol)
 abstract contract ReentrancyGuard {
+    error Reentrancy();
+
     uint256 internal _locked = 1;
 
     modifier nonReentrant() virtual {
-        require(_locked == 1, "ReentrancyGuard");
+        if (_locked != 1) revert Reentrancy();
 
         _locked = 2;
 

@@ -6,6 +6,8 @@ pragma solidity ^0.8.0;
 type Epoch is uint16;
 
 library EpochLibrary {
+    error EpochOverflow();
+
     uint256 internal constant MONTHS_PER_EPOCH = 1;
     uint256 constant SECONDS_PER_DAY = 24 * 60 * 60;
     int constant OFFSET19700101 = 2440588;
@@ -18,7 +20,7 @@ library EpochLibrary {
         unchecked {
             months /= MONTHS_PER_EPOCH;
         }
-        if (months > type(uint16).max) revert("Epoch: Overflow");
+        if (months > type(uint16).max) revert EpochOverflow();
         return Epoch.wrap(uint16(months));
     }
 
