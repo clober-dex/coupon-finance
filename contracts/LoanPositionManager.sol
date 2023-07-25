@@ -88,14 +88,14 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         address collateral,
         address debt,
         LoanConfiguration memory loanConfig,
-        uint256 ethAmount
+        uint256 minEthAmount
     )
         private
         view
         returns (
             uint256 collateralPriceWithPrecisionComplement,
             uint256 debtPriceWithPrecisionComplement,
-            uint256 ethAmountInDebtCurrency
+            uint256 minDebtAmount
         )
     {
         uint256 collateralDecimal = loanConfig.collateralDecimal;
@@ -107,7 +107,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         assets[2] = address(0);
 
         uint256[] memory prices = ICouponOracle(oracle).getAssetsPrices(assets);
-        ethAmountInDebtCurrency = (ethAmount * prices[2]) / 10 ** (18 - debtDecimal) / prices[1];
+        minDebtAmount = (minEthAmount * prices[2]) / 10 ** (18 - debtDecimal) / prices[1];
         if (debtDecimal > collateralDecimal) {
             collateralPriceWithPrecisionComplement = prices[0] * 10 ** (debtDecimal - collateralDecimal);
             debtPriceWithPrecisionComplement = prices[1];
