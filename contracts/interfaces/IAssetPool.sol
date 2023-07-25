@@ -2,13 +2,13 @@
 
 pragma solidity ^0.8.0;
 
-interface IAssetPoolErrors {
+interface IAssetPoolTypes {
     error InvalidAccess();
     error InvalidAsset();
     error ExceedsBalance(uint256 balance);
 }
 
-interface IAssetPool is IAssetPoolErrors {
+interface IAssetPool is IAssetPoolTypes {
     function treasury() external view returns (address);
 
     function totalReservedAmount(address asset) external view returns (uint256);

@@ -13,7 +13,7 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {Errors} from "../../../contracts/Errors.sol";
 import {LoanPosition, LoanPositionManager} from "../../../contracts/LoanPositionManager.sol";
 import {CouponManager} from "../../../contracts/CouponManager.sol";
-import {ILoanPositionManager, ILoanPositionManagerEvents, ILoanPositionManagerStructs} from "../../../contracts/interfaces/ILoanPositionManager.sol";
+import {ILoanPositionManager, ILoanPositionManagerTypes} from "../../../contracts/interfaces/ILoanPositionManager.sol";
 import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
 import {IERC721Permit} from "../../../contracts/interfaces/IERC721Permit.sol";
 import {IAssetPool} from "../../../contracts/interfaces/IAssetPool.sol";
@@ -25,13 +25,7 @@ import {MockOracle} from "../mocks/MockOracle.sol";
 import {Constants} from "../Constants.sol";
 import {Utils} from "../Utils.sol";
 
-contract LoanPositionManagerUnitTest is
-    Test,
-    ILoanPositionManagerEvents,
-    ILoanPositionManagerStructs,
-    ERC1155Holder,
-    ERC721Holder
-{
+contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerTypes, ERC1155Holder, ERC721Holder {
     using CouponLibrary for Coupon;
     using EpochLibrary for Epoch;
 

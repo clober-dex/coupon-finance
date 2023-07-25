@@ -7,13 +7,13 @@ import "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {IPool} from "../../../contracts/external/aave-v3/IPool.sol";
-import {IAssetPool, IAssetPoolErrors} from "../../../contracts/interfaces/IAssetPool.sol";
+import {IAssetPool, IAssetPoolTypes} from "../../../contracts/interfaces/IAssetPool.sol";
 import {AssetPoolAaveV3} from "../../../contracts/AssetPoolAaveV3.sol";
 import {Constants} from "../Constants.sol";
 import {ForkUtils, ERC20Utils, Utils} from "../Utils.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 
-contract AssetPoolAaveV3UnitTest is Test, IAssetPoolErrors {
+contract AssetPoolAaveV3UnitTest is Test, IAssetPoolTypes {
     using ERC20Utils for IERC20;
 
     IAssetPool public assetPool;

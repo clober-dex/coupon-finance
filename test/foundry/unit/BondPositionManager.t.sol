@@ -12,7 +12,7 @@ import {Errors} from "../../../contracts/Errors.sol";
 import {CouponManager} from "../../../contracts/CouponManager.sol";
 import {BondPosition, BondPositionManager} from "../../../contracts/BondPositionManager.sol";
 import {IAssetPool} from "../../../contracts/interfaces/IAssetPool.sol";
-import {IBondPositionManager, IBondPositionManagerEvents} from "../../../contracts/interfaces/IBondPositionManager.sol";
+import {IBondPositionManager, IBondPositionManagerTypes} from "../../../contracts/interfaces/IBondPositionManager.sol";
 import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
 import {Coupon, CouponLibrary} from "../../../contracts/libraries/Coupon.sol";
 import {Epoch, EpochLibrary} from "../../../contracts/libraries/Epoch.sol";
@@ -21,7 +21,7 @@ import {MockAssetPool} from "../mocks/MockAssetPool.sol";
 import {Constants} from "../Constants.sol";
 import {Utils} from "../Utils.sol";
 
-contract BondPositionManagerUnitTest is Test, IBondPositionManagerEvents, ERC1155Holder, ERC721Holder {
+contract BondPositionManagerUnitTest is Test, IBondPositionManagerTypes, ERC1155Holder, ERC721Holder {
     using CouponLibrary for Coupon;
     using EpochLibrary for Epoch;
 
