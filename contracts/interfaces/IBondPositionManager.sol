@@ -11,6 +11,11 @@ import {BondPosition} from "../libraries/BondPosition.sol";
 interface IBondPositionManagerTypes {
     event AssetRegistered(address indexed asset);
     event PositionUpdated(uint256 indexed tokenId, uint256 amount, Epoch expiredWith);
+
+    error InvalidAccess();
+    error UnregisteredAsset();
+    error EmptyInput();
+    error InvalidEpoch();
 }
 
 interface IBondPositionManager is IERC721Metadata, IERC721Permit, IBondPositionManagerTypes {

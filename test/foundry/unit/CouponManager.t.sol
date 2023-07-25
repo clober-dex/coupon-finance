@@ -6,7 +6,6 @@ import "forge-std/Test.sol";
 
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 
-import {Errors} from "../../../contracts/Errors.sol";
 import {CouponManager} from "../../../contracts/CouponManager.sol";
 import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
 import {CouponKey, CouponKeyLibrary} from "../../../contracts/libraries/CouponKey.sol";
@@ -60,7 +59,7 @@ contract CouponManagerUnitTest is Test, ERC1155Holder {
         coupons[0] = CouponLibrary.from(Constants.USDC, startEpoch, 100);
         coupons[1] = CouponLibrary.from(Constants.USDC, startEpoch.add(1), 70);
 
-        vm.expectRevert(bytes(Errors.ACCESS));
+        vm.expectRevert(abi.encodeWithSelector(ICouponManager.InvalidAccess.selector));
         vm.prank(address(0x123));
         couponManager.mintBatch(Constants.USER1, coupons, new bytes(0));
     }
@@ -132,11 +131,11 @@ contract CouponManagerUnitTest is Test, ERC1155Holder {
         couponsToBurn[0] = CouponLibrary.from(Constants.USDC, startEpoch, 50);
         couponsToBurn[1] = CouponLibrary.from(Constants.USDC, startEpoch.add(1), 30);
 
-        vm.expectRevert(bytes(Errors.ACCESS));
+        vm.expectRevert(abi.encodeWithSelector(ICouponManager.InvalidAccess.selector));
         vm.prank(Constants.USER2);
         couponManager.burnBatch(Constants.USER1, couponsToBurn);
 
-        vm.expectRevert(bytes(Errors.ACCESS));
+        vm.expectRevert(abi.encodeWithSelector(ICouponManager.InvalidAccess.selector));
         vm.prank(Constants.USER1);
         couponManager.burnBatch(Constants.USER1, couponsToBurn);
     }

@@ -29,6 +29,15 @@ interface ILoanPositionManagerTypes {
     event AssetRegistered(address indexed asset);
     event PositionUpdated(uint256 indexed tokenId, uint256 collateralAmount, uint256 debtAmount, Epoch unlockedAt);
     event PositionLiquidated(uint256 indexed tokenId);
+
+    error EmptyInput();
+    error InvalidEpoch();
+    error TooSmallDebt();
+    error InvalidAccess();
+    error UnpaidDebt();
+    error LiquidationThreshold();
+    error InvalidPair();
+    error UnableToLiquidate();
 }
 
 interface ILoanPositionManager is IERC721Metadata, IERC721Permit, ILoanPositionManagerTypes {

@@ -10,7 +10,6 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
-import {Errors} from "../../../contracts/Errors.sol";
 import {LoanPosition, LoanPositionManager} from "../../../contracts/LoanPositionManager.sol";
 import {CouponManager} from "../../../contracts/CouponManager.sol";
 import {ILoanPositionManager, ILoanPositionManagerTypes} from "../../../contracts/interfaces/ILoanPositionManager.sol";
@@ -151,7 +150,7 @@ contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerTypes, ERC1155
         coupons[1] = CouponLibrary.from(address(usdc), startEpoch.add(1), initialDebtAmount);
         _mintCoupons(address(this), coupons);
 
-        vm.expectRevert(bytes(Errors.TOO_SMALL_DEBT));
+        vm.expectRevert(abi.encodeWithSelector(TooSmallDebt.selector));
         loanPositionManager.mint(
             address(weth),
             address(usdc),
@@ -171,7 +170,7 @@ contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerTypes, ERC1155
         coupons[1] = CouponLibrary.from(address(usdc), startEpoch.add(1), debtAmount);
         _mintCoupons(address(this), coupons);
 
-        vm.expectRevert(bytes(Errors.LIQUIDATION_THRESHOLD));
+        vm.expectRevert(abi.encodeWithSelector(LiquidationThreshold.selector));
         loanPositionManager.mint(
             address(weth),
             address(usdc),
@@ -184,7 +183,7 @@ contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerTypes, ERC1155
     }
 
     function testMintWithUnregisteredAsset() public {
-        vm.expectRevert(bytes(Errors.UNREGISTERED_PAIR));
+        vm.expectRevert(abi.encodeWithSelector(InvalidPair.selector));
         loanPositionManager.mint(
             address(0x23),
             address(usdc),
@@ -194,7 +193,7 @@ contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerTypes, ERC1155
             Constants.USER1,
             new bytes(0)
         );
-        vm.expectRevert(bytes(Errors.UNREGISTERED_PAIR));
+        vm.expectRevert(abi.encodeWithSelector(InvalidPair.selector));
         loanPositionManager.mint(
             address(usdc),
             address(0x123),
@@ -451,21 +450,21 @@ contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerTypes, ERC1155
     function testAdjustPositionDecreaseDebtToTooSmallAmount() public {
         uint256 tokenId = _beforeAdjustPosition();
         Epoch epoch = startEpoch.add(2);
-        vm.expectRevert(bytes(Errors.TOO_SMALL_DEBT));
+        vm.expectRevert(abi.encodeWithSelector(TooSmallDebt.selector));
         loanPositionManager.adjustPosition(tokenId, initialCollateralAmount, 1, epoch, new bytes(0));
     }
 
     function testAdjustPositionDecreaseEpochsToPast() public {
         uint256 tokenId = _beforeAdjustPosition();
         Epoch epoch = EpochLibrary.current().sub(1);
-        vm.expectRevert(bytes(Errors.UNPAID_DEBT));
+        vm.expectRevert(abi.encodeWithSelector(UnpaidDebt.selector));
         loanPositionManager.adjustPosition(tokenId, initialCollateralAmount, initialDebtAmount, epoch, new bytes(0));
     }
 
     function testAdjustPositionDecreaseTooMuchCollateral() public {
         uint256 tokenId = _beforeAdjustPosition();
         Epoch epoch = startEpoch.add(2);
-        vm.expectRevert(bytes(Errors.LIQUIDATION_THRESHOLD));
+        vm.expectRevert(abi.encodeWithSelector(LiquidationThreshold.selector));
         loanPositionManager.adjustPosition(tokenId, 1, initialDebtAmount, epoch, new bytes(0));
     }
 
@@ -473,7 +472,7 @@ contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerTypes, ERC1155
         uint256 tokenId = _beforeAdjustPosition();
         uint256 debtAmount = initialDebtAmount + usdc.amount(18000);
         Epoch epoch = startEpoch.add(2);
-        vm.expectRevert(bytes(Errors.LIQUIDATION_THRESHOLD));
+        vm.expectRevert(abi.encodeWithSelector(LiquidationThreshold.selector));
         loanPositionManager.adjustPosition(tokenId, initialCollateralAmount, debtAmount, epoch, new bytes(0));
     }
 
@@ -481,7 +480,7 @@ contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerTypes, ERC1155
         uint256 tokenId = _beforeAdjustPosition();
         Epoch epoch = EpochLibrary.current();
         vm.startPrank(address(0x123));
-        vm.expectRevert(bytes(Errors.ACCESS));
+        vm.expectRevert(abi.encodeWithSelector(InvalidAccess.selector));
         loanPositionManager.adjustPosition(tokenId, 0, 0, epoch, new bytes(0));
         vm.stopPrank();
     }
@@ -658,10 +657,10 @@ contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerTypes, ERC1155
         if (epochEnds) vm.warp(loanPositionManager.getPosition(tokenId).expiredWith.endTime() + 1);
         oracle.setAssetPrice(address(weth), price);
 
-        vm.expectRevert(bytes(Errors.TOO_SMALL_DEBT));
+        vm.expectRevert(abi.encodeWithSelector(TooSmallDebt.selector));
         loanPositionManager.getLiquidationStatus(tokenId, maxRepayAmount);
 
-        vm.expectRevert(bytes(Errors.TOO_SMALL_DEBT));
+        vm.expectRevert(abi.encodeWithSelector(TooSmallDebt.selector));
         loanPositionManager.liquidate(tokenId, maxRepayAmount, new bytes(0));
     }
 
@@ -948,7 +947,7 @@ contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerTypes, ERC1155
 
     function testBurnOwnership() public {
         uint256 tokenId = _beforeBurn();
-        vm.expectRevert(bytes(Errors.ACCESS));
+        vm.expectRevert(abi.encodeWithSelector(InvalidAccess.selector));
         vm.prank(address(0x23));
         loanPositionManager.burn(tokenId);
     }
@@ -967,7 +966,7 @@ contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerTypes, ERC1155
 
         vm.warp(startEpoch.add(2).startTime());
 
-        vm.expectRevert(bytes(Errors.UNPAID_DEBT));
+        vm.expectRevert(abi.encodeWithSelector(UnpaidDebt.selector));
         loanPositionManager.burn(tokenId);
     }
 

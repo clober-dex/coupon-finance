@@ -9,6 +9,8 @@ import {Coupon} from "../libraries/Coupon.sol";
 import {Epoch} from "../libraries/Epoch.sol";
 
 interface ICouponManager is IERC1155MetadataURI {
+    error InvalidAccess();
+
     // View Functions //
     function minter() external view returns (address);
 

@@ -5,7 +5,6 @@ pragma solidity ^0.8.0;
 
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
-import {Errors} from "../Errors.sol";
 import {Epoch, EpochLibrary} from "./Epoch.sol";
 import {Coupon, CouponLibrary} from "./Coupon.sol";
 
@@ -17,6 +16,8 @@ struct BondPosition {
 }
 
 library BondPositionLibrary {
+    error UnmatchedPosition();
+
     using EpochLibrary for Epoch;
 
     function from(
@@ -35,7 +36,8 @@ library BondPositionLibrary {
         BondPosition memory oldPosition,
         BondPosition memory newPosition
     ) internal view returns (Coupon[] memory, Coupon[] memory) {
-        require(oldPosition.asset == newPosition.asset && oldPosition.nonce == newPosition.nonce, Errors.INVALID_INPUT);
+        if (!(oldPosition.asset == newPosition.asset && oldPosition.nonce == newPosition.nonce))
+            revert UnmatchedPosition();
 
         Epoch latestExpiredEpoch = EpochLibrary.current().sub(1);
         uint256 mintCouponsLength = newPosition.expiredWith.sub(latestExpiredEpoch);

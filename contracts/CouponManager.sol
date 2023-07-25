@@ -9,7 +9,6 @@ import {ERC1155Supply} from "@openzeppelin/contracts/token/ERC1155/extensions/ER
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
-import {Errors} from "./Errors.sol";
 import {CouponKey, CouponKeyLibrary} from "./libraries/CouponKey.sol";
 import {Coupon, CouponLibrary} from "./libraries/Coupon.sol";
 import {Epoch, EpochLibrary} from "./libraries/Epoch.sol";
@@ -33,7 +32,7 @@ contract CouponManager is ERC1155Permit, ERC1155Supply, ICouponManager {
 
     modifier onlyMinter() {
         if (msg.sender != minter) {
-            revert(Errors.ACCESS);
+            revert InvalidAccess();
         }
         _;
     }
