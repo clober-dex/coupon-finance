@@ -8,6 +8,8 @@ import {BokkyPooBahsDateTimeLibrary} from "./BokkyPooBahsDateTimeLibrary.sol";
 type Epoch is uint16;
 
 library EpochLibrary {
+    error EpochOverflow();
+
     uint256 internal constant MONTHS_PER_EPOCH = 1;
 
     function wrap(uint16 epoch) internal pure returns (Epoch) {
@@ -18,7 +20,7 @@ library EpochLibrary {
         unchecked {
             months /= MONTHS_PER_EPOCH;
         }
-        if (months > type(uint16).max) revert("Epoch: Overflow");
+        if (months > type(uint16).max) revert EpochOverflow();
         return Epoch.wrap(uint16(months));
     }
 

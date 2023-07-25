@@ -9,7 +9,6 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
-import {Errors} from "./Errors.sol";
 import {IBondPositionManager} from "./interfaces/IBondPositionManager.sol";
 import {ICouponManager} from "./interfaces/ICouponManager.sol";
 import {IAssetPool} from "./interfaces/IAssetPool.sol";
@@ -59,8 +58,12 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
         address recipient,
         bytes calldata data
     ) external returns (uint256 tokenId) {
-        require(isAssetRegistered[asset], Errors.UNREGISTERED_ASSET);
-        require(lockEpochs > 0 && amount > 0, Errors.EMPTY_INPUT);
+        if (!isAssetRegistered[asset]) {
+            revert UnregisteredAsset();
+        }
+        if (lockEpochs == 0 || amount == 0) {
+            revert EmptyInput();
+        }
         Epoch currentEpoch = EpochLibrary.current();
         Coupon[] memory coupons = new Coupon[](lockEpochs);
         for (uint16 i = 0; i < lockEpochs; ++i) {
@@ -84,11 +87,15 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
     }
 
     function adjustPosition(uint256 tokenId, uint256 amount, Epoch expiredWith, bytes calldata data) external {
-        require(_isApprovedOrOwner(msg.sender, tokenId), Errors.ACCESS);
+        if (!_isApprovedOrOwner(msg.sender, tokenId)) {
+            revert InvalidAccess();
+        }
 
         BondPosition memory oldPosition = _positionMap[tokenId];
         Epoch latestExpiredEpoch = EpochLibrary.current().sub(1);
-        require(oldPosition.expiredWith.compare(latestExpiredEpoch) > 0, Errors.INVALID_EPOCH);
+        if (oldPosition.expiredWith.compare(latestExpiredEpoch) <= 0) {
+            revert InvalidEpoch();
+        }
 
         address asset = oldPosition.asset;
         BondPosition memory newPosition = BondPosition({
@@ -135,9 +142,13 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
     }
 
     function burnExpiredPosition(uint256 tokenId) external {
-        require(_isApprovedOrOwner(msg.sender, tokenId), Errors.ACCESS);
+        if (!_isApprovedOrOwner(msg.sender, tokenId)) {
+            revert InvalidAccess();
+        }
         BondPosition memory position = _positionMap[tokenId];
-        require(position.expiredWith.compare(EpochLibrary.current()) < 0, Errors.INVALID_EPOCH);
+        if (position.expiredWith.compare(EpochLibrary.current()) >= 0) {
+            revert InvalidEpoch();
+        }
 
         uint256 assetToWithdraw = position.amount;
         if (assetToWithdraw > 0) {

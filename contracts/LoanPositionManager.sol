@@ -23,7 +23,6 @@ import {CouponKey, CouponKeyLibrary} from "./libraries/CouponKey.sol";
 import {Coupon, CouponLibrary} from "./libraries/Coupon.sol";
 import {Epoch, EpochLibrary} from "./libraries/Epoch.sol";
 import {LoanPosition, LoanPositionLibrary} from "./libraries/LoanPosition.sol";
-import {Errors} from "./Errors.sol";
 
 contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC1155Holder {
     using SafeERC20 for IERC20;
@@ -139,7 +138,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
             unchecked {
                 if (maxRepayAmount >= position.debtAmount) repayAmount = position.debtAmount;
                 else if (maxRepayAmount + minDebtAmount > position.debtAmount) {
-                    require(position.debtAmount >= minDebtAmount, Errors.TOO_SMALL_DEBT);
+                    if (position.debtAmount < minDebtAmount) revert TooSmallDebt();
                     repayAmount = position.debtAmount - minDebtAmount;
                 } else repayAmount = maxRepayAmount;
             }
@@ -176,7 +175,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
             uint256 newRepayAmount = position.debtAmount;
 
             if (newRepayAmount <= minDebtAmount) {
-                require(maxRepayAmount >= newRepayAmount, Errors.TOO_SMALL_DEBT);
+                if (maxRepayAmount < newRepayAmount) revert TooSmallDebt();
             } else if (repayAmount > newRepayAmount || newRepayAmount < minDebtAmount + repayAmount) {
                 if (maxRepayAmount < newRepayAmount) {
                     newRepayAmount = Math.min(maxRepayAmount, newRepayAmount - minDebtAmount);
@@ -212,7 +211,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
 
     function _validatePosition(LoanPosition memory position, Epoch latestExpiredEpoch) internal view {
         if (position.debtAmount > 0 && position.expiredWith.compare(latestExpiredEpoch) <= 0) {
-            revert(Errors.UNPAID_DEBT);
+            revert UnpaidDebt();
         }
 
         LoanConfiguration memory loanConfig = _loanConfiguration[
@@ -229,12 +228,11 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
                 minDebtValueInEth
             );
 
-        require(position.debtAmount == 0 || minDebtAmount <= position.debtAmount, Errors.TOO_SMALL_DEBT);
-        require(
-            (position.collateralAmount * collateralPriceWithPrecisionComplement) * loanConfig.liquidationThreshold >=
-                position.debtAmount * debtPriceWithPrecisionComplement * _RATE_PRECISION,
-            Errors.LIQUIDATION_THRESHOLD
-        );
+        if (position.debtAmount > 0 && minDebtAmount > position.debtAmount) revert TooSmallDebt();
+        if (
+            (position.collateralAmount * collateralPriceWithPrecisionComplement) * loanConfig.liquidationThreshold <
+            position.debtAmount * debtPriceWithPrecisionComplement * _RATE_PRECISION
+        ) revert LiquidationThreshold();
     }
 
     function mint(
@@ -247,9 +245,9 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         bytes calldata data
     ) external returns (uint256 tokenId) {
         if (_isPairUnregistered(collateralToken, debtToken)) {
-            revert(Errors.UNREGISTERED_PAIR);
+            revert InvalidPair();
         }
-        require(loanEpochs > 0 && debtAmount > 0, Errors.EMPTY_INPUT);
+        if (loanEpochs == 0 || debtAmount == 0) revert EmptyInput();
         tokenId = nextId++;
 
         Epoch currentEpoch = EpochLibrary.current();
@@ -296,11 +294,11 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         Epoch expiredWith,
         bytes calldata data
     ) external {
-        require(_isApprovedOrOwner(msg.sender, tokenId), Errors.ACCESS);
+        if (!_isApprovedOrOwner(msg.sender, tokenId)) revert InvalidAccess();
 
         LoanPosition memory oldPosition = _positionMap[tokenId];
         Epoch latestExpiredEpoch = EpochLibrary.current().sub(1);
-        require(oldPosition.expiredWith.compare(latestExpiredEpoch) > 0, Errors.INVALID_EPOCH);
+        if (oldPosition.expiredWith.compare(latestExpiredEpoch) <= 0) revert InvalidEpoch();
 
         LoanPosition memory newPosition = LoanPosition({
             nonce: oldPosition.nonce,
@@ -371,7 +369,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
             maxRepayAmount > 0 ? maxRepayAmount : type(uint256).max
         );
 
-        require(liquidationAmount > 0 || repayAmount > 0, "LIQUIDATION_FAIL");
+        if (liquidationAmount == 0 && repayAmount == 0) revert UnableToLiquidate();
 
         unchecked {
             Epoch currentEpoch = EpochLibrary.current();
@@ -431,9 +429,9 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
     }
 
     function burn(uint256 tokenId) external {
-        require(_isApprovedOrOwner(msg.sender, tokenId), Errors.ACCESS);
+        if (!_isApprovedOrOwner(msg.sender, tokenId)) revert InvalidAccess();
         LoanPosition memory position = _positionMap[tokenId];
-        require(position.debtAmount == 0, Errors.UNPAID_DEBT);
+        if (position.debtAmount > 0) revert UnpaidDebt();
         uint256 collateralAmount = position.collateralAmount;
         position.collateralAmount = 0;
 
@@ -454,7 +452,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         uint32 liquidationTargetLtv
     ) external onlyOwner {
         bytes32 hash = _buildLoanPairId(collateral, debt);
-        require(_loanConfiguration[hash].liquidationThreshold == 0, "INITIALIZED");
+        if (_loanConfiguration[hash].liquidationThreshold > 0) revert InvalidPair();
         _loanConfiguration[hash] = LoanConfiguration({
             collateralDecimal: IERC20Metadata(collateral).decimals(),
             debtDecimal: IERC20Metadata(debt).decimals(),
