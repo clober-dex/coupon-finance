@@ -16,17 +16,17 @@ contract CouponKeyUnitTest is Test {
     address public constant TOKEN = address(uint160(0x00_6b175474e89094c44da98b954eedeac495271d0f));
 
     function testToId() public {
-        _checkId(TOKEN, 0, 0x0000000000000000000000006b175474e89094c44da98b954eedeac495271d0f);
-        _checkId(TOKEN, 1, 0x0000000000000000000000016b175474e89094c44da98b954eedeac495271d0f);
-        _checkId(TOKEN, type(uint16).max, 0x00000000000000000000ffff6b175474e89094c44da98b954eedeac495271d0f);
-        _checkId(address(0), type(uint16).max, 0x00000000000000000000ffff0000000000000000000000000000000000000000);
+        _checkId(TOKEN, 0, 0x6b175474e89094c44da98b954eedeac495271d0f000000000000000000000000);
+        _checkId(TOKEN, 1, 0x6b175474e89094c44da98b954eedeac495271d0f000000000000000000000001);
+        _checkId(TOKEN, type(uint16).max, 0x6b175474e89094c44da98b954eedeac495271d0f00000000000000000000ffff);
+        _checkId(address(0), type(uint16).max, 0x000000000000000000000000000000000000000000000000000000000000ffff);
         _checkId(address(0), 0, 0x0000000000000000000000000000000000000000000000000000000000000);
-        _checkId(address(1), type(uint16).max, 0x00000000000000000000ffff0000000000000000000000000000000000000001);
-        _checkId(address(1), 0, 0x0000000000000000000000000000000000000000000000000000000000001);
+        _checkId(address(1), type(uint16).max, 0x000000000000000000000000000000000000000100000000000000000000ffff);
+        _checkId(address(1), 0, 0x0000000000000000000000000000000000000001000000000000000000000000);
     }
 
     function _checkId(address asset, uint16 epoch, uint256 expected) internal {
-        uint256 id = CouponKey(Epoch.wrap(epoch), asset).toId();
+        uint256 id = CouponKey(asset, Epoch.wrap(epoch)).toId();
         assertEq(id, expected, id.toHexString());
     }
 }
