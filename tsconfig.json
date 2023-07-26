@@ -9,4 +9,6 @@
     "typeRoots": ["./typechain", "./node_modules/@types"],
     "types": ["@nomiclabs/hardhat-ethers", "@nomiclabs/hardhat-waffle", "hardhat-deploy"]
   },
+  "include": ["./test"],
+  "files": ["./hardhat.config.ts"],
 }

@@ -166,9 +166,7 @@ contract LiquidationIntegrationTest is Test, ERC1155Holder, ILoanPositionManager
             "COLLATERAL_AMOUNT"
         );
         assertEq(
-            balances.beforeLiquidatorBalance - debtToken.balanceOf(address(this)),
-            repayAmount,
-            "LIQUIDATOR_BALANCE"
+            balances.beforeLiquidatorBalance - debtToken.balanceOf(address(this)), repayAmount, "LIQUIDATOR_BALANCE"
         );
         assertEq(
             collateralToken.balanceOf(address(this)) - balances.beforeLiquidatorCollateralBalance,
@@ -184,9 +182,8 @@ contract LiquidationIntegrationTest is Test, ERC1155Holder, ILoanPositionManager
             isEthCollateral
                 ? assertLe(
                     (beforePosition.debtAmount - afterPosition.debtAmount) * 10 ** 20 * 1000000,
-                    (beforePosition.collateralAmount - afterPosition.collateralAmount) *
-                        oracle.getAssetPrice(address(0)) *
-                        980001,
+                    (beforePosition.collateralAmount - afterPosition.collateralAmount) * oracle.getAssetPrice(address(0))
+                        * 980001,
                     "ROUNDING_ISSUE"
                 )
                 : assertLe(
@@ -197,9 +194,8 @@ contract LiquidationIntegrationTest is Test, ERC1155Holder, ILoanPositionManager
             isEthCollateral
                 ? assertGe(
                     (beforePosition.debtAmount - afterPosition.debtAmount) * 10 ** 20 * 1000000,
-                    (beforePosition.collateralAmount - afterPosition.collateralAmount) *
-                        oracle.getAssetPrice(address(0)) *
-                        979999,
+                    (beforePosition.collateralAmount - afterPosition.collateralAmount) * oracle.getAssetPrice(address(0))
+                        * 979999,
                     "ROUNDING_ISSUE"
                 )
                 : assertGe(
@@ -222,15 +218,7 @@ contract LiquidationIntegrationTest is Test, ERC1155Holder, ILoanPositionManager
 
     function testLiquidationWhenDebtIsBig() public {
         _testLiquidation(
-            usdc.amount(600),
-            1 ether,
-            500 * 10 ** 8,
-            0,
-            0.995 ether,
-            usdc.amount(600),
-            0.005 ether,
-            true,
-            false
+            usdc.amount(600), 1 ether, 500 * 10 ** 8, 0, 0.995 ether, usdc.amount(600), 0.005 ether, true, false
         );
     }
 }

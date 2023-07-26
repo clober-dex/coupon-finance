@@ -33,12 +33,9 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
     mapping(address asset => bool) public override isAssetRegistered;
     mapping(uint256 id => BondPosition) private _positionMap;
 
-    constructor(
-        address coupon_,
-        address assetPool_,
-        string memory baseURI_,
-        address[] memory initialAssets
-    ) ERC721Permit("Bond Position", "BP", "1") {
+    constructor(address coupon_, address assetPool_, string memory baseURI_, address[] memory initialAssets)
+        ERC721Permit("Bond Position", "BP", "1")
+    {
         couponManager = coupon_;
         assetPool = assetPool_;
         baseURI = baseURI_;
@@ -51,13 +48,10 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
         return _positionMap[tokenId];
     }
 
-    function mint(
-        address asset,
-        uint256 amount,
-        uint16 lockEpochs,
-        address recipient,
-        bytes calldata data
-    ) external returns (uint256 tokenId) {
+    function mint(address asset, uint256 amount, uint16 lockEpochs, address recipient, bytes calldata data)
+        external
+        returns (uint256 tokenId)
+    {
         if (!isAssetRegistered[asset]) {
             revert UnregisteredAsset();
         }
@@ -101,15 +95,12 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
         BondPosition memory newPosition = BondPosition({
             asset: asset,
             nonce: oldPosition.nonce,
-            expiredWith: (amount == 0 || latestExpiredEpoch.compare(expiredWith) > 0)
-                ? latestExpiredEpoch
-                : expiredWith,
+            expiredWith: (amount == 0 || latestExpiredEpoch.compare(expiredWith) > 0) ? latestExpiredEpoch : expiredWith,
             amount: amount
         });
 
-        (Coupon[] memory couponsToMint, Coupon[] memory couponsToBurn) = oldPosition.calculateCouponRequirement(
-            newPosition
-        );
+        (Coupon[] memory couponsToMint, Coupon[] memory couponsToBurn) =
+            oldPosition.calculateCouponRequirement(newPosition);
 
         _positionMap[tokenId] = newPosition;
         emit PositionUpdated(tokenId, newPosition.amount, newPosition.expiredWith);
@@ -121,12 +112,7 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
             IAssetPool(assetPool).withdraw(asset, oldPosition.amount - newPosition.amount, msg.sender);
         }
         if (data.length > 0) {
-            IBondPositionCallbackReceiver(msg.sender).bondPositionAdjustCallback(
-                msg.sender,
-                tokenId,
-                newPosition,
-                data
-            );
+            IBondPositionCallbackReceiver(msg.sender).bondPositionAdjustCallback(msg.sender, tokenId, newPosition, data);
         }
         if (newPosition.amount > oldPosition.amount) {
             uint256 assetToDeposit = newPosition.amount - oldPosition.amount;

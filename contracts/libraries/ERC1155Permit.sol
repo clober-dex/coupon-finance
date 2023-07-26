@@ -22,15 +22,10 @@ contract ERC1155Permit is ERC1155, IERC1155Permit, EIP712 {
 
     constructor(string memory uri_, string memory name, string memory version) ERC1155(uri_) EIP712(name, version) {}
 
-    function permit(
-        address owner,
-        address operator,
-        bool approved,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external override {
+    function permit(address owner, address operator, bool approved, uint256 deadline, uint8 v, bytes32 r, bytes32 s)
+        external
+        override
+    {
         if (block.timestamp > deadline) revert PermitExpired();
 
         bytes32 structHash;
@@ -41,8 +36,9 @@ contract ERC1155Permit is ERC1155, IERC1155Permit, EIP712 {
         bytes32 digest = _hashTypedDataV4(structHash);
 
         if (Address.isContract(owner)) {
-            if (IERC1271(owner).isValidSignature(digest, abi.encodePacked(r, s, v)) != 0x1626ba7e)
+            if (IERC1271(owner).isValidSignature(digest, abi.encodePacked(r, s, v)) != 0x1626ba7e) {
                 revert InvalidSignature();
+            }
         } else {
             address signer = ECDSA.recover(digest, v, r, s);
             if (signer != owner) revert InvalidSignature();

@@ -40,9 +40,7 @@ contract AssetPoolAaveV3UnitTest is Test, IAssetPoolTypes {
         uint256 beforeTotalReserved = assetPool.totalReservedAmount(address(usdc));
 
         vm.expectCall(
-            address(aavePool),
-            abi.encodeCall(aavePool.supply, (address(usdc), amount, address(assetPool), 0)),
-            1
+            address(aavePool), abi.encodeCall(aavePool.supply, (address(usdc), amount, address(assetPool), 0)), 1
         );
         assetPool.deposit(address(usdc), amount);
 
@@ -80,11 +78,7 @@ contract AssetPoolAaveV3UnitTest is Test, IAssetPoolTypes {
         uint256 beforeTotalReserved = assetPool.totalReservedAmount(address(usdc));
         uint256 beforeUserBalance = usdc.balanceOf(Constants.USER1);
 
-        vm.expectCall(
-            address(aavePool),
-            abi.encodeCall(aavePool.withdraw, (address(usdc), amount, Constants.USER1)),
-            1
-        );
+        vm.expectCall(address(aavePool), abi.encodeCall(aavePool.withdraw, (address(usdc), amount, Constants.USER1)), 1);
         assetPool.withdraw(address(usdc), amount, Constants.USER1);
 
         uint256 afterAssetPoolBalance = usdc.balanceOf(address(assetPool));
