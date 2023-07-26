@@ -10,43 +10,41 @@ library EpochLibrary {
 
     uint256 internal constant MONTHS_PER_EPOCH = 1;
     uint256 constant SECONDS_PER_DAY = 24 * 60 * 60;
-    int constant OFFSET19700101 = 2440588;
+    int256 constant OFFSET19700101 = 2440588;
 
     function wrap(uint16 epoch) internal pure returns (Epoch) {
         return Epoch.wrap(epoch);
     }
 
-    function fromMonths(uint256 months) internal pure returns (Epoch) {
-        unchecked {
-            months /= MONTHS_PER_EPOCH;
-        }
-        if (months > type(uint16).max) revert EpochOverflow();
-        return Epoch.wrap(uint16(months));
+    function unwrap(Epoch epoch) internal pure returns (uint16) {
+        return Epoch.unwrap(epoch);
     }
 
-    function fromTimestamp(uint256 timestamp) internal pure returns (Epoch) {
-        return fromMonths(diffMonths(0, timestamp));
+    function startTime(Epoch epoch) internal pure returns (uint256) {
+        uint256 currentEpoch = Epoch.unwrap(epoch);
+        if (currentEpoch == 0) return 0;
+        currentEpoch -= 1;
+        return _daysFromMonth(MONTHS_PER_EPOCH * currentEpoch) * SECONDS_PER_DAY;
     }
 
-    function current() internal view returns (Epoch) {
-        return fromTimestamp(block.timestamp);
+    function endTime(Epoch epoch) internal pure returns (uint256) {
+        return _daysFromMonth(MONTHS_PER_EPOCH * Epoch.unwrap(epoch)) * SECONDS_PER_DAY;
     }
 
     function isExpired(Epoch epoch) internal view returns (bool) {
         return endTime(epoch) <= block.timestamp;
     }
 
-    function startTime(Epoch epoch) internal pure returns (uint256) {
-        unchecked {
-            return addMonths(0, MONTHS_PER_EPOCH * Epoch.unwrap(epoch));
-        }
+    function fromTimestamp(uint256 timestamp) internal pure returns (Epoch) {
+        uint256 epoch = _daysToMonth(timestamp / SECONDS_PER_DAY) / MONTHS_PER_EPOCH;
+        if (epoch > type(uint16).max) revert EpochOverflow();
+        return Epoch.wrap(uint16(epoch));
     }
 
-    function endTime(Epoch epoch) internal pure returns (uint256) {
-        unchecked {
-            uint256 nextEpoch = uint256(Epoch.unwrap(epoch)) + 1;
-            return addMonths(0, MONTHS_PER_EPOCH * nextEpoch);
-        }
+    function current() internal view returns (Epoch) {
+        uint256 epoch = _daysToMonth(block.timestamp / SECONDS_PER_DAY) / MONTHS_PER_EPOCH;
+        if (epoch > type(uint16).max) revert EpochOverflow();
+        return Epoch.wrap(uint16(epoch));
     }
 
     function long(Epoch epoch) internal pure returns (uint256) {
@@ -67,10 +65,6 @@ library EpochLibrary {
         return Epoch.unwrap(e1) - Epoch.unwrap(e2);
     }
 
-    function unwrap(Epoch epoch) internal pure returns (uint16) {
-        return Epoch.unwrap(epoch);
-    }
-
     function compare(Epoch a, Epoch b) internal pure returns (int256) {
         unchecked {
             return Epoch.unwrap(a) > Epoch.unwrap(b)
@@ -81,26 +75,6 @@ library EpochLibrary {
 
     function max(Epoch a, Epoch b) internal pure returns (Epoch) {
         return compare(a, b) > 0 ? a : b;
-    }
-
-    function diffMonths(uint fromTimestamp, uint toTimestamp) internal pure returns (uint _months) {
-        require(fromTimestamp <= toTimestamp);
-        (uint fromYear, uint fromMonth, ) = _daysToDate(fromTimestamp / SECONDS_PER_DAY);
-        (uint toYear, uint toMonth, ) = _daysToDate(toTimestamp / SECONDS_PER_DAY);
-        _months = toYear * 12 + toMonth - fromYear * 12 - fromMonth;
-    }
-
-    function addMonths(uint timestamp, uint _months) internal pure returns (uint newTimestamp) {
-        (uint year, uint month, uint day) = _daysToDate(timestamp / SECONDS_PER_DAY);
-        month += _months;
-        year += (month - 1) / 12;
-        month = ((month - 1) % 12) + 1;
-        uint daysInMonth = _getDaysInMonth(year, month);
-        if (day > daysInMonth) {
-            day = daysInMonth;
-        }
-        newTimestamp = _daysFromDate(year, month, day) * SECONDS_PER_DAY + (timestamp % SECONDS_PER_DAY);
-        require(newTimestamp >= timestamp);
     }
 
     // ------------------------------------------------------------------------
@@ -120,68 +94,38 @@ library EpochLibrary {
     // month = month + 2 - 12 * L
     // year = 100 * (N - 49) + year + L
     // ------------------------------------------------------------------------
-    function _daysToDate(uint _days) internal pure returns (uint year, uint month, uint day) {
-        int __days = int(_days);
+    function _daysToMonth(uint256 _days) private pure returns (uint256) {
+        require(_days < MONTHS_PER_EPOCH * 2 << 21);
 
-        int L = __days + 68569 + OFFSET19700101;
-        int N = (4 * L) / 146097;
-        L = L - (146097 * N + 3) / 4;
-        int _year = (4000 * (L + 1)) / 1461001;
-        L = L - (1461 * _year) / 4 + 31;
-        int _month = (80 * L) / 2447;
-        int _day = L - (2447 * _month) / 80;
-        L = _month / 11;
-        _month = _month + 2 - 12 * L;
-        _year = 100 * (N - 49) + _year + L;
+        unchecked {
+            int256 __days = int256(_days);
 
-        year = uint(_year);
-        month = uint(_month);
-        day = uint(_day);
-    }
+            int256 L = __days + 68569 + OFFSET19700101;
+            int256 N = (4 * L) / 146097;
+            L = L - (146097 * N + 3) / 4;
+            int256 _year = (4000 * (L + 1)) / 1461001;
+            L = L - (1461 * _year) / 4 + 31;
+            int256 _month = (80 * L) / 2447;
+            L = _month / 11;
+            _month = _month + 2 - 12 * L;
+            _year = 100 * (N - 49) + _year + L;
 
-    function _getDaysInMonth(uint year, uint month) internal pure returns (uint daysInMonth) {
-        if (month == 1 || month == 3 || month == 5 || month == 7 || month == 8 || month == 10 || month == 12) {
-            daysInMonth = 31;
-        } else if (month != 2) {
-            daysInMonth = 30;
-        } else {
-            daysInMonth = _isLeapYear(year) ? 29 : 28;
+            return uint256((_year - 1970) * 12 + _month - 1);
         }
     }
 
-    function _isLeapYear(uint year) internal pure returns (bool leapYear) {
-        leapYear = ((year % 4 == 0) && (year % 100 != 0)) || (year % 400 == 0);
-    }
-
-    // ------------------------------------------------------------------------
-    // Calculate the number of days from 1970/01/01 to year/month/day using
-    // the date conversion algorithm from
-    //   https://aa.usno.navy.mil/faq/JD_formula.html
-    // and subtracting the offset 2440588 so that 1970/01/01 is day 0
-    //
-    // days = day
-    //      - 32075
-    //      + 1461 * (year + 4800 + (month - 14) / 12) / 4
-    //      + 367 * (month - 2 - (month - 14) / 12 * 12) / 12
-    //      - 3 * ((year + 4900 + (month - 14) / 12) / 100) / 4
-    //      - offset
-    // ------------------------------------------------------------------------
-    function _daysFromDate(uint year, uint month, uint day) internal pure returns (uint _days) {
-        require(year >= 1970);
-        int _year = int(year);
-        int _month = int(month);
-        int _day = int(day);
-
-        int __days = _day -
-            32075 +
-            (1461 * (_year + 4800 + (_month - 14) / 12)) /
-            4 +
-            (367 * (_month - 2 - ((_month - 14) / 12) * 12)) /
-            12 -
-            (3 * ((_year + 4900 + (_month - 14) / 12) / 100)) /
-            4 -
-            OFFSET19700101;
-
-        _days = uint(__days);
+    function _daysFromMonth(uint256 months) internal pure returns (uint256) {
+        require(months < MONTHS_PER_EPOCH * 2 << 16);
+        unchecked {
+            uint256 year = months / 12 + 1970;
+            months = (months % 12) << 4;
+            if (((year % 4 == 0) && (year % 100 != 0)) || (year % 400 == 0)) {
+                months = 0x016E014F0131011200F400D500B600980079005B003C001F >> months;
+            } else {
+                months = 0x016D014E0130011100F300D400B500970078005A003B001F >> months;
+            }
+            return
+                (months & 0xffff) + 365 * (year - 1970) + (year - 1969) / 4 - (year - 1901) / 100 + (year - 1601) / 400;
+        }
     }
 }
