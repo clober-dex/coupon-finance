@@ -71,6 +71,7 @@ library EpochLibrary {
         return compare(a, b) > 0 ? a : b;
     }
 
+    // Inspired by https://github.com/bokkypoobah/BokkyPooBahsDateTimeLibrary/blob/master/contracts/BokkyPooBahsDateTimeLibrary.sol
     // ------------------------------------------------------------------------
     // Calculate year/month/day from the number of days since 1970/01/01 using
     // the date conversion algorithm from
