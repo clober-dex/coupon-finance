@@ -23,12 +23,16 @@ library EpochLibrary {
     function startTime(Epoch epoch) internal pure returns (uint256) {
         uint256 currentEpoch = Epoch.unwrap(epoch);
         if (currentEpoch == 0) return 0;
-        currentEpoch -= 1;
-        return _daysFromMonth(MONTHS_PER_EPOCH * currentEpoch) * SECONDS_PER_DAY;
+        unchecked {
+            currentEpoch -= 1;
+            return _daysFromMonth(MONTHS_PER_EPOCH * currentEpoch) * SECONDS_PER_DAY;
+        }
     }
 
     function endTime(Epoch epoch) internal pure returns (uint256) {
-        return _daysFromMonth(MONTHS_PER_EPOCH * Epoch.unwrap(epoch)) * SECONDS_PER_DAY;
+        unchecked {
+            return _daysFromMonth(MONTHS_PER_EPOCH * Epoch.unwrap(epoch)) * SECONDS_PER_DAY;
+        }
     }
 
     function isExpired(Epoch epoch) internal view returns (bool) {
@@ -90,9 +94,8 @@ library EpochLibrary {
     // year = 100 * (N - 49) + year + L
     // ------------------------------------------------------------------------
     function _daysToMonth(uint256 _days) private pure returns (uint256) {
-        require(_days < MONTHS_PER_EPOCH * 2 << 21);
-
         unchecked {
+            require(_days < MONTHS_PER_EPOCH << 21);
             int256 __days = int256(_days);
 
             int256 L = __days + 68569 + OFFSET19700101;
@@ -110,8 +113,8 @@ library EpochLibrary {
     }
 
     function _daysFromMonth(uint256 months) internal pure returns (uint256) {
-        require(months < MONTHS_PER_EPOCH * 2 << 16);
         unchecked {
+            require(months < MONTHS_PER_EPOCH << 16);
             uint256 year = months / 12 + 1970;
             months = (months % 12) << 4;
             if (((year % 4 == 0) && (year % 100 != 0)) || (year % 400 == 0)) {
