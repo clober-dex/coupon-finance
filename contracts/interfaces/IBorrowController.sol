@@ -30,7 +30,8 @@ interface IBorrowController is ILoanPositionCallbackReceiver {
         PermitParams calldata collateralPermitParams
     ) external payable;
 
-    function removeCollateral(uint256 positionId, uint256 amount, PermitParams calldata positionPermitParams) external;
+    function removeCollateral(uint256 positionId, uint256 amount, PermitParams calldata positionPermitParams)
+        external;
 
     function adjustLoanEpochs(
         uint256 positionId,

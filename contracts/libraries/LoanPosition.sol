@@ -54,14 +54,16 @@ library LoanPositionLibrary {
         nonce = positionStorage.nonce++;
     }
 
-    function calculateCouponRequirement(
-        LoanPosition memory oldPosition,
-        LoanPosition memory newPosition
-    ) internal view returns (Coupon[] memory, Coupon[] memory) {
+    function calculateCouponRequirement(LoanPosition memory oldPosition, LoanPosition memory newPosition)
+        internal
+        view
+        returns (Coupon[] memory, Coupon[] memory)
+    {
         if (
-            !(oldPosition.collateralToken == newPosition.collateralToken &&
-                oldPosition.debtToken == newPosition.debtToken &&
-                oldPosition.nonce == newPosition.nonce)
+            !(
+                oldPosition.collateralToken == newPosition.collateralToken
+                    && oldPosition.debtToken == newPosition.debtToken && oldPosition.nonce == newPosition.nonce
+            )
         ) revert UnmatchedPosition();
 
         Epoch latestExpiredEpoch = EpochLibrary.current().sub(1);
@@ -87,31 +89,25 @@ library LoanPositionLibrary {
         unchecked {
             for (uint256 i = 0; i < farthestExpiredEpochs; ++i) {
                 latestExpiredEpoch = latestExpiredEpoch.add(1); // reuse latestExpiredEpoch as epoch
-                uint256 newAmount = newPosition.expiredWith.compare(latestExpiredEpoch) < 0
-                    ? 0
-                    : newPosition.debtAmount;
-                uint256 oldAmount = oldPosition.expiredWith.compare(latestExpiredEpoch) < 0
-                    ? 0
-                    : oldPosition.debtAmount;
+                uint256 newAmount = newPosition.expiredWith.compare(latestExpiredEpoch) < 0 ? 0 : newPosition.debtAmount;
+                uint256 oldAmount = oldPosition.expiredWith.compare(latestExpiredEpoch) < 0 ? 0 : oldPosition.debtAmount;
                 if (newAmount > oldAmount) {
-                    payCoupons[payCouponsLength++] = CouponLibrary.from(
-                        oldPosition.debtToken,
-                        latestExpiredEpoch,
-                        newAmount - oldAmount
-                    );
+                    payCoupons[payCouponsLength++] =
+                        CouponLibrary.from(oldPosition.debtToken, latestExpiredEpoch, newAmount - oldAmount);
                 } else if (newAmount < oldAmount) {
-                    refundCoupons[refundCouponsLength++] = CouponLibrary.from(
-                        oldPosition.debtToken,
-                        latestExpiredEpoch,
-                        oldAmount - newAmount
-                    );
+                    refundCoupons[refundCouponsLength++] =
+                        CouponLibrary.from(oldPosition.debtToken, latestExpiredEpoch, oldAmount - newAmount);
                 }
             }
         }
         return (payCoupons, refundCoupons);
     }
 
-    function compareEpoch(LoanPosition memory position1, LoanPosition memory position2) internal pure returns (int256) {
+    function compareEpoch(LoanPosition memory position1, LoanPosition memory position2)
+        internal
+        pure
+        returns (int256)
+    {
         return position1.expiredWith.compare(position2.expiredWith);
     }
 }

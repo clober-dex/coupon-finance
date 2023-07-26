@@ -20,11 +20,11 @@ library BondPositionLibrary {
 
     using EpochLibrary for Epoch;
 
-    function from(
-        address asset,
-        Epoch expiredWith,
-        uint256 amount
-    ) internal pure returns (BondPosition memory position) {
+    function from(address asset, Epoch expiredWith, uint256 amount)
+        internal
+        pure
+        returns (BondPosition memory position)
+    {
         position = BondPosition({asset: asset, nonce: 0, expiredWith: expiredWith, amount: amount});
     }
 
@@ -32,12 +32,14 @@ library BondPositionLibrary {
         nonce = positionStorage.nonce++;
     }
 
-    function calculateCouponRequirement(
-        BondPosition memory oldPosition,
-        BondPosition memory newPosition
-    ) internal view returns (Coupon[] memory, Coupon[] memory) {
-        if (!(oldPosition.asset == newPosition.asset && oldPosition.nonce == newPosition.nonce))
+    function calculateCouponRequirement(BondPosition memory oldPosition, BondPosition memory newPosition)
+        internal
+        view
+        returns (Coupon[] memory, Coupon[] memory)
+    {
+        if (!(oldPosition.asset == newPosition.asset && oldPosition.nonce == newPosition.nonce)) {
             revert UnmatchedPosition();
+        }
 
         Epoch latestExpiredEpoch = EpochLibrary.current().sub(1);
         uint256 mintCouponsLength = newPosition.expiredWith.sub(latestExpiredEpoch);
@@ -65,24 +67,22 @@ library BondPositionLibrary {
                 uint256 newAmount = newPosition.expiredWith.compare(latestExpiredEpoch) < 0 ? 0 : newPosition.amount;
                 uint256 oldAmount = oldPosition.expiredWith.compare(latestExpiredEpoch) < 0 ? 0 : oldPosition.amount;
                 if (newAmount > oldAmount) {
-                    mintCoupons[mintCouponsLength++] = CouponLibrary.from(
-                        oldPosition.asset,
-                        latestExpiredEpoch,
-                        newAmount - oldAmount
-                    );
+                    mintCoupons[mintCouponsLength++] =
+                        CouponLibrary.from(oldPosition.asset, latestExpiredEpoch, newAmount - oldAmount);
                 } else if (newAmount < oldAmount) {
-                    burnCoupons[burnCouponsLength++] = CouponLibrary.from(
-                        oldPosition.asset,
-                        latestExpiredEpoch,
-                        oldAmount - newAmount
-                    );
+                    burnCoupons[burnCouponsLength++] =
+                        CouponLibrary.from(oldPosition.asset, latestExpiredEpoch, oldAmount - newAmount);
                 }
             }
         }
         return (mintCoupons, burnCoupons);
     }
 
-    function compareEpoch(BondPosition memory position1, BondPosition memory position2) internal pure returns (int256) {
+    function compareEpoch(BondPosition memory position1, BondPosition memory position2)
+        internal
+        pure
+        returns (int256)
+    {
         return position1.expiredWith.compare(position2.expiredWith);
     }
 }

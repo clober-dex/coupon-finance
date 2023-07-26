@@ -19,11 +19,7 @@ interface IPool {
      * @param referralCode The referral code used
      */
     event MintUnbacked(
-        address indexed reserve,
-        address user,
-        address indexed onBehalfOf,
-        uint256 amount,
-        uint16 indexed referralCode
+        address indexed reserve, address user, address indexed onBehalfOf, uint256 amount, uint16 indexed referralCode
     );
 
     /**
@@ -44,11 +40,7 @@ interface IPool {
      * @param referralCode The referral code used
      */
     event Supply(
-        address indexed reserve,
-        address user,
-        address indexed onBehalfOf,
-        uint256 amount,
-        uint16 indexed referralCode
+        address indexed reserve, address user, address indexed onBehalfOf, uint256 amount, uint16 indexed referralCode
     );
 
     /**
@@ -90,11 +82,7 @@ interface IPool {
      * @param useATokens True if the repayment is done using aTokens, `false` if done with underlying asset directly
      */
     event Repay(
-        address indexed reserve,
-        address indexed user,
-        address indexed repayer,
-        uint256 amount,
-        bool useATokens
+        address indexed reserve, address indexed user, address indexed repayer, uint256 amount, bool useATokens
     );
 
     /**
@@ -104,9 +92,7 @@ interface IPool {
      * @param interestRateMode The current interest rate mode of the position being swapped: 1 for Stable, 2 for Variable
      */
     event SwapBorrowRateMode(
-        address indexed reserve,
-        address indexed user,
-        DataTypes.InterestRateMode interestRateMode
+        address indexed reserve, address indexed user, DataTypes.InterestRateMode interestRateMode
     );
 
     /**
@@ -296,13 +282,8 @@ interface IPool {
      * calling the function if he wants to borrow against his own collateral, or the address of the credit delegator
      * if he has been given credit delegation allowance
      */
-    function borrow(
-        address asset,
-        uint256 amount,
-        uint256 interestRateMode,
-        uint16 referralCode,
-        address onBehalfOf
-    ) external;
+    function borrow(address asset, uint256 amount, uint256 interestRateMode, uint16 referralCode, address onBehalfOf)
+        external;
 
     /**
      * @notice Repays a borrowed `amount` on a specific reserve, burning the equivalent debt tokens owned
@@ -316,12 +297,9 @@ interface IPool {
      * other borrower whose debt should be removed
      * @return The final amount repaid
      */
-    function repay(
-        address asset,
-        uint256 amount,
-        uint256 interestRateMode,
-        address onBehalfOf
-    ) external returns (uint256);
+    function repay(address asset, uint256 amount, uint256 interestRateMode, address onBehalfOf)
+        external
+        returns (uint256);
 
     /**
      * @notice Repay with transfer approval of asset to be repaid done via permit function
@@ -465,9 +443,7 @@ interface IPool {
      * @return ltv The loan to value of The user
      * @return healthFactor The current health factor of the user
      */
-    function getUserAccountData(
-        address user
-    )
+    function getUserAccountData(address user)
         external
         view
         returns (
