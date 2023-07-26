@@ -47,8 +47,8 @@ jobs:
         run: npm install --ignore-scripts
       - name: Hardhat Compile
         run: npx hardhat compile
-#      - name: Hardhat test
-#        run: npm run test:hardhat
+      - name: Hardhat test
+        run: npm run test:hardhat
 
   foundry-tests:
     name: Foundry Forge Contract CI
@@ -89,7 +89,7 @@ jobs:
         run: forge install
       - name: Forge Build
         run: forge build
-#      - name: Foundry Forge test
-#        run: npm run test:forge
-#        env:
-#          FORK_TEST_NODE_URL: ${{ secrets.FORK_TEST_NODE_URL }}
+      - name: Foundry Forge test
+        run: npm run test:forge
+        env:
+          FORK_TEST_NODE_URL: ${{ secrets.FORK_TEST_NODE_URL }}

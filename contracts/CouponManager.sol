@@ -39,7 +39,7 @@ contract CouponManager is ERC1155Permit, ERC1155Supply, ICouponManager {
 
     // View Functions //
     function uri(uint256 id) public view override(ERC1155, IERC1155MetadataURI) returns (string memory) {
-        return bytes(baseURI).length > 0 ? string(abi.encodePacked(baseURI, id.toString())) : "";
+        return bytes(baseURI).length > 0 ? string(abi.encodePacked(baseURI, id.toHexString(32))) : "";
     }
 
     function currentEpoch() external view returns (Epoch) {

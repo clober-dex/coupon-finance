@@ -32,9 +32,10 @@ contract CouponManagerUnitTest is Test, ERC1155Holder {
     }
 
     function testMintBatch() public {
+        vm.warp(EpochLibrary.wrap(20).startTime());
         Coupon[] memory coupons = new Coupon[](2);
-        coupons[0] = CouponLibrary.from(Constants.USDC, startEpoch, 100);
-        coupons[1] = CouponLibrary.from(Constants.USDC, startEpoch.add(1), 70);
+        coupons[0] = CouponLibrary.from(Constants.USDC, EpochLibrary.wrap(20), 100);
+        coupons[1] = CouponLibrary.from(Constants.USDC, EpochLibrary.wrap(20).add(1), 70);
 
         couponManager.mintBatch(Constants.USER1, coupons, new bytes(0));
 
@@ -44,12 +45,12 @@ contract CouponManagerUnitTest is Test, ERC1155Holder {
         assertEq(couponManager.balanceOf(Constants.USER1, coupons[1].id()), 70, "BALANCE_1");
         assertEq(
             couponManager.uri(coupons[0].id()),
-            "URI/89703022573294938011260130797442833617774122611401231139308567145909155669581",
+            "URI/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000014",
             "URI_0"
         );
         assertEq(
             couponManager.uri(coupons[1].id()),
-            "URI/59947782377658177076307846606517699261912748694705227268508890040674098208110",
+            "URI/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000015",
             "URI_1"
         );
     }
