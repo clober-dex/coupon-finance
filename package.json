@@ -11,8 +11,8 @@
     "test:hardhat": "npx hardhat test",
     "test:forge": "forge test",
     "precommit": "pre-commit install",
-    "prettier:ts": "prettier --check 'test/**/*.ts'",
-    "prettier:fix:ts": "prettier --write 'test/**/*.ts'",
+    "prettier:ts": "prettier --check './**/*.ts'",
+    "prettier:fix:ts": "prettier --write './**/*.ts'",
     "lint:sol": "forge fmt --check",
     "lint:fix:sol": "forge fmt",
     "postinstall": "forge install"
