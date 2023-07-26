@@ -73,7 +73,9 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
         ICouponManager(couponManager).mintBatch(recipient, coupons, data);
 
         if (data.length > 0) {
-            IBondPositionCallbackReceiver(recipient).bondPositionAdjustCallback(msg.sender, tokenId, position, data);
+            IBondPositionCallbackReceiver(recipient).bondPositionAdjustCallback(
+                tokenId, BondPositionLibrary.empty(asset), position, coupons, new Coupon[](0), data
+            );
         }
 
         IERC20(asset).safeTransferFrom(msg.sender, address(assetPool), amount);
@@ -112,7 +114,9 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
             IAssetPool(assetPool).withdraw(asset, oldPosition.amount - newPosition.amount, msg.sender);
         }
         if (data.length > 0) {
-            IBondPositionCallbackReceiver(msg.sender).bondPositionAdjustCallback(msg.sender, tokenId, newPosition, data);
+            IBondPositionCallbackReceiver(msg.sender).bondPositionAdjustCallback(
+                tokenId, oldPosition, newPosition, couponsToMint, couponsToBurn, data
+            );
         }
         if (newPosition.amount > oldPosition.amount) {
             uint256 assetToDeposit = newPosition.amount - oldPosition.amount;
