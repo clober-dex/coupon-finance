@@ -15,18 +15,27 @@ contract EpochUnitTest is Test {
         assertEq(EpochLibrary.wrap(type(uint16).max).unwrap(), type(uint16).max);
     }
 
-    function testFromTimestamp() public {
-        assertEq(EpochLibrary.fromTimestamp(0).unwrap(), 0);
-        assertEq(EpochLibrary.fromTimestamp(1).unwrap(), 0);
-        assertEq(EpochLibrary.fromTimestamp(1689578537).unwrap(), 12 * (2023 - 1970) + 7 - 1); // 17 Jul 2023 07:22:17 GMT
-        assertEq(EpochLibrary.fromTimestamp(1961625600).unwrap(), 12 * (2032 - 1970) + 2 - 1); // 29 Feb 2032 00:00:00 GMT
-        assertEq(EpochLibrary.fromTimestamp(1961711999).unwrap(), 12 * (2032 - 1970) + 2 - 1); // 29 Feb 2032 23:59:59 GMT
-        assertEq(EpochLibrary.fromTimestamp(1961712000).unwrap(), 12 * (2032 - 1970) + 3 - 1); // 1  Mar 2032 00:00:00 GMT
-    }
-
     function testCurrent() public {
-        vm.warp(1961712000); // 1 Mar 2032 00:00:00 GMT
-        assertEq(EpochLibrary.current().unwrap(), 12 * (2032 - 1970) + 3 - 1);
+        vm.warp(0);
+        assertEq(EpochLibrary.current().unwrap(), 0);
+
+        vm.warp(1);
+        assertEq(EpochLibrary.current().unwrap(), 0);
+
+        vm.warp(1689578537);
+        assertEq(EpochLibrary.current().unwrap(), 12 * (2023 - 1970) + 7 - 1); // 17 Jul 2023 07:22:17 GMT
+
+        vm.warp(1961625600);
+        assertEq(EpochLibrary.current().unwrap(), 12 * (2032 - 1970) + 2 - 1); // 29 Feb 2032 00:00:00 GMT
+
+        vm.warp(1961711999);
+        assertEq(EpochLibrary.current().unwrap(), 12 * (2032 - 1970) + 2 - 1); // 29 Feb 2032 23:59:59 GMT
+
+        vm.warp(1961712000);
+        assertEq(EpochLibrary.current().unwrap(), 12 * (2032 - 1970) + 3 - 1); // 1 Mar 2032 00:00:00 GMT
+
+        vm.warp(1961712000);
+        assertEq(EpochLibrary.current().unwrap(), 12 * (2032 - 1970) + 3 - 1); // 1  Mar 2032 00:00:00 GMT
     }
 
     function testIsExpired() public {
@@ -96,5 +105,13 @@ contract EpochUnitTest is Test {
         assertEq(EpochLibrary.max(a, b).unwrap(), a.unwrap());
         assertEq(EpochLibrary.max(a, c).unwrap(), c.unwrap());
         assertEq(EpochLibrary.max(c, a).unwrap(), c.unwrap());
+    }
+
+    function testMaxEpoch() public {
+        uint256 endTime = EpochLibrary.wrap(type(uint16).max).endTime();
+        assertEq(endTime, 172342857600);
+        vm.warp(endTime - 1);
+        Epoch a = EpochLibrary.current();
+        assertEq(a.unwrap(), type(uint16).max);
     }
 }

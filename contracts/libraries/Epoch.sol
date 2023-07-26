@@ -35,12 +35,6 @@ library EpochLibrary {
         return endTime(epoch) <= block.timestamp;
     }
 
-    function fromTimestamp(uint256 timestamp) internal pure returns (Epoch) {
-        uint256 epoch = _daysToMonth(timestamp / SECONDS_PER_DAY) / MONTHS_PER_EPOCH;
-        if (epoch > type(uint16).max) revert EpochOverflow();
-        return Epoch.wrap(uint16(epoch));
-    }
-
     function current() internal view returns (Epoch) {
         uint256 epoch = _daysToMonth(block.timestamp / SECONDS_PER_DAY) / MONTHS_PER_EPOCH;
         if (epoch > type(uint16).max) revert EpochOverflow();
