@@ -73,10 +73,9 @@ library EpochLibrary {
 
     function compare(Epoch a, Epoch b) internal pure returns (int256) {
         unchecked {
-            return
-                Epoch.unwrap(a) > Epoch.unwrap(b) ? int256(1) : Epoch.unwrap(a) < Epoch.unwrap(b)
-                    ? int256(-1)
-                    : int256(0);
+            return Epoch.unwrap(a) > Epoch.unwrap(b)
+                ? int256(1)
+                : Epoch.unwrap(a) < Epoch.unwrap(b) ? int256(-1) : int256(0);
         }
     }
 

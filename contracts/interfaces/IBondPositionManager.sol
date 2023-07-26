@@ -33,13 +33,9 @@ interface IBondPositionManager is IERC721Metadata, IERC721Permit, IBondPositionM
     function isAssetRegistered(address asset) external view returns (bool);
 
     // User Functions //
-    function mint(
-        address asset,
-        uint256 amount,
-        uint16 lockEpochs,
-        address recipient,
-        bytes calldata data
-    ) external returns (uint256);
+    function mint(address asset, uint256 amount, uint16 lockEpochs, address recipient, bytes calldata data)
+        external
+        returns (uint256);
 
     function adjustPosition(uint256 tokenId, uint256 amount, Epoch expiredWith, bytes calldata data) external;
 

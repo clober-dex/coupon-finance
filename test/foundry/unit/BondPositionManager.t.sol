@@ -112,14 +112,10 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerTypes, ERC1155
         coupons[3] = CouponLibrary.from(address(usdc), startEpoch.add(4), usdc.amount(170));
         coupons[4] = CouponLibrary.from(address(usdc), startEpoch.add(5), usdc.amount(170));
         vm.expectCall(
-            address(couponManager),
-            abi.encodeCall(ICouponManager.mintBatch, (address(this), coupons, new bytes(0))),
-            1
+            address(couponManager), abi.encodeCall(ICouponManager.mintBatch, (address(this), coupons, new bytes(0))), 1
         );
         vm.expectCall(
-            address(couponManager),
-            abi.encodeCall(ICouponManager.burnBatch, (address(this), new Coupon[](0))),
-            0
+            address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(this), new Coupon[](0))), 0
         );
         vm.expectEmit(true, true, true, true);
         emit PositionUpdated(tokenId, initialAmount + increaseAmount, expiredWith);
@@ -151,9 +147,7 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerTypes, ERC1155
             1
         );
         vm.expectCall(
-            address(couponManager),
-            abi.encodeCall(ICouponManager.burnBatch, (address(this), couponsToBurn)),
-            1
+            address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(this), couponsToBurn)), 1
         );
         vm.expectEmit(true, true, true, true);
         emit PositionUpdated(tokenId, initialAmount + increaseAmount, expiredWith);
@@ -188,14 +182,10 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerTypes, ERC1155
             1
         );
         vm.expectCall(
-            address(couponManager),
-            abi.encodeCall(ICouponManager.burnBatch, (address(this), couponsToBurn)),
-            1
+            address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(this), couponsToBurn)), 1
         );
         vm.expectCall(
-            address(assetPool),
-            abi.encodeCall(IAssetPool.withdraw, (address(usdc), decreaseAmount, address(this))),
-            1
+            address(assetPool), abi.encodeCall(IAssetPool.withdraw, (address(usdc), decreaseAmount, address(this))), 1
         );
         vm.expectEmit(true, true, true, true);
         emit PositionUpdated(tokenId, amount, expiredWith);
@@ -227,9 +217,7 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerTypes, ERC1155
         );
         vm.expectCall(address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(this), coupons)), 1);
         vm.expectCall(
-            address(assetPool),
-            abi.encodeCall(IAssetPool.withdraw, (address(usdc), decreaseAmount, address(this))),
-            1
+            address(assetPool), abi.encodeCall(IAssetPool.withdraw, (address(usdc), decreaseAmount, address(this))), 1
         );
         vm.expectEmit(true, true, true, true);
         emit PositionUpdated(tokenId, amount, expiredWith);
@@ -256,9 +244,7 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerTypes, ERC1155
         );
         vm.expectCall(address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(this), coupons)), 1);
         vm.expectCall(
-            address(assetPool),
-            abi.encodeCall(IAssetPool.withdraw, (address(usdc), initialAmount, address(this))),
-            1
+            address(assetPool), abi.encodeCall(IAssetPool.withdraw, (address(usdc), initialAmount, address(this))), 1
         );
         vm.expectEmit(true, true, true, true);
         emit PositionUpdated(tokenId, 0, startEpoch);
@@ -328,9 +314,7 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerTypes, ERC1155
         uint256 beforeUserPositionBalance = bondPositionManager.balanceOf(address(this));
 
         vm.expectCall(
-            address(assetPool),
-            abi.encodeCall(IAssetPool.withdraw, (address(usdc), initialAmount, address(this))),
-            1
+            address(assetPool), abi.encodeCall(IAssetPool.withdraw, (address(usdc), initialAmount, address(this))), 1
         );
         bondPositionManager.burnExpiredPosition(tokenId);
 

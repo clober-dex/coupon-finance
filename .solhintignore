@@ -1,4 +1,0 @@
-node_modules
-contracts/external
-// todo: remove this after customization
-contracts/libraries/BokkyPooBahsDateTimeLibrary.sol
