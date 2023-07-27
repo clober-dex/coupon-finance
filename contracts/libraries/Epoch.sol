@@ -37,9 +37,7 @@ library EpochLibrary {
     }
 
     function current() internal view returns (Epoch) {
-        uint256 epoch = _timestampToEpoch(block.timestamp);
-        if (epoch > type(uint16).max) revert EpochOverflow();
-        return Epoch.wrap(uint16(epoch));
+        return Epoch.wrap(_timestampToEpoch(block.timestamp));
     }
 
     function long(Epoch epoch) internal pure returns (uint256) {
@@ -91,9 +89,7 @@ library EpochLibrary {
     // year = 100 * (N - 49) + year + L
     // ------------------------------------------------------------------------
     function _timestampToEpoch(uint256 timestamp) private pure returns (uint16) {
-        uint256 epoch;
         unchecked {
-            require(timestamp < SECONDS_PER_DAY * MONTHS_PER_EPOCH << 21);
             uint256 _days = timestamp / SECONDS_PER_DAY;
             int256 __days = int256(_days);
 
@@ -107,9 +103,10 @@ library EpochLibrary {
             _month = _month + 2 - 12 * L;
             _year = 100 * (N - 49) + _year + L;
 
-            epoch = uint256((_year - 1970) * 12 + _month - 1) / MONTHS_PER_EPOCH;
+            uint256 epoch = uint256((_year - 1970) * 12 + _month - 1) / MONTHS_PER_EPOCH;
+            if (epoch > type(uint16).max) revert EpochOverflow();
+            return uint16(epoch);
         }
-        return uint16(epoch);
     }
 
     function _epochToTimestamp(uint16 epoch) internal pure returns (uint256) {
