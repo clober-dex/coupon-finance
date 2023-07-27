@@ -6,12 +6,14 @@ import "forge-std/Test.sol";
 
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Create1} from "@clober/library/contracts/Create1.sol";
 
 import {CouponManager} from "../../../contracts/CouponManager.sol";
 import {BondPosition, BondPositionManager} from "../../../contracts/BondPositionManager.sol";
 import {IAssetPool} from "../../../contracts/interfaces/IAssetPool.sol";
 import {IBondPositionManager, IBondPositionManagerTypes} from "../../../contracts/interfaces/IBondPositionManager.sol";
+import {IBondPositionCallbackReceiver} from "../../../contracts/interfaces/IBondPositionCallbackReceiver.sol";
 import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
 import {Coupon, CouponLibrary} from "../../../contracts/libraries/Coupon.sol";
 import {Epoch, EpochLibrary} from "../../../contracts/libraries/Epoch.sol";
@@ -20,7 +22,13 @@ import {MockAssetPool} from "../mocks/MockAssetPool.sol";
 import {Constants} from "../Constants.sol";
 import {Utils} from "../Utils.sol";
 
-contract BondPositionManagerUnitTest is Test, IBondPositionManagerTypes, ERC1155Holder, ERC721Holder {
+contract BondPositionManagerUnitTest is
+    Test,
+    IBondPositionManagerTypes,
+    ERC1155Holder,
+    ERC721Holder,
+    IBondPositionCallbackReceiver
+{
     using CouponLibrary for Coupon;
     using EpochLibrary for Epoch;
 
@@ -84,6 +92,86 @@ contract BondPositionManagerUnitTest is Test, IBondPositionManagerTypes, ERC1155
         assertEq(position.asset, address(usdc), "ASSET");
         assertEq(position.amount, amount, "LOCKED_AMOUNT");
         assertEq(position.expiredWith, expectedExpiredWith, "EXPIRED_WITH");
+    }
+
+    function bondPositionAdjustCallback(
+        uint256 tokenId,
+        BondPosition memory oldPosition,
+        BondPosition memory newPosition,
+        Coupon[] memory couponsMinted,
+        Coupon[] memory couponsToBurn,
+        bytes calldata data
+    ) external {
+        address asset = oldPosition.asset;
+        (uint256 approveAmount, uint256 beforeBalance, uint256[] memory beforeCouponBalance) =
+            abi.decode(data, (uint256, uint256, uint256[]));
+        if (newPosition.amount < oldPosition.amount) {
+            assertEq(
+                IERC20(asset).balanceOf(address(this)) - beforeBalance,
+                oldPosition.amount - newPosition.amount,
+                "ASSET_BALANCE"
+            );
+        }
+        uint256 length = couponsMinted.length;
+        for (uint256 i = 0; i < length; ++i) {
+            assertEq(
+                couponManager.balanceOf(address(this), couponsMinted[i].id()) - beforeCouponBalance[i],
+                couponsMinted[i].amount,
+                "COUPON_BALANCE"
+            );
+        }
+        IERC20(oldPosition.asset).approve(address(bondPositionManager), approveAmount);
+    }
+
+    function testFlashMint() public {
+        uint256 amount = initialAmount;
+        Epoch expectedExpiredWith = startEpoch.add(2);
+
+        Coupon[] memory coupons = new Coupon[](3);
+        coupons[0] = CouponLibrary.from(address(usdc), startEpoch, amount);
+        coupons[1] = CouponLibrary.from(address(usdc), startEpoch.add(1), amount);
+        coupons[2] = CouponLibrary.from(address(usdc), startEpoch.add(2), amount);
+
+        uint256[] memory beforeCouponBalance = new uint256[](3);
+        beforeCouponBalance[0] = couponManager.balanceOf(address(this), coupons[0].id());
+        beforeCouponBalance[1] = couponManager.balanceOf(address(this), coupons[1].id());
+        beforeCouponBalance[2] = couponManager.balanceOf(address(this), coupons[2].id());
+
+        vm.expectRevert("ERC20: insufficient allowance");
+        bondPositionManager.mint(address(usdc), amount, 3, address(this), abi.encode(0, 0, beforeCouponBalance));
+
+        uint256 tokenId = bondPositionManager.mint(
+            address(usdc),
+            amount,
+            3,
+            address(this),
+            abi.encode(amount, usdc.balanceOf(address(this)), beforeCouponBalance)
+        );
+
+        beforeCouponBalance[0] = couponManager.balanceOf(address(this), coupons[0].id());
+        beforeCouponBalance[1] = couponManager.balanceOf(address(this), coupons[1].id());
+        beforeCouponBalance[2] = couponManager.balanceOf(address(this), coupons[2].id());
+
+        bondPositionManager.adjustPosition(
+            tokenId, amount / 3, expectedExpiredWith, abi.encode(0, usdc.balanceOf(address(this)), beforeCouponBalance)
+        );
+
+        beforeCouponBalance[0] = couponManager.balanceOf(address(this), coupons[0].id());
+        beforeCouponBalance[1] = couponManager.balanceOf(address(this), coupons[1].id());
+        beforeCouponBalance[2] = couponManager.balanceOf(address(this), coupons[2].id());
+
+        uint256 balance = usdc.balanceOf(address(this));
+        vm.expectRevert("ERC20: insufficient allowance");
+        bondPositionManager.adjustPosition(
+            tokenId, amount, expectedExpiredWith, abi.encode(0, balance, beforeCouponBalance)
+        );
+
+        bondPositionManager.adjustPosition(
+            tokenId,
+            amount,
+            expectedExpiredWith,
+            abi.encode(amount - amount / 3, usdc.balanceOf(address(this)), beforeCouponBalance)
+        );
     }
 
     function testMintWithUnregisteredAsset() public {
