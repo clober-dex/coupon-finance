@@ -842,7 +842,7 @@ contract LoanPositionManagerUnitTest is
     ) external {
         (uint256 approveAmount, uint256 beforeLiquidatorCollateralBalance) = abi.decode(data, (uint256, uint256));
         assertEq(
-            weth.balanceOf(address(this)) - beforeLiquidatorCollateralBalance,
+            IERC20(collateralToken).balanceOf(address(this)) - beforeLiquidatorCollateralBalance,
             workableAmount,
             "LIQUIDATOR_COLLATERAL_BALANCE"
         );
