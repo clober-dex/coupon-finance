@@ -20,6 +20,10 @@ library BondPositionLibrary {
 
     using EpochLibrary for Epoch;
 
+    function empty(address asset) internal pure returns (BondPosition memory position) {
+        position = BondPosition({asset: asset, nonce: 0, expiredWith: EpochLibrary.wrap(0), amount: 0});
+    }
+
     function from(address asset, Epoch expiredWith, uint256 amount)
         internal
         pure
