@@ -4,10 +4,11 @@ pragma solidity ^0.8.0;
 
 import {IBondPositionCallbackReceiver} from "./IBondPositionCallbackReceiver.sol";
 import {PermitParams} from "../libraries/PermitParams.sol";
+import {Currency} from "../libraries/Currency.sol";
 
 interface IDepositController is IBondPositionCallbackReceiver {
     function deposit(
-        address token,
+        Currency currency,
         uint256 amount,
         uint16 lockEpochs,
         uint256 minInterestEarned,
