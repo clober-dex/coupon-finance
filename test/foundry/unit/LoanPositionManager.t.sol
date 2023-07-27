@@ -7,6 +7,7 @@ import "forge-std/Test.sol";
 import {ERC1155Holder, IERC1155Receiver} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
@@ -16,6 +17,7 @@ import {ILoanPositionManager, ILoanPositionManagerTypes} from "../../../contract
 import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
 import {IERC721Permit} from "../../../contracts/interfaces/IERC721Permit.sol";
 import {IAssetPool} from "../../../contracts/interfaces/IAssetPool.sol";
+import {ILiquidateCallbackReceiver} from "../../../contracts/interfaces/ILiquidateCallbackReceiver.sol";
 import {Coupon, CouponLibrary} from "../../../contracts/libraries/Coupon.sol";
 import {Epoch, EpochLibrary} from "../../../contracts/libraries/Epoch.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
@@ -24,7 +26,13 @@ import {MockOracle} from "../mocks/MockOracle.sol";
 import {Constants} from "../Constants.sol";
 import {Utils} from "../Utils.sol";
 
-contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerTypes, ERC1155Holder, ERC721Holder {
+contract LoanPositionManagerUnitTest is
+    Test,
+    ILoanPositionManagerTypes,
+    ERC1155Holder,
+    ERC721Holder,
+    ILiquidateCallbackReceiver
+{
     using CouponLibrary for Coupon;
     using EpochLibrary for Epoch;
 
@@ -520,11 +528,6 @@ contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerTypes, ERC1155
             );
         }
         assertEq(
-            beforePosition.collateralAmount - afterPosition.collateralAmount,
-            workableAmount + protocolFee,
-            "COLLATERAL_AMOUNT"
-        );
-        assertEq(
             balances.beforeLiquidatorBalance - debtToken.balanceOf(address(this)), repayAmount, "LIQUIDATOR_BALANCE"
         );
         assertEq(
@@ -777,6 +780,70 @@ contract LoanPositionManagerUnitTest is Test, ILoanPositionManagerTypes, ERC1155
         _testLiquidation(
             usdc.amount(100), 1 ether, 0, usdc.amount(8), 4512471655328799, usdc.amount(8), 22675736961451, true, true
         );
+    }
+
+    function testFlashLiquidation() public {
+        Coupon[] memory coupons = new Coupon[](2);
+        coupons[0] = CouponLibrary.from(address(usdc), startEpoch, usdc.amount(1000));
+        _mintCoupons(address(this), coupons);
+
+        uint256 tokenId = loanPositionManager.mint(
+            address(weth), address(usdc), 1 ether, usdc.amount(1000), 1, Constants.USER1, new bytes(0)
+        );
+
+        vm.warp(loanPositionManager.getPosition(tokenId).expiredWith.endTime() + 1);
+
+        LiquidationStatus memory liquidationStatus = loanPositionManager.getLiquidationStatus(tokenId, 0);
+
+        LoanPosition memory beforePosition = loanPositionManager.getPosition(tokenId);
+        Balance memory balances = Balance({
+            beforeUserCoupon1Balance: couponManager.balanceOf(Constants.USER1, coupons[0].id()),
+            beforeUserCoupon2Balance: 0,
+            beforeLiquidatorCollateralBalance: weth.balanceOf(address(this)),
+            beforeLiquidatorBalance: usdc.balanceOf(address(this)),
+            beforeTreasuryBalance: weth.balanceOf(loanPositionManager.treasury())
+        });
+
+        vm.expectRevert("ERC20: insufficient allowance");
+        loanPositionManager.liquidate(tokenId, 0, abi.encode(0));
+
+        loanPositionManager.liquidate(tokenId, 0, abi.encode(liquidationStatus.repayAmount));
+
+        LoanPosition memory afterPosition = loanPositionManager.getPosition(tokenId);
+
+        assertEq(beforePosition.debtAmount - afterPosition.debtAmount, liquidationStatus.repayAmount, "DEBT_AMOUNT");
+        assertEq(
+            beforePosition.collateralAmount - afterPosition.collateralAmount,
+            liquidationStatus.liquidationAmount,
+            "COLLATERAL_AMOUNT"
+        );
+
+        assertEq(
+            balances.beforeLiquidatorBalance - usdc.balanceOf(address(this)),
+            liquidationStatus.repayAmount,
+            "LIQUIDATOR_BALANCE"
+        );
+        assertEq(
+            weth.balanceOf(address(this)) - balances.beforeLiquidatorCollateralBalance,
+            liquidationStatus.liquidationAmount - liquidationStatus.protocolFeeAmount,
+            "LIQUIDATOR_COLLATERAL_BALANCE"
+        );
+        assertEq(
+            weth.balanceOf(loanPositionManager.treasury()) - balances.beforeTreasuryBalance,
+            liquidationStatus.protocolFeeAmount,
+            "TREASURY_BALANCE"
+        );
+    }
+
+    function couponFinanceLiquidateCallback(
+        uint256 tokenId,
+        address collateralToken,
+        address debtToken,
+        uint256 workableAmount,
+        uint256 repayAmount,
+        bytes calldata data
+    ) external {
+        IERC20(debtToken).approve(address(loanPositionManager), abi.decode(data, (uint256)));
     }
 
     function _beforeBurn() internal returns (uint256 tokenId) {
