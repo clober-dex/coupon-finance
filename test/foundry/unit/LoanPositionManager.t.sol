@@ -805,9 +805,11 @@ contract LoanPositionManagerUnitTest is
         });
 
         vm.expectRevert("ERC20: insufficient allowance");
-        loanPositionManager.liquidate(tokenId, 0, abi.encode(0));
+        loanPositionManager.liquidate(tokenId, 0, abi.encode(0, balances.beforeLiquidatorCollateralBalance));
 
-        loanPositionManager.liquidate(tokenId, 0, abi.encode(liquidationStatus.repayAmount));
+        loanPositionManager.liquidate(
+            tokenId, 0, abi.encode(liquidationStatus.repayAmount, balances.beforeLiquidatorCollateralBalance)
+        );
 
         LoanPosition memory afterPosition = loanPositionManager.getPosition(tokenId);
 
@@ -824,11 +826,6 @@ contract LoanPositionManagerUnitTest is
             "LIQUIDATOR_BALANCE"
         );
         assertEq(
-            weth.balanceOf(address(this)) - balances.beforeLiquidatorCollateralBalance,
-            liquidationStatus.liquidationAmount - liquidationStatus.protocolFeeAmount,
-            "LIQUIDATOR_COLLATERAL_BALANCE"
-        );
-        assertEq(
             weth.balanceOf(loanPositionManager.treasury()) - balances.beforeTreasuryBalance,
             liquidationStatus.protocolFeeAmount,
             "TREASURY_BALANCE"
@@ -843,7 +840,13 @@ contract LoanPositionManagerUnitTest is
         uint256 repayAmount,
         bytes calldata data
     ) external {
-        IERC20(debtToken).approve(address(loanPositionManager), abi.decode(data, (uint256)));
+        (uint256 approveAmount, uint256 beforeLiquidatorCollateralBalance) = abi.decode(data, (uint256, uint256));
+        assertEq(
+            weth.balanceOf(address(this)) - beforeLiquidatorCollateralBalance,
+            workableAmount,
+            "LIQUIDATOR_COLLATERAL_BALANCE"
+        );
+        IERC20(debtToken).approve(address(loanPositionManager), approveAmount);
     }
 
     function _beforeBurn() internal returns (uint256 tokenId) {
