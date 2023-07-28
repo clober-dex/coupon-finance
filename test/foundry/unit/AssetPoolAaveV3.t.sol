@@ -22,9 +22,9 @@ contract AssetPoolAaveV3UnitTest is Test, IAssetPoolTypes {
 
     function setUp() public {
         ForkUtils.fork(vm, Constants.FORK_BLOCK_NUMBER);
-        usdc = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
+        usdc = IERC20(Constants.USDC);
         vm.startPrank(Constants.USDC_WHALE);
-        usdc.transfer(address(this), usdc.amount(1_000_000_000));
+        usdc.transfer(address(this), usdc.amount(1_000_000));
         vm.stopPrank();
         aavePool = IPool(Constants.AAVE_V3_POOL);
 
@@ -97,14 +97,11 @@ contract AssetPoolAaveV3UnitTest is Test, IAssetPoolTypes {
 
         // withdraw until utilization rate is 0
         IERC20 aToken = IERC20(aavePool.getReserveData(address(usdc)).aTokenAddress);
-        uint256 withdrawAmount = aToken.balanceOf(0x1A8c53147E7b61C015159723408762fc60A34D17);
-        vm.prank(0x1A8c53147E7b61C015159723408762fc60A34D17);
-        aavePool.withdraw(address(usdc), withdrawAmount, address(0x123));
-        withdrawAmount = aToken.balanceOf(0xd007058e9b58E74C33c6bF6fbCd38BaAB813cBB6);
-        vm.prank(0xd007058e9b58E74C33c6bF6fbCd38BaAB813cBB6);
+        uint256 withdrawAmount = aToken.balanceOf(0x4fc126B084fD491cF417c306717019e9C0d6d087);
+        vm.prank(0x4fc126B084fD491cF417c306717019e9C0d6d087);
         aavePool.withdraw(address(usdc), withdrawAmount, address(0x123));
         withdrawAmount = usdc.balanceOf(address(aToken)) - amount;
-        vm.prank(0xD56353E0bDc41Ad232F9d11109868703c1e2b2B9);
+        vm.prank(0x91beB5C41dF001175b588C9510327D53f278972A);
         aavePool.withdraw(address(usdc), withdrawAmount, address(0x123));
 
         uint256 aTokenUnderlyingBalance = usdc.balanceOf(address(aToken));
@@ -206,7 +203,7 @@ contract AssetPoolAaveV3UnitTest is Test, IAssetPoolTypes {
     }
 
     function testRegisterAsset() public {
-        address btc = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
+        address btc = 0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f;
         assertFalse(assetPool.isAssetRegistered(btc), "IS_ASSET_REGISTERED");
 
         assetPool.registerAsset(btc);
