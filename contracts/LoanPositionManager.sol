@@ -437,6 +437,10 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         });
     }
 
+    function nonces(uint256 tokenId) external view returns (uint256) {
+        return _positionMap[tokenId].nonce;
+    }
+
     function _baseURI() internal view override returns (string memory) {
         return baseURI;
     }

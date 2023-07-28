@@ -155,6 +155,10 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
         _registerAsset(asset);
     }
 
+    function nonces(uint256 tokenId) external view returns (uint256) {
+        return _positionMap[tokenId].nonce;
+    }
+
     function _registerAsset(address asset) internal {
         IERC20(asset).approve(address(assetPool), type(uint256).max);
         isAssetRegistered[asset] = true;
