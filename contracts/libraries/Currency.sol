@@ -99,13 +99,6 @@ library CurrencyLibrary {
         }
     }
 
-    function flush(Currency currency, address to) internal {
-        uint256 leftAmount = currency.balanceOfSelf();
-        if (leftAmount > 0) {
-            currency.transfer(to, leftAmount);
-        }
-    }
-
     function balanceOfSelf(Currency currency) internal view returns (uint256) {
         if (currency.isNative()) {
             return address(this).balance;
