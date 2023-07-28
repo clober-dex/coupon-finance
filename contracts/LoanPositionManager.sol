@@ -141,48 +141,48 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
                     repayAmount * debtPriceWithPrecisionComplement * _RATE_PRECISION,
                     collateralPriceWithPrecisionComplement * (_RATE_PRECISION - loanConfig.liquidationFee)
                 );
-                protocolFeeAmount = (liquidationAmount * loanConfig.liquidationProtocolFee) / _RATE_PRECISION;
-                return (liquidationAmount, repayAmount, protocolFeeAmount);
-            }
-
-            uint256 collateralValue =
-                position.collateralAmount * collateralPriceWithPrecisionComplement * _RATE_PRECISION;
-            uint256 debtValue = position.debtAmount * debtPriceWithPrecisionComplement * _RATE_PRECISION;
-
-            if ((collateralValue / _RATE_PRECISION) * loanConfig.liquidationThreshold >= debtValue) return (0, 0, 0);
-
-            liquidationAmount = Math.ceilDiv(
-                debtValue - (collateralValue / _RATE_PRECISION) * loanConfig.liquidationTargetLtv,
-                collateralPriceWithPrecisionComplement
-                    * (_RATE_PRECISION - loanConfig.liquidationFee - loanConfig.liquidationTargetLtv)
-            );
-            repayAmount = (
-                liquidationAmount * collateralPriceWithPrecisionComplement
-                    * (_RATE_PRECISION - loanConfig.liquidationFee)
-            ) / debtPriceWithPrecisionComplement / _RATE_PRECISION;
-
-            // reuse newRepayAmount
-            uint256 newRepayAmount = position.debtAmount;
-
-            if (newRepayAmount <= minDebtAmount) {
-                if (maxRepayAmount < newRepayAmount) revert TooSmallDebt();
-            } else if (repayAmount > newRepayAmount || newRepayAmount < minDebtAmount + repayAmount) {
-                if (maxRepayAmount < newRepayAmount) {
-                    newRepayAmount = Math.min(maxRepayAmount, newRepayAmount - minDebtAmount);
-                }
             } else {
-                newRepayAmount = Math.min(maxRepayAmount, repayAmount);
-            }
+                uint256 collateralValue =
+                    position.collateralAmount * collateralPriceWithPrecisionComplement * _RATE_PRECISION;
+                uint256 debtValue = position.debtAmount * debtPriceWithPrecisionComplement * _RATE_PRECISION;
 
-            if (newRepayAmount != repayAmount) {
+                if ((collateralValue / _RATE_PRECISION) * loanConfig.liquidationThreshold >= debtValue) {
+                    return (0, 0, 0);
+                }
+
                 liquidationAmount = Math.ceilDiv(
-                    newRepayAmount * debtPriceWithPrecisionComplement * _RATE_PRECISION,
-                    collateralPriceWithPrecisionComplement * (_RATE_PRECISION - loanConfig.liquidationFee)
+                    debtValue - (collateralValue / _RATE_PRECISION) * loanConfig.liquidationTargetLtv,
+                    collateralPriceWithPrecisionComplement
+                        * (_RATE_PRECISION - loanConfig.liquidationFee - loanConfig.liquidationTargetLtv)
                 );
-                repayAmount = newRepayAmount;
-            }
+                repayAmount = (
+                    liquidationAmount * collateralPriceWithPrecisionComplement
+                        * (_RATE_PRECISION - loanConfig.liquidationFee)
+                ) / debtPriceWithPrecisionComplement / _RATE_PRECISION;
 
-            if (liquidationAmount > position.collateralAmount) liquidationAmount = position.collateralAmount;
+                // reuse newRepayAmount
+                uint256 newRepayAmount = position.debtAmount;
+
+                if (newRepayAmount <= minDebtAmount) {
+                    if (maxRepayAmount < newRepayAmount) revert TooSmallDebt();
+                } else if (repayAmount > newRepayAmount || newRepayAmount < minDebtAmount + repayAmount) {
+                    if (maxRepayAmount < newRepayAmount) {
+                        newRepayAmount = Math.min(maxRepayAmount, newRepayAmount - minDebtAmount);
+                    }
+                } else {
+                    newRepayAmount = Math.min(maxRepayAmount, repayAmount);
+                }
+
+                if (newRepayAmount != repayAmount) {
+                    liquidationAmount = Math.ceilDiv(
+                        newRepayAmount * debtPriceWithPrecisionComplement * _RATE_PRECISION,
+                        collateralPriceWithPrecisionComplement * (_RATE_PRECISION - loanConfig.liquidationFee)
+                    );
+                    repayAmount = newRepayAmount;
+                }
+
+                if (liquidationAmount > position.collateralAmount) liquidationAmount = position.collateralAmount;
+            }
             protocolFeeAmount = (liquidationAmount * loanConfig.liquidationProtocolFee) / _RATE_PRECISION;
         }
     }
