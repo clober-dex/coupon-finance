@@ -143,9 +143,9 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
                     collateralPriceWithPrecisionComplement * (_RATE_PRECISION - loanConfig.liquidationFee)
                 );
             } else {
-                // Every 10^26 of collateralValue is 1 USD, so it can't overflow.
+                // Every 10^26 of collateralValue >= 1 USD, so it can't overflow.
                 uint256 collateralValue = position.collateralAmount * collateralPriceWithPrecisionComplement;
-                // Every 10^32 of debtValueMulRatePrecision is 1 USD, so it can't overflow.
+                // Every 10^32 of debtValueMulRatePrecision >= 1 USD, so it can't overflow.
                 uint256 debtValueMulRatePrecision =
                     position.debtAmount * debtPriceWithPrecisionComplement * _RATE_PRECISION;
 
