@@ -83,12 +83,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         return keccak256(abi.encodePacked(collateral, debt));
     }
 
-    function _calculatePricesAndMinDebtAmount(
-        address collateral,
-        address debt,
-        LoanConfiguration memory loanConfig,
-        uint256 minEthAmount
-    )
+    function _calculatePricesAndMinDebtAmount(address collateral, address debt, LoanConfiguration memory loanConfig)
         private
         view
         returns (
@@ -106,7 +101,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         assets[2] = address(0);
 
         uint256[] memory prices = ICouponOracle(oracle).getAssetsPrices(assets);
-        minDebtAmount = (minEthAmount * prices[2]) / 10 ** (18 - debtDecimal) / prices[1];
+        minDebtAmount = (minDebtValueInEth * prices[2]) / 10 ** (18 - debtDecimal) / prices[1];
         if (debtDecimal > collateralDecimal) {
             collateralPriceWithPrecisionComplement = prices[0] * 10 ** (debtDecimal - collateralDecimal);
             debtPriceWithPrecisionComplement = prices[1];
@@ -127,9 +122,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
             uint256 collateralPriceWithPrecisionComplement,
             uint256 debtPriceWithPrecisionComplement,
             uint256 minDebtAmount
-        ) = _calculatePricesAndMinDebtAmount(
-            position.collateralToken, position.debtToken, loanConfig, minDebtValueInEth
-        );
+        ) = _calculatePricesAndMinDebtAmount(position.collateralToken, position.debtToken, loanConfig);
 
         if (position.expiredWith.isExpired()) {
             unchecked {
@@ -220,9 +213,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
             uint256 collateralPriceWithPrecisionComplement,
             uint256 debtPriceWithPrecisionComplement,
             uint256 minDebtAmount
-        ) = _calculatePricesAndMinDebtAmount(
-            position.collateralToken, position.debtToken, loanConfig, minDebtValueInEth
-        );
+        ) = _calculatePricesAndMinDebtAmount(position.collateralToken, position.debtToken, loanConfig);
 
         if (position.debtAmount > 0 && minDebtAmount > position.debtAmount) revert TooSmallDebt();
         if (
