@@ -347,28 +347,36 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
             if (liquidationAmount == 0 && repayAmount == 0) revert UnableToLiquidate();
 
             Epoch currentEpoch = EpochLibrary.current();
-            address couponOwner = ownerOf(tokenId);
+            uint256 validEpochLength;
             if (position.expiredWith.compare(currentEpoch) >= 0) {
-                uint256 length = position.expiredWith.sub(currentEpoch) + 1;
-                Coupon[] memory coupons = new Coupon[](length);
-                for (uint16 i = 0; i < length; ++i) {
-                    coupons[i] = CouponLibrary.from(position.debtToken, currentEpoch.add(i), repayAmount);
-                }
-                try ICouponManager(couponManager).safeBatchTransferFrom(address(this), couponOwner, coupons, data) {}
-                catch {
-                    for (uint256 i = 0; i < length; ++i) {
-                        _couponOwed[couponOwner][coupons[i].id()] += coupons[i].amount;
-                    }
-                }
+                validEpochLength = position.expiredWith.sub(currentEpoch) + 1;
             }
+
             position.collateralAmount -= liquidationAmount;
             position.debtAmount -= repayAmount;
-            if (position.debtAmount == 0) position.expiredWith = currentEpoch.sub(1);
+            if (position.debtAmount == 0) {
+                position.expiredWith = currentEpoch.sub(1);
+                _positionMap[tokenId].expiredWith = position.expiredWith;
+            }
             _positionMap[tokenId].collateralAmount = position.collateralAmount;
             _positionMap[tokenId].debtAmount = position.debtAmount;
 
             IAssetPool(assetPool).withdraw(position.collateralToken, liquidationAmount - protocolFeeAmount, msg.sender);
             IAssetPool(assetPool).withdraw(position.collateralToken, protocolFeeAmount, treasury);
+
+            if (validEpochLength > 0) {
+                address couponOwner = ownerOf(tokenId);
+                Coupon[] memory coupons = new Coupon[](validEpochLength);
+                for (uint16 i = 0; i < validEpochLength; ++i) {
+                    coupons[i] = CouponLibrary.from(position.debtToken, currentEpoch.add(i), repayAmount);
+                }
+                try ICouponManager(couponManager).safeBatchTransferFrom(address(this), couponOwner, coupons, data) {}
+                catch {
+                    for (uint256 i = 0; i < validEpochLength; ++i) {
+                        _couponOwed[couponOwner][coupons[i].id()] += coupons[i].amount;
+                    }
+                }
+            }
 
             if (data.length > 0) {
                 ILiquidateCallbackReceiver(msg.sender).couponFinanceLiquidateCallback(
