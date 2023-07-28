@@ -18,6 +18,7 @@ import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
 import {IERC721Permit} from "../../../contracts/interfaces/IERC721Permit.sol";
 import {IAssetPool} from "../../../contracts/interfaces/IAssetPool.sol";
 import {ILiquidateCallbackReceiver} from "../../../contracts/interfaces/ILiquidateCallbackReceiver.sol";
+import {ILoanPositionCallbackReceiver} from "../../../contracts/interfaces/ILoanPositionCallbackReceiver.sol";
 import {Coupon, CouponLibrary} from "../../../contracts/libraries/Coupon.sol";
 import {Epoch, EpochLibrary} from "../../../contracts/libraries/Epoch.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
@@ -31,7 +32,8 @@ contract LoanPositionManagerUnitTest is
     ILoanPositionManagerTypes,
     ERC1155Holder,
     ERC721Holder,
-    ILiquidateCallbackReceiver
+    ILiquidateCallbackReceiver,
+    ILoanPositionCallbackReceiver
 {
     using CouponLibrary for Coupon;
     using EpochLibrary for Epoch;
@@ -138,6 +140,93 @@ contract LoanPositionManagerUnitTest is
         assertEq(position.expiredWith, epoch, "EXPIRED_WITH");
     }
 
+    function loanPositionAdjustCallback(
+        uint256 tokenId,
+        LoanPosition memory oldPosition,
+        LoanPosition memory newPosition,
+        Coupon[] memory couponsToPay,
+        Coupon[] memory couponsRefunded,
+        bytes calldata data
+    ) external {
+        address collateralToken = oldPosition.collateralToken;
+        (
+            uint256 approveAmount,
+            address recipient,
+            uint256 beforeCollateralBalance,
+            uint256 beforeDebtBalance,
+            uint256[] memory beforeCouponBalance
+        ) = abi.decode(data, (uint256, address, uint256, uint256, uint256[]));
+        if (newPosition.collateralAmount < oldPosition.collateralAmount) {
+            assertEq(
+                IERC20(collateralToken).balanceOf(address(this)) - beforeCollateralBalance,
+                oldPosition.collateralAmount - newPosition.collateralAmount,
+                "COLLATERAL_BALANCE"
+            );
+        }
+        if (oldPosition.debtAmount < newPosition.debtAmount) {
+            address debtToken = oldPosition.debtToken;
+            assertEq(
+                IERC20(debtToken).balanceOf(recipient) - beforeDebtBalance,
+                newPosition.debtAmount - oldPosition.debtAmount,
+                "DEBT_BALANCE"
+            );
+        }
+
+        for (uint256 i = 0; i < couponsRefunded.length; ++i) {
+            assertEq(
+                couponManager.balanceOf(recipient, couponsRefunded[i].id()) - beforeCouponBalance[i],
+                couponsRefunded[i].amount,
+                "COUPON_BALANCE"
+            );
+        }
+        IERC20(collateralToken).approve(address(loanPositionManager), approveAmount);
+    }
+
+    function testFlashLoan() public {
+        uint256 beforeCollateralBalance = weth.balanceOf(address(this));
+        uint256 beforeDebtBalance = usdc.balanceOf(Constants.USER1);
+        uint256 beforeLoanPositionBalance = loanPositionManager.balanceOf(Constants.USER1);
+        Epoch epoch = startEpoch.add(1);
+
+        Coupon[] memory coupons = new Coupon[](3);
+        coupons[0] = CouponLibrary.from(address(usdc), startEpoch, initialDebtAmount);
+        coupons[1] = CouponLibrary.from(address(usdc), startEpoch.add(1), initialDebtAmount);
+        coupons[2] = CouponLibrary.from(address(usdc), startEpoch.add(2), initialDebtAmount);
+        _mintCoupons(address(this), coupons);
+
+        uint256[] memory beforeCouponBalance = new uint256[](3);
+        beforeCouponBalance[0] = couponManager.balanceOf(address(this), coupons[0].id());
+        beforeCouponBalance[1] = couponManager.balanceOf(address(this), coupons[1].id());
+        beforeCouponBalance[2] = couponManager.balanceOf(address(this), coupons[2].id());
+
+        vm.expectRevert("ERC20: insufficient allowance");
+        loanPositionManager.mint(
+            address(weth),
+            address(usdc),
+            initialCollateralAmount,
+            initialDebtAmount,
+            3,
+            Constants.USER1,
+            abi.encode(0, Constants.USER1, beforeCollateralBalance, beforeDebtBalance, beforeCouponBalance)
+        );
+
+        loanPositionManager.mint(
+            address(weth),
+            address(usdc),
+            initialCollateralAmount,
+            initialDebtAmount,
+            3,
+            Constants.USER1,
+            abi.encode(
+                initialCollateralAmount,
+                Constants.USER1,
+                beforeCollateralBalance,
+                beforeDebtBalance,
+                beforeCouponBalance
+            )
+        );
+    }
+
     function testMintWithTooSmallDebtAmount() public {
         Coupon[] memory coupons = new Coupon[](2);
         coupons[0] = CouponLibrary.from(address(usdc), startEpoch, initialDebtAmount);
@@ -187,8 +276,6 @@ contract LoanPositionManagerUnitTest is
         );
         vm.warp(startEpoch.add(1).startTime());
     }
-
-    // TODO: flash adjust position tests
 
     function testAdjustPositionIncreaseDebtAndEpochs() public {
         uint256 tokenId = _beforeAdjustPosition();
