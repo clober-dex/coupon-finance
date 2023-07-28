@@ -301,7 +301,10 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
             (Coupon[] memory couponsToPay, Coupon[] memory couponsToRefund) =
                 oldPosition.calculateCouponRequirement(newPosition);
 
-            _positionMap[tokenId] = newPosition;
+            _positionMap[tokenId].debtAmount = newPosition.debtAmount;
+            _positionMap[tokenId].collateralAmount = newPosition.collateralAmount;
+            _positionMap[tokenId].expiredWith = newPosition.expiredWith;
+
             emit PositionUpdated(tokenId, newPosition.collateralAmount, newPosition.debtAmount, newPosition.expiredWith);
 
             if (couponsToRefund.length > 0) {
@@ -420,7 +423,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         uint256 collateralAmount = position.collateralAmount;
         position.collateralAmount = 0;
 
-        _positionMap[tokenId] = position;
+        _positionMap[tokenId].collateralAmount = position.collateralAmount;
         emit PositionUpdated(tokenId, 0, 0, position.expiredWith);
 
         IAssetPool(assetPool).withdraw(position.collateralToken, collateralAmount, msg.sender);
