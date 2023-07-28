@@ -13,7 +13,7 @@ interface IDepositController is IBondPositionCallbackReceiver {
         uint16 lockEpochs,
         uint256 minInterestEarned,
         PermitParams calldata tokenPermitParams
-    ) external payable;
+    ) external payable returns (uint256);
 
     function withdraw(
         uint256 positionId,
