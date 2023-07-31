@@ -1,0 +1,36 @@
+// SPDX-License-Identifier: -
+// License: https://license.clober.io/LICENSE.pdf
+
+pragma solidity ^0.8.0;
+
+import {CouponKey} from "./CouponKey.sol";
+import {Coupon} from "./Coupon.sol";
+import {Epoch} from "./Epoch.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+
+library Wrapped1155MetadataBuilder {
+    function buildWrapped1155Metadata(CouponKey memory couponKey) internal view returns (bytes memory) {
+        string memory tokenSymbol = IERC20Metadata(couponKey.asset).symbol();
+        string memory epochString = Strings.toString(Epoch.unwrap(couponKey.epoch));
+        // @dev assume that tokenSymbol.length <= 12
+        bytes32 nameData = bytes32(abi.encodePacked(tokenSymbol, " Bond Coupon (", epochString, ")"));
+        bytes32 symbolData = bytes32(abi.encodePacked(tokenSymbol, "-CP", epochString));
+        assembly {
+            let addLength := mul(2, add(mload(tokenSymbol), mload(epochString)))
+            nameData := add(nameData, add(30, addLength))
+            symbolData := add(symbolData, add(6, addLength))
+        }
+        bytes1 decimal = bytes1(IERC20Metadata(couponKey.asset).decimals());
+        return abi.encodePacked(nameData, symbolData, decimal);
+    }
+
+    function buildWrapped1155BatchMetadata(Coupon[] memory coupons) internal view returns (bytes memory data) {
+        unchecked {
+            data = new bytes(0);
+            for (uint256 i = 0; i < coupons.length; ++i) {
+                data = bytes.concat(data, buildWrapped1155Metadata(coupons[i].key));
+            }
+        }
+    }
+}
