@@ -869,6 +869,26 @@ contract LoanPositionManagerUnitTest is
         );
     }
 
+    function testLiquidationMaxEpoch() public {
+        Coupon[] memory coupons = new Coupon[](200);
+        uint256 debtAmount = usdc.amount(1000);
+
+        for (uint256 i = 0; i < 200; i++) {
+            coupons[i] = CouponLibrary.from(address(usdc), startEpoch.add(uint8(i)), debtAmount);
+        }
+
+        _mintCoupons(address(this), coupons);
+
+        uint256 tokenId = loanPositionManager.mint(
+            address(weth), address(usdc), 1 ether, debtAmount, 200, Constants.USER1, new bytes(0)
+        );
+
+        oracle.setAssetPrice(address(weth), 1000 * 10 ** 8);
+
+        LiquidationStatus memory liquidationStatus = loanPositionManager.getLiquidationStatus(tokenId, 0);
+        loanPositionManager.liquidate(tokenId, 0, new bytes(0));
+    }
+
     function testFlashLiquidation() public {
         Coupon[] memory coupons = new Coupon[](2);
         coupons[0] = CouponLibrary.from(address(usdc), startEpoch, usdc.amount(1000));
