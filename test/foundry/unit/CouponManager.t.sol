@@ -92,7 +92,7 @@ contract CouponManagerUnitTest is Test, ERC1155Holder {
         CouponKey[] memory couponKeys = new CouponKey[](3);
         couponKeys[0] = coupons[0].key;
         couponKeys[1] = coupons[1].key;
-        couponKeys[2] = CouponKey({asset: Constants.USDC, epoch: Epoch.wrap(1242)});
+        couponKeys[2] = CouponKey({asset: Constants.USDC, epoch: Epoch.wrap(124)});
         vm.prank(Constants.USER1);
         couponManager.burnExpiredCoupons(couponKeys);
 

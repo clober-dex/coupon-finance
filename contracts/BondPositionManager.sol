@@ -24,6 +24,8 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
     using EpochLibrary for Epoch;
     using BondPositionLibrary for BondPosition;
 
+    Epoch private constant _MAX_EPOCH = Epoch.wrap(157); // Ends at 31 Dec 2048 23:59:59 GMT
+
     address public immutable override couponManager;
     address public immutable override assetPool;
 
@@ -44,11 +46,15 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
         }
     }
 
+    function getMaxEpoch() external pure returns (Epoch maxEpoch) {
+        return _MAX_EPOCH;
+    }
+
     function getPosition(uint256 tokenId) external view returns (BondPosition memory) {
         return _positionMap[tokenId];
     }
 
-    function mint(address asset, uint256 amount, uint16 lockEpochs, address recipient, bytes calldata data)
+    function mint(address asset, uint256 amount, uint8 lockEpochs, address recipient, bytes calldata data)
         external
         returns (uint256 tokenId)
     {
@@ -60,11 +66,15 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
         }
         Epoch currentEpoch = EpochLibrary.current();
         Coupon[] memory coupons = new Coupon[](lockEpochs);
-        for (uint16 i = 0; i < lockEpochs; ++i) {
-            coupons[i] = CouponLibrary.from(asset, currentEpoch.add(i), amount);
+        for (uint256 i = 0; i < lockEpochs; ++i) {
+            coupons[i] = CouponLibrary.from(asset, currentEpoch.add(uint8(i)), amount);
         }
-        tokenId = nextId++;
         Epoch expiredWith = currentEpoch.add(lockEpochs - 1);
+        if (_MAX_EPOCH.compare(expiredWith) < 0) {
+            revert InvalidEpoch();
+        }
+
+        tokenId = nextId++;
         BondPosition memory position = BondPositionLibrary.from(asset, expiredWith, amount);
         _positionMap[tokenId] = position;
         emit PositionUpdated(tokenId, amount, expiredWith);
@@ -89,7 +99,7 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
 
         BondPosition memory oldPosition = _positionMap[tokenId];
         Epoch latestExpiredEpoch = EpochLibrary.current().sub(1);
-        if (oldPosition.expiredWith.compare(latestExpiredEpoch) <= 0) {
+        if (oldPosition.expiredWith.compare(latestExpiredEpoch) <= 0 || _MAX_EPOCH.compare(expiredWith) < 0) {
             revert InvalidEpoch();
         }
 

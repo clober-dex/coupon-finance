@@ -266,8 +266,8 @@ contract LoanPositionManagerUnitTest is
 
     function _beforeAdjustPosition() internal returns (uint256 tokenId) {
         Coupon[] memory coupons = new Coupon[](8);
-        for (uint16 i = 0; i < 8; i++) {
-            coupons[i] = CouponLibrary.from(address(usdc), startEpoch.add(i), initialDebtAmount * 10);
+        for (uint256 i = 0; i < 8; i++) {
+            coupons[i] = CouponLibrary.from(address(usdc), startEpoch.add(uint8(i)), initialDebtAmount * 10);
         }
         _mintCoupons(address(this), coupons);
 
@@ -867,6 +867,26 @@ contract LoanPositionManagerUnitTest is
         _testLiquidation(
             usdc.amount(100), 1 ether, 0, usdc.amount(8), 4512471655328799, usdc.amount(8), 22675736961451, true, true
         );
+    }
+
+    function testLiquidationMaxEpoch() public {
+        Coupon[] memory coupons = new Coupon[](200);
+        uint256 debtAmount = usdc.amount(1000);
+
+        for (uint256 i = 0; i < 200; i++) {
+            coupons[i] = CouponLibrary.from(address(usdc), startEpoch.add(uint8(i)), debtAmount);
+        }
+
+        _mintCoupons(address(this), coupons);
+
+        uint256 tokenId = loanPositionManager.mint(
+            address(weth), address(usdc), 1 ether, debtAmount, 200, Constants.USER1, new bytes(0)
+        );
+
+        oracle.setAssetPrice(address(weth), 1000 * 10 ** 8);
+
+        LiquidationStatus memory liquidationStatus = loanPositionManager.getLiquidationStatus(tokenId, 0);
+        loanPositionManager.liquidate(tokenId, 0, new bytes(0));
     }
 
     function testFlashLiquidation() public {
