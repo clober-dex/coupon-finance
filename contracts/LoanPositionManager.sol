@@ -229,7 +229,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         address debtToken,
         uint256 collateralAmount,
         uint256 debtAmount,
-        uint16 loanEpochs,
+        uint8 loanEpochs,
         address recipient,
         bytes calldata data
     ) external returns (uint256 tokenId) {
@@ -247,7 +247,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
 
             Coupon[] memory coupons = new Coupon[](loanEpochs);
             for (uint256 i = 0; i < loanEpochs; ++i) {
-                coupons[i] = CouponLibrary.from(debtToken, currentEpoch.add(uint16(i)), debtAmount);
+                coupons[i] = CouponLibrary.from(debtToken, currentEpoch.add(uint8(i)), debtAmount);
             }
 
             tokenId = nextId++;
@@ -375,7 +375,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
                 address couponOwner = ownerOf(tokenId);
                 Coupon[] memory coupons = new Coupon[](validEpochLength);
                 for (uint256 i = 0; i < validEpochLength; ++i) {
-                    coupons[i] = CouponLibrary.from(position.debtToken, currentEpoch.add(uint16(i)), repayAmount);
+                    coupons[i] = CouponLibrary.from(position.debtToken, currentEpoch.add(uint8(i)), repayAmount);
                 }
                 try ICouponManager(couponManager).safeBatchTransferFrom(address(this), couponOwner, coupons, data) {}
                 catch {
