@@ -203,13 +203,14 @@ contract AssetPoolAaveV3UnitTest is Test, IAssetPoolTypes {
     }
 
     function testRegisterAsset() public {
-        address btc = 0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f;
-        assertFalse(assetPool.isAssetRegistered(btc), "IS_ASSET_REGISTERED");
+        assertFalse(assetPool.isAssetRegistered(Constants.WBTC), "IS_ASSET_REGISTERED");
 
-        assetPool.registerAsset(btc);
+        assetPool.registerAsset(Constants.WBTC);
 
-        assertTrue(assetPool.isAssetRegistered(btc), "IS_ASSET_REGISTERED");
-        assertEq(IERC20(btc).allowance(address(assetPool), address(aavePool)), type(uint256).max, "ALLOWANCE");
+        assertTrue(assetPool.isAssetRegistered(Constants.WBTC), "IS_ASSET_REGISTERED");
+        assertEq(
+            IERC20(Constants.WBTC).allowance(address(assetPool), address(aavePool)), type(uint256).max, "ALLOWANCE"
+        );
     }
 
     function testRegisterAssetWithInvalidAsset() public {
