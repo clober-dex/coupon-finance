@@ -95,9 +95,9 @@ contract EpochUnitTest is Test {
         Epoch a = EpochLibrary.wrap(124);
         Epoch b = EpochLibrary.wrap(124);
         Epoch c = EpochLibrary.wrap(125);
-        assertEq(a.compare(b), 0);
-        assertEq(a.compare(c), -1);
-        assertEq(c.compare(a), 1);
+        assertEq(a == b, true);
+        assertEq(a < c, true);
+        assertEq(c > a, true);
     }
 
     function testMax() public {
