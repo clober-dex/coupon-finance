@@ -179,6 +179,17 @@ contract BondPositionManagerUnitTest is
         bondPositionManager.mint(address(0x123), initialAmount, 2, Constants.USER1, new bytes(0));
     }
 
+    function testMintWithMaxEpoch() public {
+        vm.expectRevert(abi.encodeWithSelector(InvalidEpoch.selector));
+        bondPositionManager.mint(address(usdc), initialAmount, 149, address(this), new bytes(0));
+
+        uint256 tokenId = bondPositionManager.mint(address(usdc), initialAmount, 148, address(this), new bytes(0));
+        BondPosition memory beforePosition = bondPositionManager.getPosition(tokenId);
+
+        vm.expectRevert(abi.encodeWithSelector(InvalidEpoch.selector));
+        bondPositionManager.adjustPosition(tokenId, initialAmount, beforePosition.expiredWith.add(1), new bytes(0));
+    }
+
     function _beforeAdjustPosition() internal returns (uint256 tokenId) {
         tokenId = bondPositionManager.mint(address(usdc), initialAmount, 3, address(this), new bytes(0));
         vm.warp(startEpoch.add(1).startTime());
