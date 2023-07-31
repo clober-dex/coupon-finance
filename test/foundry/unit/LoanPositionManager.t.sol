@@ -141,10 +141,10 @@ contract LoanPositionManagerUnitTest is
     }
 
     function loanPositionAdjustCallback(
-        uint256 tokenId,
+        uint256,
         LoanPosition memory oldPosition,
         LoanPosition memory newPosition,
-        Coupon[] memory couponsToPay,
+        Coupon[] memory,
         Coupon[] memory couponsRefunded,
         bytes calldata data
     ) external {
@@ -185,8 +185,6 @@ contract LoanPositionManagerUnitTest is
     function testFlashLoan() public {
         uint256 beforeCollateralBalance = weth.balanceOf(address(this));
         uint256 beforeDebtBalance = usdc.balanceOf(Constants.USER1);
-        uint256 beforeLoanPositionBalance = loanPositionManager.balanceOf(Constants.USER1);
-        Epoch epoch = startEpoch.add(1);
 
         Coupon[] memory coupons = new Coupon[](3);
         coupons[0] = CouponLibrary.from(address(usdc), startEpoch, initialDebtAmount);
@@ -920,11 +918,11 @@ contract LoanPositionManagerUnitTest is
     }
 
     function couponFinanceLiquidateCallback(
-        uint256 tokenId,
+        uint256,
         address collateralToken,
         address debtToken,
         uint256 workableAmount,
-        uint256 repayAmount,
+        uint256,
         bytes calldata data
     ) external {
         (uint256 approveAmount, uint256 beforeLiquidatorCollateralBalance) = abi.decode(data, (uint256, uint256));
