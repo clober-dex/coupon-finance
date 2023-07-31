@@ -74,7 +74,7 @@ interface ILoanPositionManager is IERC721Metadata, IERC721Permit, ILoanPositionM
         address debtToken,
         uint256 collateralAmount,
         uint256 debtAmount,
-        uint16 loanEpochs,
+        uint8 loanEpochs,
         address recipient,
         bytes calldata data
     ) external returns (uint256);

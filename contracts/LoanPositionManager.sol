@@ -205,7 +205,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
     }
 
     function _validatePosition(LoanPosition memory position, Epoch latestExpiredEpoch) internal view {
-        if (position.debtAmount > 0 && position.expiredWith.compare(latestExpiredEpoch) <= 0) {
+        if (position.debtAmount > 0 && position.expiredWith <= latestExpiredEpoch) {
             revert UnpaidDebt();
         }
 
@@ -229,7 +229,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         address debtToken,
         uint256 collateralAmount,
         uint256 debtAmount,
-        uint16 loanEpochs,
+        uint8 loanEpochs,
         address recipient,
         bytes calldata data
     ) external returns (uint256 tokenId) {
@@ -247,7 +247,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
 
             Coupon[] memory coupons = new Coupon[](loanEpochs);
             for (uint256 i = 0; i < loanEpochs; ++i) {
-                coupons[i] = CouponLibrary.from(debtToken, currentEpoch.add(uint16(i)), debtAmount);
+                coupons[i] = CouponLibrary.from(debtToken, currentEpoch.add(uint8(i)), debtAmount);
             }
 
             tokenId = nextId++;
@@ -286,7 +286,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
 
             LoanPosition memory oldPosition = _positionMap[tokenId];
             Epoch latestExpiredEpoch = EpochLibrary.current().sub(1);
-            if (oldPosition.expiredWith.compare(latestExpiredEpoch) <= 0) revert InvalidEpoch();
+            if (oldPosition.expiredWith <= latestExpiredEpoch) revert InvalidEpoch();
 
             LoanPosition memory newPosition = LoanPosition({
                 nonce: oldPosition.nonce,
@@ -354,7 +354,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
 
             Epoch currentEpoch = EpochLibrary.current();
             uint256 validEpochLength;
-            if (position.expiredWith.compare(currentEpoch) >= 0) {
+            if (position.expiredWith >= currentEpoch) {
                 validEpochLength = position.expiredWith.sub(currentEpoch) + 1;
             }
 
@@ -374,7 +374,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
                 address couponOwner = ownerOf(tokenId);
                 Coupon[] memory coupons = new Coupon[](validEpochLength);
                 for (uint256 i = 0; i < validEpochLength; ++i) {
-                    coupons[i] = CouponLibrary.from(position.debtToken, currentEpoch.add(uint16(i)), repayAmount);
+                    coupons[i] = CouponLibrary.from(position.debtToken, currentEpoch.add(uint8(i)), repayAmount);
                 }
                 try ICouponManager(couponManager).safeBatchTransferFrom(address(this), couponOwner, coupons, data) {}
                 catch {

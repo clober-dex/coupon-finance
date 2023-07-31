@@ -89,8 +89,8 @@ library LoanPositionLibrary {
         unchecked {
             for (uint256 i = 0; i < farthestExpiredEpochs; ++i) {
                 latestExpiredEpoch = latestExpiredEpoch.add(1); // reuse latestExpiredEpoch as epoch
-                uint256 newAmount = newPosition.expiredWith.compare(latestExpiredEpoch) < 0 ? 0 : newPosition.debtAmount;
-                uint256 oldAmount = oldPosition.expiredWith.compare(latestExpiredEpoch) < 0 ? 0 : oldPosition.debtAmount;
+                uint256 newAmount = newPosition.expiredWith < latestExpiredEpoch ? 0 : newPosition.debtAmount;
+                uint256 oldAmount = oldPosition.expiredWith < latestExpiredEpoch ? 0 : oldPosition.debtAmount;
                 if (newAmount > oldAmount) {
                     payCoupons[payCouponsLength++] =
                         CouponLibrary.from(oldPosition.debtToken, latestExpiredEpoch, newAmount - oldAmount);
@@ -101,13 +101,5 @@ library LoanPositionLibrary {
             }
         }
         return (payCoupons, refundCoupons);
-    }
-
-    function compareEpoch(LoanPosition memory position1, LoanPosition memory position2)
-        internal
-        pure
-        returns (int256)
-    {
-        return position1.expiredWith.compare(position2.expiredWith);
     }
 }

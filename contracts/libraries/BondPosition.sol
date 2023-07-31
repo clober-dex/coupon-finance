@@ -64,12 +64,12 @@ library BondPositionLibrary {
         Coupon[] memory burnCoupons = new Coupon[](burnCouponsLength);
         mintCouponsLength = 0;
         burnCouponsLength = 0;
-        uint16 farthestExpiredEpochs = newPosition.expiredWith.max(oldPosition.expiredWith).sub(latestExpiredEpoch);
+        uint256 farthestExpiredEpochs = newPosition.expiredWith.max(oldPosition.expiredWith).sub(latestExpiredEpoch);
         unchecked {
-            for (uint16 i = 0; i < farthestExpiredEpochs; ++i) {
+            for (uint256 i = 0; i < farthestExpiredEpochs; ++i) {
                 latestExpiredEpoch = latestExpiredEpoch.add(1); // reuse latestExpiredEpoch as epoch
-                uint256 newAmount = newPosition.expiredWith.compare(latestExpiredEpoch) < 0 ? 0 : newPosition.amount;
-                uint256 oldAmount = oldPosition.expiredWith.compare(latestExpiredEpoch) < 0 ? 0 : oldPosition.amount;
+                uint256 newAmount = newPosition.expiredWith < latestExpiredEpoch ? 0 : newPosition.amount;
+                uint256 oldAmount = oldPosition.expiredWith < latestExpiredEpoch ? 0 : oldPosition.amount;
                 if (newAmount > oldAmount) {
                     mintCoupons[mintCouponsLength++] =
                         CouponLibrary.from(oldPosition.asset, latestExpiredEpoch, newAmount - oldAmount);
@@ -80,13 +80,5 @@ library BondPositionLibrary {
             }
         }
         return (mintCoupons, burnCoupons);
-    }
-
-    function compareEpoch(BondPosition memory position1, BondPosition memory position2)
-        internal
-        pure
-        returns (int256)
-    {
-        return position1.expiredWith.compare(position2.expiredWith);
     }
 }
