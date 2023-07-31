@@ -34,13 +34,6 @@ contract AssetPoolAaveV3 is IAssetPool, Ownable {
         return !_isAssetUnregistered(asset);
     }
 
-    function withdrawable(address asset) external view returns (uint256) {
-        if (_isAssetUnregistered(asset)) {
-            return 0;
-        }
-        return IERC20(asset).balanceOf(_aaveV3Pool.getReserveData(asset).aTokenAddress);
-    }
-
     function claimableAmount(address asset) public view returns (uint256) {
         if (_isAssetUnregistered(asset)) {
             return 0;
@@ -92,10 +85,7 @@ contract AssetPoolAaveV3 is IAssetPool, Ownable {
         treasury = newTreasury;
     }
 
-    function registerAsset(address asset) external {
-        if (!isOperator[msg.sender]) {
-            revert InvalidAccess();
-        }
+    function registerAsset(address asset) external onlyOwner {
         address aToken = _aaveV3Pool.getReserveData(asset).aTokenAddress;
         if (aToken == address(0)) {
             revert InvalidAsset();
@@ -104,10 +94,7 @@ contract AssetPoolAaveV3 is IAssetPool, Ownable {
         IERC20(asset).approve(address(_aaveV3Pool), type(uint256).max);
     }
 
-    function withdrawLostToken(address asset, address recipient) external {
-        if (!isOperator[msg.sender]) {
-            revert InvalidAccess();
-        }
+    function withdrawLostToken(address asset, address recipient) external onlyOwner {
         if (isAssetRegistered(asset)) {
             revert InvalidAsset();
         }
