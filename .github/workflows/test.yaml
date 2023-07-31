@@ -92,4 +92,4 @@ jobs:
       - name: Foundry Forge test
         run: npm run test:forge
         env:
-          FORK_TEST_NODE_URL: ${{ secrets.FORK_TEST_NODE_URL }}
+          ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
