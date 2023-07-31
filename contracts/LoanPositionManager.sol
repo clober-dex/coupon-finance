@@ -367,8 +367,9 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
             _positionMap[tokenId].collateralAmount = position.collateralAmount;
             _positionMap[tokenId].debtAmount = position.debtAmount;
 
-            IAssetPool(assetPool).withdraw(position.collateralToken, liquidationAmount - protocolFeeAmount, msg.sender);
-            IAssetPool(assetPool).withdraw(position.collateralToken, protocolFeeAmount, treasury);
+            IAssetPool(assetPool).withdraw(position.collateralToken, liquidationAmount, address(this));
+            IERC20(position.collateralToken).safeTransfer(msg.sender, liquidationAmount - protocolFeeAmount);
+            IERC20(position.collateralToken).safeTransfer(treasury, protocolFeeAmount);
 
             if (validEpochLength > 0) {
                 address couponOwner = ownerOf(tokenId);
