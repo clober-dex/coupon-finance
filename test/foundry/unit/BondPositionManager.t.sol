@@ -179,7 +179,7 @@ contract BondPositionManagerUnitTest is
         bondPositionManager.mint(address(0x123), initialAmount, 2, Constants.USER1, new bytes(0));
     }
 
-    function testMintWithMaxEpoch() public {
+    function testMaxEpoch() public {
         vm.expectRevert(abi.encodeWithSelector(InvalidEpoch.selector));
         bondPositionManager.mint(address(usdc), initialAmount, 149, address(this), new bytes(0));
 
