@@ -5,6 +5,28 @@ pragma solidity ^0.8.0;
 
 type Epoch is uint8;
 
+using {gt as >, gte as >=, lt as <, lte as <=, eq as ==} for Epoch global;
+
+function gt(Epoch a, Epoch b) pure returns (bool) {
+    return Epoch.unwrap(a) > Epoch.unwrap(b);
+}
+
+function gte(Epoch a, Epoch b) pure returns (bool) {
+    return Epoch.unwrap(a) >= Epoch.unwrap(b);
+}
+
+function lt(Epoch a, Epoch b) pure returns (bool) {
+    return Epoch.unwrap(a) < Epoch.unwrap(b);
+}
+
+function lte(Epoch a, Epoch b) pure returns (bool) {
+    return Epoch.unwrap(a) <= Epoch.unwrap(b);
+}
+
+function eq(Epoch a, Epoch b) pure returns (bool) {
+    return Epoch.unwrap(a) == Epoch.unwrap(b);
+}
+
 library EpochLibrary {
     error EpochOverflow();
 
@@ -58,16 +80,8 @@ library EpochLibrary {
         return Epoch.unwrap(e1) - Epoch.unwrap(e2);
     }
 
-    function compare(Epoch a, Epoch b) internal pure returns (int256) {
-        unchecked {
-            return Epoch.unwrap(a) > Epoch.unwrap(b)
-                ? int256(1)
-                : Epoch.unwrap(a) < Epoch.unwrap(b) ? int256(-1) : int256(0);
-        }
-    }
-
     function max(Epoch a, Epoch b) internal pure returns (Epoch) {
-        return compare(a, b) > 0 ? a : b;
+        return a > b ? a : b;
     }
 
     // Inspired by https://github.com/bokkypoobah/BokkyPooBahsDateTimeLibrary/blob/master/contracts/BokkyPooBahsDateTimeLibrary.sol

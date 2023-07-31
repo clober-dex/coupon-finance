@@ -205,7 +205,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
     }
 
     function _validatePosition(LoanPosition memory position, Epoch latestExpiredEpoch) internal view {
-        if (position.debtAmount > 0 && position.expiredWith.compare(latestExpiredEpoch) <= 0) {
+        if (position.debtAmount > 0 && position.expiredWith <= latestExpiredEpoch) {
             revert UnpaidDebt();
         }
 
@@ -286,7 +286,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
 
             LoanPosition memory oldPosition = _positionMap[tokenId];
             Epoch latestExpiredEpoch = EpochLibrary.current().sub(1);
-            if (oldPosition.expiredWith.compare(latestExpiredEpoch) <= 0) revert InvalidEpoch();
+            if (oldPosition.expiredWith <= latestExpiredEpoch) revert InvalidEpoch();
 
             LoanPosition memory newPosition = LoanPosition({
                 nonce: oldPosition.nonce,
@@ -354,7 +354,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
 
             Epoch currentEpoch = EpochLibrary.current();
             uint256 validEpochLength;
-            if (position.expiredWith.compare(currentEpoch) >= 0) {
+            if (position.expiredWith >= currentEpoch) {
                 validEpochLength = position.expiredWith.sub(currentEpoch) + 1;
             }
 

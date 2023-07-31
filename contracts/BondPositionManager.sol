@@ -70,7 +70,7 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
             coupons[i] = CouponLibrary.from(asset, currentEpoch.add(uint8(i)), amount);
         }
         Epoch expiredWith = currentEpoch.add(lockEpochs - 1);
-        if (_MAX_EPOCH.compare(expiredWith) < 0) {
+        if (_MAX_EPOCH < expiredWith) {
             revert InvalidEpoch();
         }
 
@@ -99,7 +99,7 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
 
         BondPosition memory oldPosition = _positionMap[tokenId];
         Epoch latestExpiredEpoch = EpochLibrary.current().sub(1);
-        if (oldPosition.expiredWith.compare(latestExpiredEpoch) <= 0 || _MAX_EPOCH.compare(expiredWith) < 0) {
+        if (oldPosition.expiredWith <= latestExpiredEpoch || _MAX_EPOCH < expiredWith) {
             revert InvalidEpoch();
         }
 
@@ -107,7 +107,7 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
         BondPosition memory newPosition = BondPosition({
             asset: asset,
             nonce: oldPosition.nonce,
-            expiredWith: (amount == 0 || latestExpiredEpoch.compare(expiredWith) > 0) ? latestExpiredEpoch : expiredWith,
+            expiredWith: (amount == 0 || latestExpiredEpoch > expiredWith) ? latestExpiredEpoch : expiredWith,
             amount: amount
         });
 
@@ -146,7 +146,7 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
             revert InvalidAccess();
         }
         BondPosition memory position = _positionMap[tokenId];
-        if (position.expiredWith.compare(EpochLibrary.current()) >= 0) {
+        if (position.expiredWith >= EpochLibrary.current()) {
             revert InvalidEpoch();
         }
 
