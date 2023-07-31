@@ -12,7 +12,7 @@ contract EpochUnitTest is Test {
     function testFromMonths() public {
         assertEq(EpochLibrary.wrap(0).unwrap(), 0);
         assertEq(EpochLibrary.wrap(1).unwrap(), 1);
-        assertEq(EpochLibrary.wrap(type(uint16).max).unwrap(), type(uint16).max);
+        assertEq(EpochLibrary.wrap(type(uint8).max).unwrap(), type(uint8).max);
     }
 
     function testCurrent() public {
@@ -82,38 +82,38 @@ contract EpochUnitTest is Test {
     }
 
     function testAdd() public {
-        Epoch a = EpochLibrary.wrap(1234);
-        assertEq(a.add(324).unwrap(), 1558);
+        Epoch a = EpochLibrary.wrap(123);
+        assertEq(a.add(32).unwrap(), 155);
     }
 
     function testSub() public {
-        Epoch a = EpochLibrary.wrap(1234);
-        assertEq(a.sub(324).unwrap(), 910);
+        Epoch a = EpochLibrary.wrap(123);
+        assertEq(a.sub(32).unwrap(), 91);
     }
 
     function testCompare() public {
-        Epoch a = EpochLibrary.wrap(1234);
-        Epoch b = EpochLibrary.wrap(1234);
-        Epoch c = EpochLibrary.wrap(1235);
+        Epoch a = EpochLibrary.wrap(124);
+        Epoch b = EpochLibrary.wrap(124);
+        Epoch c = EpochLibrary.wrap(125);
         assertEq(a.compare(b), 0);
         assertEq(a.compare(c), -1);
         assertEq(c.compare(a), 1);
     }
 
     function testMax() public {
-        Epoch a = EpochLibrary.wrap(1234);
-        Epoch b = EpochLibrary.wrap(1234);
-        Epoch c = EpochLibrary.wrap(1235);
+        Epoch a = EpochLibrary.wrap(124);
+        Epoch b = EpochLibrary.wrap(124);
+        Epoch c = EpochLibrary.wrap(125);
         assertEq(EpochLibrary.max(a, b).unwrap(), a.unwrap());
         assertEq(EpochLibrary.max(a, c).unwrap(), c.unwrap());
         assertEq(EpochLibrary.max(c, a).unwrap(), c.unwrap());
     }
 
     function testMaxEpoch() public {
-        uint256 endTime = EpochLibrary.wrap(type(uint16).max).endTime();
-        assertEq(endTime, 1034058182400);
+        uint256 endTime = EpochLibrary.wrap(type(uint8).max).endTime();
+        assertEq(endTime, 4039372800);
         vm.warp(endTime - 1);
         Epoch a = EpochLibrary.current();
-        assertEq(a.unwrap(), type(uint16).max);
+        assertEq(a.unwrap(), type(uint8).max);
     }
 }

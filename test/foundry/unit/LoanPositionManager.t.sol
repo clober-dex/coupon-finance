@@ -266,8 +266,8 @@ contract LoanPositionManagerUnitTest is
 
     function _beforeAdjustPosition() internal returns (uint256 tokenId) {
         Coupon[] memory coupons = new Coupon[](8);
-        for (uint16 i = 0; i < 8; i++) {
-            coupons[i] = CouponLibrary.from(address(usdc), startEpoch.add(i), initialDebtAmount * 10);
+        for (uint256 i = 0; i < 8; i++) {
+            coupons[i] = CouponLibrary.from(address(usdc), startEpoch.add(uint8(i)), initialDebtAmount * 10);
         }
         _mintCoupons(address(this), coupons);
 

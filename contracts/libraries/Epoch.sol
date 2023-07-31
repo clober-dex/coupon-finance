@@ -3,7 +3,7 @@
 
 pragma solidity ^0.8.0;
 
-type Epoch is uint16;
+type Epoch is uint8;
 
 library EpochLibrary {
     error EpochOverflow();
@@ -12,16 +12,16 @@ library EpochLibrary {
     uint256 constant SECONDS_PER_DAY = 24 * 60 * 60;
     int256 constant OFFSET19700101 = 2440588;
 
-    function wrap(uint16 epoch) internal pure returns (Epoch) {
+    function wrap(uint8 epoch) internal pure returns (Epoch) {
         return Epoch.wrap(epoch);
     }
 
-    function unwrap(Epoch epoch) internal pure returns (uint16) {
+    function unwrap(Epoch epoch) internal pure returns (uint8) {
         return Epoch.unwrap(epoch);
     }
 
     function startTime(Epoch epoch) internal pure returns (uint256) {
-        uint16 currentEpoch = Epoch.unwrap(epoch);
+        uint8 currentEpoch = Epoch.unwrap(epoch);
         if (currentEpoch == 0) return 0;
         unchecked {
             return _epochToTimestamp(currentEpoch - 1);
@@ -46,15 +46,15 @@ library EpochLibrary {
         }
     }
 
-    function add(Epoch epoch, uint16 epochs) internal pure returns (Epoch) {
+    function add(Epoch epoch, uint8 epochs) internal pure returns (Epoch) {
         return Epoch.wrap(Epoch.unwrap(epoch) + epochs);
     }
 
-    function sub(Epoch epoch, uint16 epochs) internal pure returns (Epoch) {
+    function sub(Epoch epoch, uint8 epochs) internal pure returns (Epoch) {
         return Epoch.wrap(Epoch.unwrap(epoch) - epochs);
     }
 
-    function sub(Epoch e1, Epoch e2) internal pure returns (uint16) {
+    function sub(Epoch e1, Epoch e2) internal pure returns (uint8) {
         return Epoch.unwrap(e1) - Epoch.unwrap(e2);
     }
 
@@ -88,7 +88,7 @@ library EpochLibrary {
     // month = month + 2 - 12 * L
     // year = 100 * (N - 49) + year + L
     // ------------------------------------------------------------------------
-    function _timestampToEpoch(uint256 timestamp) private pure returns (uint16) {
+    function _timestampToEpoch(uint256 timestamp) private pure returns (uint8) {
         unchecked {
             uint256 _days = timestamp / SECONDS_PER_DAY;
             int256 __days = int256(_days);
@@ -104,12 +104,12 @@ library EpochLibrary {
             _year = 100 * (N - 49) + _year + L;
 
             uint256 epoch = uint256((_year - 1970) * 12 + _month - 1) / MONTHS_PER_EPOCH;
-            if (epoch > type(uint16).max) revert EpochOverflow();
-            return uint16(epoch);
+            if (epoch > type(uint8).max) revert EpochOverflow();
+            return uint8(epoch);
         }
     }
 
-    function _epochToTimestamp(uint16 epoch) internal pure returns (uint256) {
+    function _epochToTimestamp(uint8 epoch) internal pure returns (uint256) {
         unchecked {
             uint256 months = MONTHS_PER_EPOCH + MONTHS_PER_EPOCH * epoch;
             uint256 year = months / 12 + 1970;

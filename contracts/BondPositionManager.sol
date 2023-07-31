@@ -54,7 +54,7 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
         return _positionMap[tokenId];
     }
 
-    function mint(address asset, uint256 amount, uint16 lockEpochs, address recipient, bytes calldata data)
+    function mint(address asset, uint256 amount, uint8 lockEpochs, address recipient, bytes calldata data)
         external
         returns (uint256 tokenId)
     {
@@ -66,8 +66,8 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
         }
         Epoch currentEpoch = EpochLibrary.current();
         Coupon[] memory coupons = new Coupon[](lockEpochs);
-        for (uint16 i = 0; i < lockEpochs; ++i) {
-            coupons[i] = CouponLibrary.from(asset, currentEpoch.add(i), amount);
+        for (uint256 i = 0; i < lockEpochs; ++i) {
+            coupons[i] = CouponLibrary.from(asset, currentEpoch.add(uint8(i)), amount);
         }
         Epoch expiredWith = currentEpoch.add(lockEpochs - 1);
         if (_MAX_EPOCH.compare(expiredWith) < 0) {
