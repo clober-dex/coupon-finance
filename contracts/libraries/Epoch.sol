@@ -8,7 +8,7 @@ type Epoch is uint16;
 library EpochLibrary {
     error EpochOverflow();
 
-    uint256 internal constant MONTHS_PER_EPOCH = 1;
+    uint256 internal constant MONTHS_PER_EPOCH = 6;
     uint256 constant SECONDS_PER_DAY = 24 * 60 * 60;
     int256 constant OFFSET19700101 = 2440588;
 
@@ -111,15 +111,15 @@ library EpochLibrary {
 
     function _epochToTimestamp(uint16 epoch) internal pure returns (uint256) {
         unchecked {
-            uint256 months = MONTHS_PER_EPOCH * epoch;
+            uint256 months = MONTHS_PER_EPOCH + MONTHS_PER_EPOCH * epoch;
             uint256 year = months / 12 + 1970;
             months = (months % 12) << 4;
             if (((year % 4 == 0) && (year % 100 != 0)) || (year % 400 == 0)) {
-                // 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366
-                months = 0x016E014F0131011200F400D500B600980079005B003C001F >> months;
+                // 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366
+                months = 0x016E014F0131011200F400D500B600980079005B003C001F0000 >> months;
             } else {
-                // 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365
-                months = 0x016D014E0130011100F300D400B500970078005A003B001F >> months;
+                // 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365
+                months = 0x016D014E0130011100F300D400B500970078005A003B001F0000 >> months;
             }
             return (
                 (months & 0xffff) + 365 * (year - 1970) + (year - 1969) / 4 - (year - 1901) / 100 + (year - 1601) / 400
