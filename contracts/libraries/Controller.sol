@@ -39,11 +39,7 @@ abstract contract Controller is ERC1155Holder, Ownable {
         _weth = IWETH9(weth);
     }
 
-    function getCouponMarket(CouponKey memory couponKey) external view returns (address) {
-        return _couponMarkets[couponKey.toId()];
-    }
-
-    function setCouponMarket(CouponKey memory couponKey, address cloberMarket) external onlyOwner {
+    function _setCouponMarket(CouponKey memory couponKey, address cloberMarket) internal {
         bytes memory wrappedCouponMetadata = Wrapped1155MetadataBuilder.buildWrapped1155Metadata(couponKey);
         uint256 id = couponKey.toId();
         address wrappedCoupon = _wrapped1155Factory.getWrapped1155(address(_couponManager), id, wrappedCouponMetadata);

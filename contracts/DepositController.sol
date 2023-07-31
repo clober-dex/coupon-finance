@@ -6,12 +6,14 @@ pragma solidity ^0.8.0;
 import {IDepositController} from "./interfaces/IDepositController.sol";
 import {IBondPositionManager} from "./interfaces/IBondPositionManager.sol";
 import {BondPosition} from "./libraries/BondPosition.sol";
+import {CouponKey, CouponKeyLibrary} from "./libraries/CouponKey.sol";
 import {Coupon} from "./libraries/Coupon.sol";
 import {PermitParams} from "./libraries/PermitParams.sol";
 import {Currency, CurrencyLibrary} from "./libraries/Currency.sol";
 import {Controller} from "./libraries/Controller.sol";
 
 contract DepositController is IDepositController, Controller {
+    using CouponKeyLibrary for CouponKey;
     using CurrencyLibrary for Currency;
 
     IBondPositionManager private immutable _bondManager;
@@ -51,4 +53,12 @@ contract DepositController is IDepositController, Controller {
         Coupon[] memory couponsToBurn,
         bytes calldata data
     ) external {}
+
+    function getCouponMarket(CouponKey memory couponKey) external view returns (address) {
+        return _couponMarkets[couponKey.toId()];
+    }
+
+    function setCouponMarket(CouponKey memory couponKey, address cloberMarket) external onlyOwner {
+        return _setCouponMarket(couponKey, cloberMarket);
+    }
 }
