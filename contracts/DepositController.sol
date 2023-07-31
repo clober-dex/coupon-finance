@@ -33,14 +33,16 @@ contract DepositController is IDepositController, Controller {
     function deposit(
         Currency currency,
         uint256 amount,
-        uint16 lockEpochs,
+        uint8 lockEpochs,
         uint256 minInterestEarned,
         PermitParams calldata tokenPermitParams
     ) external payable returns (uint256 positionId) {
         _permitERC20(currency, amount, tokenPermitParams);
         bool isNative = currency.isNative();
         bytes memory data = abi.encode(msg.sender, isNative, minInterestEarned, 0);
-        positionId = _bondManager.mint(isNative ? address(_weth) : Currency.unwrap(currency), amount, lockEpochs, address(this), data);
+        positionId = _bondManager.mint(
+            isNative ? address(_weth) : Currency.unwrap(currency), amount, lockEpochs, address(this), data
+        );
         _bondManager.transferFrom(address(this), msg.sender, positionId);
         _flush(currency, msg.sender);
     }

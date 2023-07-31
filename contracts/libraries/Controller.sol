@@ -59,9 +59,7 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
         earnedAmount = currency.balanceOfSelf();
         for (uint256 i = 0; i < coupons.length; ++i) {
             CloberOrderBook market = CloberOrderBook(_couponMarkets[coupons[i].id()]);
-            market.marketOrder(
-                address(this), 0, 0, coupons[i].amount, 2, abi.encode(user, false)
-            );
+            market.marketOrder(address(this), 0, 0, coupons[i].amount, 2, abi.encode(user, false));
         }
         earnedAmount = currency.balanceOfSelf() - earnedAmount;
         if (earnedAmount < minEarnedAmount) {
@@ -69,7 +67,13 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
         }
     }
 
-    function _buyCoupons(Coupon[] memory coupons, uint256 maxAmountToPay, address user, Currency currency, bool useNative) internal {
+    function _buyCoupons(
+        Coupon[] memory coupons,
+        uint256 maxAmountToPay,
+        address user,
+        Currency currency,
+        bool useNative
+    ) internal {
         // buy
         uint256[] memory tokenIds = new uint256[](coupons.length);
         uint256[] memory amounts = new uint256[](coupons.length);
@@ -83,16 +87,10 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
             }
             amounts[i] = coupons[i].amount;
             uint256 dy = coupons[i].amount - IERC20(market.baseToken()).balanceOf(address(this));
-            market.marketOrder(
-                address(this),
-                type(uint16).max,
-                type(uint64).max,
-                dy,
-                1,
-                abi.encode(user, useNative)
-            );
+            market.marketOrder(address(this), type(uint16).max, type(uint64).max, dy, 1, abi.encode(user, useNative));
         }
-        paidAmount = paidAmount - (useNative ? address(this).balance : IERC20(Currency.unwrap(currency)).balanceOf(user));
+        paidAmount =
+            paidAmount - (useNative ? address(this).balance : IERC20(Currency.unwrap(currency)).balanceOf(user));
         if (paidAmount > maxAmountToPay) {
             revert ControllerSlippage();
         }

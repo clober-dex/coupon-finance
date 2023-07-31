@@ -11,7 +11,7 @@ interface IDepositController is IBondPositionCallbackReceiver {
     function deposit(
         Currency currency,
         uint256 amount,
-        uint16 lockEpochs,
+        uint8 lockEpochs,
         uint256 minInterestEarned,
         PermitParams calldata tokenPermitParams
     ) external payable returns (uint256);

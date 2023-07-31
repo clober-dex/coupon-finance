@@ -885,6 +885,7 @@ contract LoanPositionManagerUnitTest is
 
         LiquidationStatus memory liquidationStatus = loanPositionManager.getLiquidationStatus(tokenId, 0);
         loanPositionManager.liquidate(tokenId, 0, new bytes(0));
+        // todo: should check state
     }
 
     function testFlashLiquidation() public {

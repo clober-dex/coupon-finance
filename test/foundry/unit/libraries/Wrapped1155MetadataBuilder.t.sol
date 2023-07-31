@@ -48,7 +48,7 @@ contract Wrapped1155MetadataBuilderUnitTest is Test, ERC1155Holder {
         Coupon[] memory coupons = new Coupon[](3);
         coupons[0] = CouponLibrary.from(Constants.USDC, Epoch.wrap(11), 123);
         coupons[1] = CouponLibrary.from(Constants.WETH, Epoch.wrap(32), 123);
-        coupons[2] = CouponLibrary.from(Constants.WBTC, Epoch.wrap(1512), 4423);
+        coupons[2] = CouponLibrary.from(Constants.WBTC, Epoch.wrap(123), 4423);
 
         bytes memory metadata = Wrapped1155MetadataBuilder.buildWrapped1155BatchMetadata(coupons);
         couponManager.mintBatch(address(this), coupons, "");
@@ -71,8 +71,8 @@ contract Wrapped1155MetadataBuilderUnitTest is Test, ERC1155Holder {
         assertEq(IERC20Metadata(wrappedTokens[1]).name(), "WETH Bond Coupon (32)");
         assertEq(IERC20Metadata(wrappedTokens[1]).symbol(), "WETH-CP32");
         assertEq(IERC20Metadata(wrappedTokens[1]).decimals(), 18);
-        assertEq(IERC20Metadata(wrappedTokens[2]).name(), "WBTC Bond Coupon (1512)");
-        assertEq(IERC20Metadata(wrappedTokens[2]).symbol(), "WBTC-CP1512");
+        assertEq(IERC20Metadata(wrappedTokens[2]).name(), "WBTC Bond Coupon (123)");
+        assertEq(IERC20Metadata(wrappedTokens[2]).symbol(), "WBTC-CP123");
         assertEq(IERC20Metadata(wrappedTokens[2]).decimals(), 8);
     }
 }

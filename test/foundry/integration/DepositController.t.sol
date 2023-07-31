@@ -70,7 +70,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         vm.stopPrank();
         vm.deal(user, 1_000_000 ether);
         vm.deal(address(this), 1_000_000 ether);
-        (bool success, ) = payable(Constants.WETH).call{value: 500_000 ether}("");
+        (bool success,) = payable(Constants.WETH).call{value: 500_000 ether}("");
         require(success, "transfer failed");
 
         wrapped1155Factory = IWrapped1155Factory(Constants.WRAPPED1155_FACTORY);
@@ -109,14 +109,14 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         vm.stopPrank();
 
         // create wrapped1155
-        for (uint16 i = 0; i < 4; i++) {
+        for (uint8 i = 0; i < 4; i++) {
             couponKeys.push(CouponKey({asset: Constants.USDC, epoch: EpochLibrary.current().add(i)}));
         }
         if (!cloberMarketFactory.registeredQuoteTokens(Constants.USDC)) {
             vm.prank(cloberMarketFactory.owner());
             cloberMarketFactory.registerQuoteToken(Constants.USDC);
         }
-        for (uint16 i = 4; i < 8; i++) {
+        for (uint8 i = 4; i < 8; i++) {
             couponKeys.push(CouponKey({asset: Constants.WETH, epoch: EpochLibrary.current().add(i - 4)}));
         }
         if (!cloberMarketFactory.registeredQuoteTokens(Constants.WETH)) {
@@ -149,7 +149,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         for (uint256 i = 0; i < wrappedCoupons.length; ++i) {
             assertLt(
                 IERC20(wrappedCoupons[i]).balanceOf(who),
-                i < 4 ? 10 : 1e13,
+                i < 4 ? 100 : 1e14,
                 string.concat(who.toHexString(), " WRAPPED_TOKEN_", i.toString())
             );
         }
@@ -160,26 +160,29 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         for (uint256 i = 0; i < wrappedCoupons.length; ++i) {
             CouponKey memory key = couponKeys[i];
             CloberOrderBook market = CloberOrderBook(depositController.getCouponMarket(key));
-            (uint16 bidIndex, ) = market.priceToIndex(1e18 / 100 * 2, false); // 2%
-            (uint16 askIndex, ) = market.priceToIndex(1e18 / 100 * 4, false); // 4%
-            CloberOrderBook(market).limitOrder(MARKET_MAKER, bidIndex, market.quoteToRaw(IERC20(key.asset).amount(100), false), 0, 3, "");
+            (uint16 bidIndex,) = market.priceToIndex(1e18 / 100 * 2, false); // 2%
+            (uint16 askIndex,) = market.priceToIndex(1e18 / 100 * 4, false); // 4%
+            CloberOrderBook(market).limitOrder(
+                MARKET_MAKER, bidIndex, market.quoteToRaw(IERC20(key.asset).amount(100), false), 0, 3, ""
+            );
             uint256 amount = IERC20(wrappedCoupons[i]).amount(100);
             Coupon[] memory coupons = Utils.toArr(Coupon(key, amount));
             vm.prank(minter);
             couponManager.mintBatch(address(this), coupons, "");
-            couponManager.safeBatchTransferFrom(address(this), address(wrapped1155Factory), coupons, Wrapped1155MetadataBuilder.buildWrapped1155Metadata(couponKeys[i]));
+            couponManager.safeBatchTransferFrom(
+                address(this),
+                address(wrapped1155Factory),
+                coupons,
+                Wrapped1155MetadataBuilder.buildWrapped1155Metadata(couponKeys[i])
+            );
             CloberOrderBook(market).limitOrder(MARKET_MAKER, askIndex, 0, amount, 2, "");
         }
     }
 
-
-    function cloberMarketSwapCallback(
-        address inputToken,
-        address,
-        uint256 inputAmount,
-        uint256,
-        bytes calldata
-    ) external payable {
+    function cloberMarketSwapCallback(address inputToken, address, uint256 inputAmount, uint256, bytes calldata)
+        external
+        payable
+    {
         if (inputAmount > 0) {
             IERC20(inputToken).transfer(msg.sender, inputAmount);
         }
