@@ -6,6 +6,7 @@ import {ILoanPositionCallbackReceiver} from "./ILoanPositionCallbackReceiver.sol
 import {PermitParams} from "../libraries/PermitParams.sol";
 import {CouponKey} from "../libraries/CouponKey.sol";
 import {Currency} from "../libraries/Currency.sol";
+import {Epoch} from "../libraries/Epoch.sol";
 
 interface IBorrowController is ILoanPositionCallbackReceiver {
     function borrow(
@@ -37,7 +38,7 @@ interface IBorrowController is ILoanPositionCallbackReceiver {
 
     function adjustLoanEpochs(
         uint256 positionId,
-        uint8 loanEpochs,
+        Epoch newEpoch,
         uint256 maxDebtAmount,
         PermitParams calldata positionPermitParams
     ) external;

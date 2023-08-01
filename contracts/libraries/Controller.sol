@@ -20,8 +20,10 @@ import {CouponKey, CouponKeyLibrary} from "./CouponKey.sol";
 import {Currency, CurrencyLibrary} from "./Currency.sol";
 import {Wrapped1155MetadataBuilder} from "./Wrapped1155MetadataBuilder.sol";
 import {IERC721Permit} from "../interfaces/IERC721Permit.sol";
+import {ReentrancyGuard} from "./ReentrancyGuard.sol";
 
-abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver, Ownable {
+abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver, Ownable, ReentrancyGuard {
+    error Access();
     error InvalidMarket();
     error ControllerSlippage();
 
@@ -44,93 +46,61 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
         _weth = IWETH9(weth);
     }
 
-    function _sellCoupons(Coupon[] memory coupons, uint256 minEarnedAmount, Currency currency, address user)
-        internal
-        returns (uint256 earnedAmount)
-    {
-        // wrap 1155 to 20
-        _couponManager.safeBatchTransferFrom(
-            address(this),
-            address(_wrapped1155Factory),
-            coupons,
-            Wrapped1155MetadataBuilder.buildWrapped1155BatchMetadata(coupons)
-        );
-        // sell
-        earnedAmount = currency.balanceOfSelf();
-        for (uint256 i = 0; i < coupons.length; ++i) {
-            CloberOrderBook market = CloberOrderBook(_couponMarkets[coupons[i].id()]);
-            market.marketOrder(address(this), 0, 0, coupons[i].amount, 2, abi.encode(user, false));
+    function _callManager(Currency currency, uint256 amountToPay, uint256 earnedAmount) internal virtual;
+
+    function _sellCoupons(Currency currency, Coupon[] memory couponsToSell, uint256 amountToPay, uint256 earnedAmount) internal {
+        if (couponsToSell.length == 0) {
+            _callManager(currency, amountToPay, earnedAmount);
+            return;
         }
-        earnedAmount = currency.balanceOfSelf() - earnedAmount;
-        if (earnedAmount < minEarnedAmount) {
-            revert ControllerSlippage();
+        Coupon memory lastCoupon = couponsToSell[couponsToSell.length - 1];
+        assembly {
+            mstore(couponsToSell, sub(mload(couponsToSell), 1))
         }
+
+        CloberOrderBook market = CloberOrderBook(_couponMarkets[lastCoupon.id()]);
+        bytes memory data = abi.encode(new Coupon[](0), couponsToSell, earnedAmount);
+        market.marketOrder(address(this), 0, 0, lastCoupon.amount, 2, data);
     }
 
-    function _buyCoupons(
-        Coupon[] memory coupons,
-        uint256 maxAmountToPay,
-        address user,
-        Currency currency,
-        bool useNative
-    ) internal {
-        // buy
-        uint256[] memory tokenIds = new uint256[](coupons.length);
-        uint256[] memory amounts = new uint256[](coupons.length);
-        uint256 paidAmount = useNative ? address(this).balance : IERC20(Currency.unwrap(currency)).balanceOf(user);
-        for (uint256 i = 0; i < coupons.length; ++i) {
-            CloberOrderBook market;
-            {
-                uint256 couponId = coupons[i].id();
-                market = CloberOrderBook(_couponMarkets[couponId]);
-                tokenIds[i] = couponId;
-            }
-            amounts[i] = coupons[i].amount;
-            uint256 dy = coupons[i].amount - IERC20(market.baseToken()).balanceOf(address(this));
-            market.marketOrder(address(this), type(uint16).max, type(uint64).max, dy, 1, abi.encode(user, useNative));
+    function _buyCoupons(Currency currency, Coupon[] memory couponsToBuy, uint256 amountToPay, uint256 earnedAmount) internal {
+        if (couponsToBuy.length == 0) {
+            _callManager(currency, amountToPay, earnedAmount);
+            return;
         }
-        paidAmount =
-            paidAmount - (useNative ? address(this).balance : IERC20(Currency.unwrap(currency)).balanceOf(user));
-        if (paidAmount > maxAmountToPay) {
-            revert ControllerSlippage();
+        Coupon memory lastCoupon = couponsToBuy[couponsToBuy.length - 1];
+        assembly {
+            mstore(couponsToBuy, sub(mload(couponsToBuy), 1))
         }
 
-        // unwrap
-        _wrapped1155Factory.batchUnwrap(
-            address(_couponManager),
-            tokenIds,
-            amounts,
-            address(this),
-            Wrapped1155MetadataBuilder.buildWrapped1155BatchMetadata(coupons)
-        );
+        CloberOrderBook market = CloberOrderBook(_couponMarkets[lastCoupon.id()]);
+        bytes memory data = abi.encode(couponsToBuy, new Coupon[](0), amountToPay);
+        uint256 dy = lastCoupon.amount - IERC20(market.baseToken()).balanceOf(address(this));
+        market.marketOrder(address(this), type(uint16).max, type(uint64).max, dy, 1, data);
     }
 
-    function cloberMarketSwapCallback(address inputToken, address, uint256 inputAmount, uint256, bytes calldata data)
+    function cloberMarketSwapCallback(address inputToken, address, uint256 inputAmount, uint256 outputAmount, bytes calldata data)
         external
         payable
     {
         // check if caller is registered market
         if (_cloberMarketFactory.getMarketHost(msg.sender) == address(0)) {
-            revert("");
+            revert Access();
         }
 
-        (address payer, bool useNative) = abi.decode(data, (address, bool));
+        (Coupon[] memory buyCoupons, Coupon[] memory sellCoupons, uint256 amountToPay, uint256 earnedAmount) = abi.decode(data, (Coupon[], Coupon[], uint256, uint256));
+        Currency currency = Currency.wrap(CloberOrderBook(msg.sender).quoteToken());
+        if (buyCoupons.length > 0) {
+            _buyCoupons(currency, buyCoupons, amountToPay + inputAmount, earnedAmount);
+        } else if (sellCoupons.length > 0) {
+            _sellCoupons(currency, sellCoupons, amountToPay, earnedAmount + outputAmount);
+        } else {
+            _callManager(currency, amountToPay, earnedAmount);
+        }
 
         // transfer input tokens
         if (inputAmount > 0) {
-            if (useNative) {
-                IWETH9(inputToken).deposit{value: inputAmount}();
-                IWETH9(inputToken).transfer(msg.sender, inputAmount);
-            } else {
-                Currency inputCurrency = Currency.wrap(inputToken);
-                uint256 thisBalance = inputCurrency.balanceOfSelf();
-                if (thisBalance < inputAmount) {
-                    inputCurrency.transferFrom(payer, msg.sender, inputAmount - thisBalance);
-                    inputCurrency.transfer(msg.sender, thisBalance);
-                } else {
-                    inputCurrency.transfer(msg.sender, inputAmount);
-                }
-            }
+            Currency.wrap(inputToken).transfer(msg.sender, inputAmount);
         }
     }
 

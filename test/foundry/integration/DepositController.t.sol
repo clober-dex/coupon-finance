@@ -193,7 +193,8 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
 
         uint256 beforeBalance = usdc.balanceOf(user);
 
-        uint256 tokenId = depositController.deposit(
+        uint256 tokenId = bondPositionManager.nextId();
+        depositController.deposit(
             Currency.wrap(address(usdc)),
             amount,
             2,
@@ -221,8 +222,8 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
 
         uint256 beforeBalance = user.balance;
 
-        uint256 tokenId =
-            depositController.deposit{value: amount}(CurrencyLibrary.NATIVE, amount, 2, 0, emptyPermitParams);
+        uint256 tokenId = bondPositionManager.nextId();
+        depositController.deposit{value: amount}(Currency.wrap(Constants.WETH), amount, 2, 0, emptyPermitParams);
 
         BondPosition memory position = bondPositionManager.getPosition(tokenId);
 
@@ -241,7 +242,8 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
     function testWithdraw() public {
         vm.startPrank(user);
         uint256 amount = usdc.amount(10);
-        uint256 tokenId = depositController.deposit(
+        uint256 tokenId = bondPositionManager.nextId();
+        depositController.deposit(
             Currency.wrap(address(usdc)),
             amount,
             2,
@@ -292,8 +294,8 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
     function testWithdrawNative() public {
         vm.startPrank(user);
         uint256 amount = 10 ether;
-        uint256 tokenId =
-            depositController.deposit{value: amount}(CurrencyLibrary.NATIVE, amount, 2, 0, emptyPermitParams);
+        uint256 tokenId = bondPositionManager.nextId();
+        depositController.deposit{value: amount}(Currency.wrap(Constants.WETH), amount, 2, 0, emptyPermitParams);
 
         BondPosition memory beforePosition = bondPositionManager.getPosition(tokenId);
         uint256 beforeBalance = user.balance;
@@ -338,7 +340,8 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
     function testCollect() public {
         vm.startPrank(user);
         uint256 amount = usdc.amount(10);
-        uint256 tokenId = depositController.deposit(
+        uint256 tokenId = bondPositionManager.nextId();
+        depositController.deposit(
             Currency.wrap(address(usdc)),
             amount,
             1,
@@ -371,8 +374,8 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
     function testCollectNative() public {
         vm.startPrank(user);
         uint256 amount = 10 ether;
-        uint256 tokenId =
-            depositController.deposit{value: amount}(CurrencyLibrary.NATIVE, amount, 1, 0, emptyPermitParams);
+        uint256 tokenId = bondPositionManager.nextId();
+        depositController.deposit{value: amount}(Currency.wrap(Constants.WETH), amount, 1, 0, emptyPermitParams);
         vm.warp(EpochLibrary.current().add(1).startTime());
 
         BondPosition memory beforePosition = bondPositionManager.getPosition(tokenId);
