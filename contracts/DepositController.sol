@@ -54,8 +54,9 @@ contract DepositController is IDepositController, Controller {
             _weth.deposit{value: msg.value}();
         }
         BondPosition memory emptyPosition = BondPositionLibrary.empty(Currency.unwrap(currency));
-        BondPosition memory newPosition = BondPositionLibrary.from(Currency.unwrap(currency), EpochLibrary.current().add(lockEpochs - 1), amount);
-        (Coupon[] memory mintCoupons, ) = emptyPosition.calculateCouponRequirement(newPosition);
+        BondPosition memory newPosition =
+            BondPositionLibrary.from(Currency.unwrap(currency), EpochLibrary.current().add(lockEpochs - 1), amount);
+        (Coupon[] memory mintCoupons,) = emptyPosition.calculateCouponRequirement(newPosition);
 
         _bondManagerData = abi.encode(CallType.DEPOSIT, abi.encode(msg.sender, lockEpochs, amount, minInterestEarned));
         _sellCoupons(currency, mintCoupons, 0, 0);
@@ -66,14 +67,18 @@ contract DepositController is IDepositController, Controller {
     function _callManager(Currency currency, uint256 amountToPay, uint256 earnedAmount) internal override {
         (CallType callType, bytes memory data) = abi.decode(_bondManagerData, (CallType, bytes));
         if (callType == CallType.DEPOSIT) {
-            (address user, uint8 lockEpochs, uint256 amount, uint256 minInterestEarned) = abi.decode(data, (address, uint8, uint256, uint256));
+            (address user, uint8 lockEpochs, uint256 amount, uint256 minInterestEarned) =
+                abi.decode(data, (address, uint8, uint256, uint256));
             if (minInterestEarned > earnedAmount) {
                 revert ControllerSlippage();
             }
-            uint256 positionId = _bondManager.mint(Currency.unwrap(currency), amount, lockEpochs, address(this), abi.encode(user, earnedAmount));
+            uint256 positionId = _bondManager.mint(
+                Currency.unwrap(currency), amount, lockEpochs, address(this), abi.encode(user, earnedAmount)
+            );
             _bondManager.transferFrom(address(this), user, positionId);
         } else if (callType == CallType.WITHDRAW) {
-            (Epoch expiredWith, address user, uint256 amount, uint256 positionId, uint256 maxInterestPaid) = abi.decode(data, (Epoch, address, uint256, uint256, uint256));
+            (Epoch expiredWith, address user, uint256 amount, uint256 positionId, uint256 maxInterestPaid) =
+                abi.decode(data, (Epoch, address, uint256, uint256, uint256));
             if (maxInterestPaid < amountToPay) {
                 revert ControllerSlippage();
             }
@@ -150,7 +155,9 @@ contract DepositController is IDepositController, Controller {
         (, Coupon[] memory burnCoupons) = oldPosition.calculateCouponRequirement(newPosition);
 
         Currency currency = Currency.wrap(oldPosition.asset);
-        _bondManagerData = abi.encode(CallType.WITHDRAW, abi.encode(newPosition.expiredWith, msg.sender, amount, positionId, maxInterestPaid));
+        _bondManagerData = abi.encode(
+            CallType.WITHDRAW, abi.encode(newPosition.expiredWith, msg.sender, amount, positionId, maxInterestPaid)
+        );
         _buyCoupons(currency, burnCoupons, 0, 0);
 
         _flush(currency, msg.sender);

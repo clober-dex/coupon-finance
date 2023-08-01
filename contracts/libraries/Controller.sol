@@ -48,7 +48,9 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
 
     function _callManager(Currency currency, uint256 amountToPay, uint256 earnedAmount) internal virtual;
 
-    function _sellCoupons(Currency currency, Coupon[] memory couponsToSell, uint256 amountToPay, uint256 earnedAmount) internal {
+    function _sellCoupons(Currency currency, Coupon[] memory couponsToSell, uint256 amountToPay, uint256 earnedAmount)
+        internal
+    {
         if (couponsToSell.length == 0) {
             _callManager(currency, amountToPay, earnedAmount);
             return;
@@ -63,7 +65,9 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
         market.marketOrder(address(this), 0, 0, lastCoupon.amount, 2, data);
     }
 
-    function _buyCoupons(Currency currency, Coupon[] memory couponsToBuy, uint256 amountToPay, uint256 earnedAmount) internal {
+    function _buyCoupons(Currency currency, Coupon[] memory couponsToBuy, uint256 amountToPay, uint256 earnedAmount)
+        internal
+    {
         if (couponsToBuy.length == 0) {
             _callManager(currency, amountToPay, earnedAmount);
             return;
@@ -79,16 +83,20 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
         market.marketOrder(address(this), type(uint16).max, type(uint64).max, dy, 1, data);
     }
 
-    function cloberMarketSwapCallback(address inputToken, address, uint256 inputAmount, uint256 outputAmount, bytes calldata data)
-        external
-        payable
-    {
+    function cloberMarketSwapCallback(
+        address inputToken,
+        address,
+        uint256 inputAmount,
+        uint256 outputAmount,
+        bytes calldata data
+    ) external payable {
         // check if caller is registered market
         if (_cloberMarketFactory.getMarketHost(msg.sender) == address(0)) {
             revert Access();
         }
 
-        (Coupon[] memory buyCoupons, Coupon[] memory sellCoupons, uint256 amountToPay, uint256 earnedAmount) = abi.decode(data, (Coupon[], Coupon[], uint256, uint256));
+        (Coupon[] memory buyCoupons, Coupon[] memory sellCoupons, uint256 amountToPay, uint256 earnedAmount) =
+            abi.decode(data, (Coupon[], Coupon[], uint256, uint256));
         Currency currency = Currency.wrap(CloberOrderBook(msg.sender).quoteToken());
         if (buyCoupons.length > 0) {
             _buyCoupons(currency, buyCoupons, amountToPay + inputAmount, earnedAmount);
