@@ -351,7 +351,10 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         BondPosition memory beforePosition = bondPositionManager.getPosition(tokenId);
         uint256 beforeBalance = usdc.balanceOf(user);
 
-        depositController.collect(tokenId, _buildERC721PermitParams(1, IERC721Permit(bondPositionManager), address(depositController), tokenId));
+        depositController.collect(
+            tokenId,
+            _buildERC721PermitParams(1, IERC721Permit(bondPositionManager), address(depositController), tokenId)
+        );
 
         BondPosition memory afterPosition = bondPositionManager.getPosition(tokenId);
 
@@ -369,13 +372,17 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
     function testCollectNative() public {
         vm.startPrank(user);
         uint256 amount = 10 ether;
-        uint256 tokenId = depositController.deposit{value: amount}(CurrencyLibrary.NATIVE, amount, 1, 0, emptyPermitParams);
+        uint256 tokenId =
+            depositController.deposit{value: amount}(CurrencyLibrary.NATIVE, amount, 1, 0, emptyPermitParams);
         vm.warp(EpochLibrary.current().add(1).startTime());
 
         BondPosition memory beforePosition = bondPositionManager.getPosition(tokenId);
         uint256 beforeBalance = user.balance;
 
-        depositController.collect(tokenId, _buildERC721PermitParams(1, IERC721Permit(bondPositionManager), address(depositController), tokenId));
+        depositController.collect(
+            tokenId,
+            _buildERC721PermitParams(1, IERC721Permit(bondPositionManager), address(depositController), tokenId)
+        );
 
         BondPosition memory afterPosition = bondPositionManager.getPosition(tokenId);
 
