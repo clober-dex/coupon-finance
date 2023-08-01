@@ -4,15 +4,17 @@ pragma solidity ^0.8.0;
 
 import {ILoanPositionCallbackReceiver} from "./ILoanPositionCallbackReceiver.sol";
 import {PermitParams} from "../libraries/PermitParams.sol";
+import {CouponKey} from "../libraries/CouponKey.sol";
+import {Currency} from "../libraries/Currency.sol";
 
 interface IBorrowController is ILoanPositionCallbackReceiver {
     function borrow(
-        address collateralToken,
-        address debtToken,
+        Currency collateralToken,
+        Currency debtToken,
         uint256 collateralAmount,
         uint256 borrowAmount,
         uint256 maxDebtAmount,
-        uint16 loanEpochs,
+        uint8 loanEpochs,
         PermitParams calldata collateralPermitParams
     ) external returns (uint256);
 
@@ -35,7 +37,7 @@ interface IBorrowController is ILoanPositionCallbackReceiver {
 
     function adjustLoanEpochs(
         uint256 positionId,
-        uint16 loanEpochs,
+        uint8 loanEpochs,
         uint256 maxDebtAmount,
         PermitParams calldata positionPermitParams
     ) external;
@@ -55,4 +57,8 @@ interface IBorrowController is ILoanPositionCallbackReceiver {
         bytes calldata swapData,
         PermitParams calldata positionPermitParams
     ) external;
+
+    function getCouponMarket(CouponKey memory couponKey) external view returns (address);
+
+    function setCouponMarket(CouponKey memory couponKey, address cloberMarket) external;
 }
