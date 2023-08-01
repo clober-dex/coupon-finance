@@ -17,7 +17,6 @@ import {Constants} from "../Constants.sol";
 import {ForkUtils, ERC20Utils, Utils} from "../Utils.sol";
 import {IAssetPool} from "../../../contracts/interfaces/IAssetPool.sol";
 import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
-import {IDepositController} from "../../../contracts/interfaces/IDepositController.sol";
 import {IERC721Permit} from "../../../contracts/interfaces/IERC721Permit.sol";
 import {IBondPositionManager} from "../../../contracts/interfaces/IBondPositionManager.sol";
 import {PermitParams} from "../../../contracts/libraries/PermitParams.sol";
@@ -47,7 +46,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
 
     IAssetPool public assetPool;
-    IDepositController public depositController;
+    DepositController public depositController;
     IBondPositionManager public bondPositionManager;
     IWrapped1155Factory public wrapped1155Factory;
     ICouponManager public couponManager;

@@ -57,8 +57,4 @@ interface IBorrowController is ILoanPositionCallbackReceiver {
         bytes calldata swapData,
         PermitParams calldata positionPermitParams
     ) external;
-
-    function getCouponMarket(CouponKey memory couponKey) external view returns (address);
-
-    function setCouponMarket(CouponKey memory couponKey, address cloberMarket) external;
 }

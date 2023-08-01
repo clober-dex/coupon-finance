@@ -100,12 +100,8 @@ contract DepositController is IDepositController, Controller {
         }
     }
 
-    function getCouponMarket(CouponKey memory couponKey) external view returns (address) {
-        return _couponMarkets[couponKey.toId()];
-    }
-
-    function setCouponMarket(CouponKey memory couponKey, address cloberMarket) external onlyOwner {
+    function setCouponMarket(CouponKey memory couponKey, address cloberMarket) public override onlyOwner {
         Currency.wrap(couponKey.asset).approve(address(_bondManager), type(uint256).max);
-        return _setCouponMarket(couponKey, cloberMarket);
+        super.setCouponMarket(couponKey, cloberMarket);
     }
 }
