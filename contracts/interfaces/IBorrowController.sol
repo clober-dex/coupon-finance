@@ -17,12 +17,12 @@ interface IBorrowController is ILoanPositionCallbackReceiver {
         uint256 maxDebtAmount,
         uint8 loanEpochs,
         PermitParams calldata collateralPermitParams
-    ) external returns (uint256);
+    ) external payable;
 
     function borrowMore(
         uint256 positionId,
         uint256 amount,
-        uint256 maxDebtIncreaseAmount,
+        uint256 maxDebtAmount,
         PermitParams calldata positionPermitParams
     ) external;
 
@@ -53,7 +53,7 @@ interface IBorrowController is ILoanPositionCallbackReceiver {
 
     function repayWithCollateral(
         uint256 positionId,
-        uint256 repayAmount,
+        uint256 collateralAmount,
         uint256 minEarnedInterest,
         bytes calldata swapData,
         PermitParams calldata positionPermitParams

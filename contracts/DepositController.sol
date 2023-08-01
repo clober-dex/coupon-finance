@@ -23,6 +23,8 @@ contract DepositController is IDepositController, Controller {
     using CouponLibrary for Coupon;
     using CurrencyLibrary for Currency;
 
+    bytes private constant _EMPTY_BYTES = "E";
+
     IBondPositionManager private immutable _bondManager;
 
     enum CallType {
@@ -40,6 +42,7 @@ contract DepositController is IDepositController, Controller {
         address bondManager
     ) Controller(wrapped1155Factory, cloberMarketFactory, couponManager, weth) {
         _bondManager = IBondPositionManager(bondManager);
+        _bondManagerData = _EMPTY_BYTES;
     }
 
     function deposit(
@@ -48,11 +51,8 @@ contract DepositController is IDepositController, Controller {
         uint8 lockEpochs,
         uint256 minInterestEarned,
         PermitParams calldata tokenPermitParams
-    ) external payable nonReentrant {
+    ) external payable nonReentrant wrapETH {
         _permitERC20(currency, amount, tokenPermitParams);
-        if (msg.value > 0) {
-            _weth.deposit{value: msg.value}();
-        }
         BondPosition memory emptyPosition = BondPositionLibrary.empty(Currency.unwrap(currency));
         BondPosition memory newPosition =
             BondPositionLibrary.from(Currency.unwrap(currency), EpochLibrary.current().add(lockEpochs - 1), amount);
@@ -60,6 +60,7 @@ contract DepositController is IDepositController, Controller {
 
         _bondManagerData = abi.encode(CallType.DEPOSIT, abi.encode(msg.sender, lockEpochs, amount, minInterestEarned));
         _execute(currency, new Coupon[](0), mintCoupons, 0, 0);
+        _bondManagerData = _EMPTY_BYTES;
 
         _flush(currency, msg.sender);
     }
@@ -95,45 +96,17 @@ contract DepositController is IDepositController, Controller {
         Coupon[] memory couponsToBurn,
         bytes calldata data
     ) external {
-        if (msg.sender != address(_bondManager)) {
-            revert Access();
-        }
+        if (msg.sender != address(_bondManager)) revert Access();
         (address user) = abi.decode(data, (address));
         Currency currency = Currency.wrap(newPosition.asset);
 
-        if (couponsToBurn.length > 0) {
-            uint256[] memory tokenIds = new uint256[](couponsToBurn.length);
-            uint256[] memory amounts = new uint256[](couponsToBurn.length);
-            for (uint256 i = 0; i < couponsToBurn.length; i++) {
-                tokenIds[i] = couponsToBurn[i].id();
-                amounts[i] = couponsToBurn[i].amount;
-            }
-            _wrapped1155Factory.batchUnwrap(
-                address(_couponManager),
-                tokenIds,
-                amounts,
-                address(this),
-                Wrapped1155MetadataBuilder.buildWrapped1155BatchMetadata(couponsToBurn)
-            );
-        }
+        if (couponsToBurn.length > 0) _unwrapCoupons(couponsToBurn);
 
         if (oldPosition.amount < newPosition.amount) {
-            uint256 thisBalance = currency.balanceOfSelf();
-            uint256 amountNeeded = newPosition.amount - oldPosition.amount;
-            if (amountNeeded > thisBalance) {
-                currency.transferFrom(user, address(this), amountNeeded - thisBalance);
-            }
+            _ensureBalance(currency, user, newPosition.amount - oldPosition.amount);
         }
 
-        if (couponsMinted.length > 0) {
-            // wrap 1155 to 20
-            _couponManager.safeBatchTransferFrom(
-                address(this),
-                address(_wrapped1155Factory),
-                couponsMinted,
-                Wrapped1155MetadataBuilder.buildWrapped1155BatchMetadata(couponsMinted)
-            );
-        }
+        if (couponsMinted.length > 0) _wrapCoupons(couponsMinted);
     }
 
     function withdraw(
@@ -141,7 +114,7 @@ contract DepositController is IDepositController, Controller {
         uint256 withdrawAmount,
         uint256 maxInterestPaid,
         PermitParams calldata positionPermitParams
-    ) external {
+    ) external nonReentrant {
         _permitERC721(IERC721Permit(_bondManager), positionId, positionPermitParams);
         BondPosition memory oldPosition = _bondManager.getPosition(positionId);
         uint256 amount = oldPosition.amount - withdrawAmount;
@@ -158,11 +131,12 @@ contract DepositController is IDepositController, Controller {
             CallType.WITHDRAW, abi.encode(newPosition.expiredWith, msg.sender, amount, positionId, maxInterestPaid)
         );
         _execute(currency, burnCoupons, new Coupon[](0), 0, 0);
+        _bondManagerData = _EMPTY_BYTES;
 
         _flush(currency, msg.sender);
     }
 
-    function collect(uint256 positionId, PermitParams calldata positionPermitParams) external {
+    function collect(uint256 positionId, PermitParams calldata positionPermitParams) external nonReentrant {
         _permitERC721(IERC721Permit(_bondManager), positionId, positionPermitParams);
         Currency currency = Currency.wrap(_bondManager.getPosition(positionId).asset);
         _bondManager.burnExpiredPosition(positionId);
