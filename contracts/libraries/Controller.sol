@@ -48,39 +48,35 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
 
     function _callManager(Currency currency, uint256 amountToPay, uint256 earnedAmount) internal virtual;
 
-    function _sellCoupons(Currency currency, Coupon[] memory couponsToSell, uint256 amountToPay, uint256 earnedAmount)
-        internal
-    {
-        if (couponsToSell.length == 0) {
+    function _execute(
+        Currency currency,
+        Coupon[] memory couponsToBuy,
+        Coupon[] memory couponsToSell,
+        uint256 amountToPay,
+        uint256 earnedAmount
+    ) internal {
+        if (couponsToBuy.length > 0) {
+            Coupon memory lastCoupon = couponsToBuy[couponsToBuy.length - 1];
+            assembly {
+                mstore(couponsToBuy, sub(mload(couponsToBuy), 1))
+            }
+
+            CloberOrderBook market = CloberOrderBook(_couponMarkets[lastCoupon.id()]);
+            bytes memory data = abi.encode(couponsToBuy, new Coupon[](0), amountToPay);
+            uint256 dy = lastCoupon.amount - IERC20(market.baseToken()).balanceOf(address(this));
+            market.marketOrder(address(this), type(uint16).max, type(uint64).max, dy, 1, data);
+        } else if (couponsToSell.length > 0) {
+            Coupon memory lastCoupon = couponsToSell[couponsToSell.length - 1];
+            assembly {
+                mstore(couponsToSell, sub(mload(couponsToSell), 1))
+            }
+
+            CloberOrderBook market = CloberOrderBook(_couponMarkets[lastCoupon.id()]);
+            bytes memory data = abi.encode(new Coupon[](0), couponsToSell, earnedAmount);
+            market.marketOrder(address(this), 0, 0, lastCoupon.amount, 2, data);
+        } else {
             _callManager(currency, amountToPay, earnedAmount);
-            return;
         }
-        Coupon memory lastCoupon = couponsToSell[couponsToSell.length - 1];
-        assembly {
-            mstore(couponsToSell, sub(mload(couponsToSell), 1))
-        }
-
-        CloberOrderBook market = CloberOrderBook(_couponMarkets[lastCoupon.id()]);
-        bytes memory data = abi.encode(new Coupon[](0), couponsToSell, earnedAmount);
-        market.marketOrder(address(this), 0, 0, lastCoupon.amount, 2, data);
-    }
-
-    function _buyCoupons(Currency currency, Coupon[] memory couponsToBuy, uint256 amountToPay, uint256 earnedAmount)
-        internal
-    {
-        if (couponsToBuy.length == 0) {
-            _callManager(currency, amountToPay, earnedAmount);
-            return;
-        }
-        Coupon memory lastCoupon = couponsToBuy[couponsToBuy.length - 1];
-        assembly {
-            mstore(couponsToBuy, sub(mload(couponsToBuy), 1))
-        }
-
-        CloberOrderBook market = CloberOrderBook(_couponMarkets[lastCoupon.id()]);
-        bytes memory data = abi.encode(couponsToBuy, new Coupon[](0), amountToPay);
-        uint256 dy = lastCoupon.amount - IERC20(market.baseToken()).balanceOf(address(this));
-        market.marketOrder(address(this), type(uint16).max, type(uint64).max, dy, 1, data);
     }
 
     function cloberMarketSwapCallback(
@@ -97,14 +93,15 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
 
         (Coupon[] memory buyCoupons, Coupon[] memory sellCoupons, uint256 amountToPay, uint256 earnedAmount) =
             abi.decode(data, (Coupon[], Coupon[], uint256, uint256));
-        Currency currency = Currency.wrap(CloberOrderBook(msg.sender).quoteToken());
-        if (buyCoupons.length > 0) {
-            _buyCoupons(currency, buyCoupons, amountToPay + inputAmount, earnedAmount);
-        } else if (sellCoupons.length > 0) {
-            _sellCoupons(currency, sellCoupons, amountToPay, earnedAmount + outputAmount);
+
+        address asset = CloberOrderBook(msg.sender).quoteToken();
+        if (asset == inputToken) {
+            amountToPay += inputAmount;
         } else {
-            _callManager(currency, amountToPay, earnedAmount);
+            earnedAmount += outputAmount;
         }
+
+        _execute(Currency.wrap(asset), buyCoupons, sellCoupons, amountToPay, earnedAmount);
 
         // transfer input tokens
         if (inputAmount > 0) {
