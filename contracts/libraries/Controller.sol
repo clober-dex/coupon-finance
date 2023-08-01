@@ -4,6 +4,7 @@
 pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
@@ -17,7 +18,6 @@ import {ICouponManager} from "../interfaces/ICouponManager.sol";
 import {PermitParams, PermitParamsLibrary} from "./PermitParams.sol";
 import {Coupon, CouponLibrary} from "./Coupon.sol";
 import {CouponKey, CouponKeyLibrary} from "./CouponKey.sol";
-import {Currency, CurrencyLibrary} from "./Currency.sol";
 import {Wrapped1155MetadataBuilder} from "./Wrapped1155MetadataBuilder.sol";
 import {IERC721Permit} from "../interfaces/IERC721Permit.sol";
 import {ReentrancyGuard} from "./ReentrancyGuard.sol";
@@ -27,7 +27,7 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
     error InvalidMarket();
     error ControllerSlippage();
 
-    using CurrencyLibrary for Currency;
+    using SafeERC20 for IERC20;
     using PermitParamsLibrary for PermitParams;
     using CouponKeyLibrary for CouponKey;
     using CouponLibrary for Coupon;
@@ -53,10 +53,10 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
         _;
     }
 
-    function _callManager(Currency currency, uint256 amountToPay, uint256 earnedAmount) internal virtual;
+    function _callManager(address token, uint256 amountToPay, uint256 earnedAmount) internal virtual;
 
     function _execute(
-        Currency currency,
+        address token,
         Coupon[] memory couponsToBuy,
         Coupon[] memory couponsToSell,
         uint256 amountToPay,
@@ -82,7 +82,7 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
             bytes memory data = abi.encode(new Coupon[](0), couponsToSell, earnedAmount);
             market.marketOrder(address(this), 0, 0, lastCoupon.amount, 2, data);
         } else {
-            _callManager(currency, amountToPay, earnedAmount);
+            _callManager(token, amountToPay, earnedAmount);
         }
     }
 
@@ -108,17 +108,17 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
             earnedAmount += outputAmount;
         }
 
-        _execute(Currency.wrap(asset), buyCoupons, sellCoupons, amountToPay, earnedAmount);
+        _execute(asset, buyCoupons, sellCoupons, amountToPay, earnedAmount);
 
         // transfer input tokens
         if (inputAmount > 0) {
-            Currency.wrap(inputToken).transfer(msg.sender, inputAmount);
+            IERC20(inputToken).safeTransfer(msg.sender, inputAmount);
         }
     }
 
-    function _permitERC20(Currency currency, uint256 amount, PermitParams calldata p) internal {
+    function _permitERC20(address token, uint256 amount, PermitParams calldata p) internal {
         if (!p.isEmpty()) {
-            IERC20Permit(currency.unwrap()).permit(msg.sender, address(this), amount, p.deadline, p.v, p.r, p.s);
+            IERC20Permit(token).permit(msg.sender, address(this), amount, p.deadline, p.v, p.r, p.s);
         }
     }
 
@@ -128,20 +128,22 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
         }
     }
 
-    function _flush(Currency currency, address to) internal {
-        uint256 leftAmount = currency.balanceOfSelf();
+    function _flush(address token, address to) internal {
+        uint256 leftAmount = IERC20(token).balanceOf(address(this));
         if (leftAmount == 0) return;
-        if (currency.unwrap() == address(_weth)) {
+        if (token == address(_weth)) {
             _weth.withdraw(leftAmount);
-            currency = CurrencyLibrary.NATIVE;
+            (bool success,) = payable(to).call{value: leftAmount}("");
+            require(success, "Value transfer failed");
+        } else {
+            IERC20(token).safeTransfer(to, leftAmount);
         }
-        currency.transfer(to, leftAmount);
     }
 
-    function _ensureBalance(Currency currency, address user, uint256 amount) internal {
-        uint256 thisBalance = currency.balanceOfSelf();
+    function _ensureBalance(address token, address user, uint256 amount) internal {
+        uint256 thisBalance = IERC20(token).balanceOf(address(this));
         if (amount > thisBalance) {
-            currency.transferFrom(user, address(this), amount - thisBalance);
+            IERC20(token).safeTransferFrom(user, address(this), amount - thisBalance);
         }
     }
 

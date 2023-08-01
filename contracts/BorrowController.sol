@@ -3,6 +3,9 @@
 
 pragma solidity ^0.8.0;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
 import {IWETH9} from "./external/weth/IWETH9.sol";
 import {IERC721Permit} from "./interfaces/IERC721Permit.sol";
 import {IBorrowController} from "./interfaces/IBorrowController.sol";
@@ -12,13 +15,12 @@ import {CouponKey, CouponKeyLibrary} from "./libraries/CouponKey.sol";
 import {Coupon} from "./libraries/Coupon.sol";
 import {Epoch, EpochLibrary} from "./libraries/Epoch.sol";
 import {PermitParams} from "./libraries/PermitParams.sol";
-import {Currency, CurrencyLibrary} from "./libraries/Currency.sol";
 import {Controller} from "./libraries/Controller.sol";
 
 contract BorrowController is IBorrowController, Controller {
+    using SafeERC20 for IERC20;
     using LoanPositionLibrary for LoanPosition;
     using CouponKeyLibrary for CouponKey;
-    using CurrencyLibrary for Currency;
     using EpochLibrary for Epoch;
 
     bytes private constant _EMPTY_BYTES = "E";
@@ -47,35 +49,30 @@ contract BorrowController is IBorrowController, Controller {
     }
 
     function borrow(
-        Currency collateralCurrency,
-        Currency debtCurrency,
+        address collateralToken,
+        address debtToken,
         uint256 collateralAmount,
         uint256 borrowAmount,
         uint256 maxDebtAmount,
         uint8 loanEpochs,
         PermitParams calldata collateralPermitParams
     ) external payable nonReentrant wrapETH {
-        _permitERC20(collateralCurrency, collateralAmount, collateralPermitParams);
-        LoanPosition memory emptyPosition =
-            LoanPositionLibrary.empty(Currency.unwrap(collateralCurrency), Currency.unwrap(debtCurrency));
+        _permitERC20(collateralToken, collateralAmount, collateralPermitParams);
+        LoanPosition memory emptyPosition = LoanPositionLibrary.empty(collateralToken, debtToken);
         LoanPosition memory newPosition = LoanPositionLibrary.from(
-            EpochLibrary.current().add(loanEpochs - 1),
-            Currency.unwrap(collateralCurrency),
-            Currency.unwrap(debtCurrency),
-            collateralAmount,
-            borrowAmount
+            EpochLibrary.current().add(loanEpochs - 1), collateralToken, debtToken, collateralAmount, borrowAmount
         );
         (Coupon[] memory couponsToPay,) = emptyPosition.calculateCouponRequirement(newPosition);
 
         _loanManagerData = abi.encode(
             CallType.MINT,
-            abi.encode(msg.sender, loanEpochs, collateralCurrency, collateralAmount, borrowAmount, maxDebtAmount)
+            abi.encode(msg.sender, loanEpochs, collateralToken, collateralAmount, borrowAmount, maxDebtAmount)
         );
-        _execute(debtCurrency, couponsToPay, new Coupon[](0), 0, 0);
+        _execute(debtToken, couponsToPay, new Coupon[](0), 0, 0);
         _loanManagerData = _EMPTY_BYTES;
 
-        _flush(collateralCurrency, msg.sender);
-        _flush(debtCurrency, msg.sender);
+        _flush(collateralToken, msg.sender);
+        _flush(debtToken, msg.sender);
     }
 
     function borrowMore(
@@ -89,7 +86,7 @@ contract BorrowController is IBorrowController, Controller {
         LoanPosition memory newPosition = oldPosition.clone();
         newPosition.debtAmount += amount;
         _adjustPosition(CallType.INCREASE_DEBT, positionId, oldPosition, newPosition, maxDebtAmount);
-        _flush(Currency.wrap(oldPosition.debtToken), msg.sender);
+        _flush(oldPosition.debtToken, msg.sender);
     }
 
     function addCollateral(
@@ -100,8 +97,7 @@ contract BorrowController is IBorrowController, Controller {
     ) external payable nonReentrant wrapETH {
         _permitERC721(_loanManager, positionId, positionPermitParams);
         LoanPosition memory position = _loanManager.getPosition(positionId);
-        Currency collateral = Currency.wrap(position.collateralToken);
-        _permitERC20(collateral, amount, collateralPermitParams);
+        _permitERC20(position.collateralToken, amount, collateralPermitParams);
         _loanManager.adjustPosition(
             positionId,
             position.collateralAmount + amount,
@@ -124,7 +120,7 @@ contract BorrowController is IBorrowController, Controller {
             position.expiredWith,
             abi.encode(msg.sender)
         );
-        _flush(Currency.wrap(position.collateralToken), msg.sender);
+        _flush(position.collateralToken, msg.sender);
     }
 
     function adjustLoanEpochs(
@@ -151,10 +147,9 @@ contract BorrowController is IBorrowController, Controller {
         LoanPosition memory oldPosition = _loanManager.getPosition(positionId);
         LoanPosition memory newPosition = oldPosition.clone();
         newPosition.debtAmount -= amount;
-        Currency debt = Currency.wrap(oldPosition.debtToken);
-        _permitERC20(debt, amount, debtPermitParams);
+        _permitERC20(oldPosition.debtToken, amount, debtPermitParams);
         _adjustPosition(CallType.DECREASE_DEBT, positionId, oldPosition, newPosition, minEarnedInterest);
-        _flush(debt, msg.sender);
+        _flush(oldPosition.debtToken, msg.sender);
     }
 
     function repayWithCollateral(
@@ -174,7 +169,7 @@ contract BorrowController is IBorrowController, Controller {
         newPosition.debtAmount = maxDebtAmount;
         _adjustPosition(CallType.DECREASE_DEBT, positionId, oldPosition, newPosition, 0);
 
-        uint256 leftDebt = Currency.wrap(newPosition.debtToken).balanceOfSelf();
+        uint256 leftDebt = IERC20(newPosition.debtToken).balanceOf(address(this));
         if (leftDebt > 0) {
             _loanManager.adjustPosition(
                 positionId,
@@ -186,12 +181,12 @@ contract BorrowController is IBorrowController, Controller {
         }
     }
 
-    function _swapCollateral(Currency debt) internal {
-        uint256 beforeBalance = debt.balanceOfSelf();
+    function _swapCollateral(address debtToken) internal {
+        uint256 beforeBalance = IERC20(debtToken).balanceOf(address(this));
         (address swap, uint256 minOutAmount, bytes memory data) = abi.decode(_swapData, (address, uint256, bytes));
         (bool success, bytes memory result) = swap.call(data);
         require(success, string(result));
-        if (minOutAmount > debt.balanceOfSelf() - beforeBalance) {
+        if (minOutAmount > IERC20(debtToken).balanceOf(address(this)) - beforeBalance) {
             revert ControllerSlippage();
         }
         _swapData = _EMPTY_BYTES;
@@ -217,7 +212,7 @@ contract BorrowController is IBorrowController, Controller {
                 positionId
             )
         );
-        _execute(Currency.wrap(oldPosition.debtToken), couponsToPay, couponsToRefund, 0, 0);
+        _execute(oldPosition.debtToken, couponsToPay, couponsToRefund, 0, 0);
         _loanManagerData = _EMPTY_BYTES;
     }
 
@@ -240,7 +235,7 @@ contract BorrowController is IBorrowController, Controller {
                 positionId
             )
         );
-        _execute(Currency.wrap(oldPosition.debtToken), couponsToPay, couponsToRefund, 0, 0);
+        _execute(oldPosition.debtToken, couponsToPay, couponsToRefund, 0, 0);
         _loanManagerData = _EMPTY_BYTES;
     }
 
@@ -263,31 +258,25 @@ contract BorrowController is IBorrowController, Controller {
                 positionId
             )
         );
-        _execute(Currency.wrap(oldPosition.debtToken), couponsToPay, couponsToRefund, 0, 0);
+        _execute(oldPosition.debtToken, couponsToPay, couponsToRefund, 0, 0);
         _loanManagerData = _EMPTY_BYTES;
     }
 
-    function _callManager(Currency debtCurrency, uint256 amountToPay, uint256 earnedAmount) internal override {
+    function _callManager(address debtToken, uint256 amountToPay, uint256 earnedAmount) internal override {
         (CallType callType, bytes memory data) = abi.decode(_loanManagerData, (CallType, bytes));
         if (callType == CallType.MINT) {
             (
                 address user,
                 uint8 loanEpochs,
-                Currency collateralCurrency,
+                address collateralToken,
                 uint256 collateralAmount,
                 uint256 debtAmount,
                 uint256 maxDebtAmount
-            ) = abi.decode(data, (address, uint8, Currency, uint256, uint256, uint256));
+            ) = abi.decode(data, (address, uint8, address, uint256, uint256, uint256));
             debtAmount += amountToPay;
             if (debtAmount > maxDebtAmount) revert ControllerSlippage();
             uint256 positionId = _loanManager.mint(
-                Currency.unwrap(collateralCurrency),
-                Currency.unwrap(debtCurrency),
-                collateralAmount,
-                debtAmount,
-                loanEpochs,
-                address(this),
-                abi.encode(user)
+                collateralToken, debtToken, collateralAmount, debtAmount, loanEpochs, address(this), abi.encode(user)
             );
             _loanManager.transferFrom(address(this), user, positionId);
         } else if (callType == CallType.INCREASE_DEBT) {
@@ -328,26 +317,26 @@ contract BorrowController is IBorrowController, Controller {
     ) external {
         if (msg.sender != address(_loanManager)) revert Access();
         (address user) = abi.decode(data, (address));
-        Currency collateral = Currency.wrap(newPosition.collateralToken);
-        Currency debt = Currency.wrap(newPosition.debtToken);
 
         if (couponsRefunded.length > 0) _wrapCoupons(couponsRefunded);
 
         if (_swapData.length > _EMPTY_BYTES.length) {
-            _swapCollateral(debt);
+            _swapCollateral(newPosition.debtToken);
         }
 
         if (oldPosition.debtAmount > newPosition.debtAmount) {
-            _ensureBalance(debt, user, oldPosition.debtAmount - newPosition.debtAmount);
+            _ensureBalance(newPosition.debtToken, user, oldPosition.debtAmount - newPosition.debtAmount);
         }
         if (oldPosition.collateralAmount < newPosition.collateralAmount) {
-            _ensureBalance(collateral, user, newPosition.collateralAmount - oldPosition.collateralAmount);
+            _ensureBalance(
+                newPosition.collateralToken, user, newPosition.collateralAmount - oldPosition.collateralAmount
+            );
         }
 
         if (couponsToPay.length > 0) _unwrapCoupons(couponsToPay);
     }
 
-    function setCollateralAllowance(Currency collateral) external onlyOwner {
-        collateral.approve(address(_loanManager), type(uint256).max);
+    function setCollateralAllowance(address collateralToken) external onlyOwner {
+        IERC20(collateralToken).approve(address(_loanManager), type(uint256).max);
     }
 }

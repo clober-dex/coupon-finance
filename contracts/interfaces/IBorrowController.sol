@@ -5,13 +5,12 @@ pragma solidity ^0.8.0;
 import {ILoanPositionCallbackReceiver} from "./ILoanPositionCallbackReceiver.sol";
 import {PermitParams} from "../libraries/PermitParams.sol";
 import {CouponKey} from "../libraries/CouponKey.sol";
-import {Currency} from "../libraries/Currency.sol";
 import {Epoch} from "../libraries/Epoch.sol";
 
 interface IBorrowController is ILoanPositionCallbackReceiver {
     function borrow(
-        Currency collateralToken,
-        Currency debtToken,
+        address collateralToken,
+        address debtToken,
         uint256 collateralAmount,
         uint256 borrowAmount,
         uint256 maxDebtAmount,

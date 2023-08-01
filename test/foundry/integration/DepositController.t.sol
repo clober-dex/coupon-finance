@@ -20,7 +20,6 @@ import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
 import {IERC721Permit} from "../../../contracts/interfaces/IERC721Permit.sol";
 import {IBondPositionManager} from "../../../contracts/interfaces/IBondPositionManager.sol";
 import {PermitParams} from "../../../contracts/libraries/PermitParams.sol";
-import {Currency, CurrencyLibrary} from "../../../contracts/libraries/Currency.sol";
 import {Coupon, CouponLibrary} from "../../../contracts/libraries/Coupon.sol";
 import {CouponKey, CouponKeyLibrary} from "../../../contracts/libraries/CouponKey.sol";
 import {Epoch, EpochLibrary} from "../../../contracts/libraries/Epoch.sol";
@@ -195,7 +194,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
 
         uint256 tokenId = bondPositionManager.nextId();
         depositController.deposit(
-            Currency.wrap(address(usdc)),
+            address(usdc),
             amount,
             2,
             0,
@@ -223,7 +222,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         uint256 beforeBalance = user.balance;
 
         uint256 tokenId = bondPositionManager.nextId();
-        depositController.deposit{value: amount}(Currency.wrap(Constants.WETH), amount, 2, 0, emptyPermitParams);
+        depositController.deposit{value: amount}(Constants.WETH, amount, 2, 0, emptyPermitParams);
 
         BondPosition memory position = bondPositionManager.getPosition(tokenId);
 
@@ -244,7 +243,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         uint256 amount = usdc.amount(10);
         uint256 tokenId = bondPositionManager.nextId();
         depositController.deposit(
-            Currency.wrap(address(usdc)),
+            address(usdc),
             amount,
             2,
             0,
@@ -295,7 +294,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         vm.startPrank(user);
         uint256 amount = 10 ether;
         uint256 tokenId = bondPositionManager.nextId();
-        depositController.deposit{value: amount}(Currency.wrap(Constants.WETH), amount, 2, 0, emptyPermitParams);
+        depositController.deposit{value: amount}(Constants.WETH, amount, 2, 0, emptyPermitParams);
 
         BondPosition memory beforePosition = bondPositionManager.getPosition(tokenId);
         uint256 beforeBalance = user.balance;
@@ -342,7 +341,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         uint256 amount = usdc.amount(10);
         uint256 tokenId = bondPositionManager.nextId();
         depositController.deposit(
-            Currency.wrap(address(usdc)),
+            address(usdc),
             amount,
             1,
             0,
@@ -375,7 +374,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         vm.startPrank(user);
         uint256 amount = 10 ether;
         uint256 tokenId = bondPositionManager.nextId();
-        depositController.deposit{value: amount}(Currency.wrap(Constants.WETH), amount, 1, 0, emptyPermitParams);
+        depositController.deposit{value: amount}(Constants.WETH, amount, 1, 0, emptyPermitParams);
         vm.warp(EpochLibrary.current().add(1).startTime());
 
         BondPosition memory beforePosition = bondPositionManager.getPosition(tokenId);
