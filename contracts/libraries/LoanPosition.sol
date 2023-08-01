@@ -19,13 +19,14 @@ struct LoanPosition {
 
 library LoanPositionLibrary {
     error UnmatchedPosition();
+    error InvalidPositionEpoch();
 
     using EpochLibrary for Epoch;
 
-    function empty(address collateralToken, address debtToken) internal pure returns (LoanPosition memory position) {
+    function empty(address collateralToken, address debtToken) internal view returns (LoanPosition memory position) {
         position = LoanPosition({
             nonce: 0,
-            expiredWith: EpochLibrary.wrap(0),
+            expiredWith: EpochLibrary.current().sub(1),
             collateralToken: collateralToken,
             debtToken: debtToken,
             collateralAmount: 0,
@@ -67,6 +68,10 @@ library LoanPositionLibrary {
         ) revert UnmatchedPosition();
 
         Epoch latestExpiredEpoch = EpochLibrary.current().sub(1);
+        if (latestExpiredEpoch > newPosition.expiredWith || latestExpiredEpoch > oldPosition.expiredWith) {
+            revert InvalidPositionEpoch();
+        }
+
         uint256 payCouponsLength = newPosition.expiredWith.sub(latestExpiredEpoch);
         uint256 refundCouponsLength = oldPosition.expiredWith.sub(latestExpiredEpoch);
         unchecked {
@@ -87,16 +92,17 @@ library LoanPositionLibrary {
         refundCouponsLength = 0;
         uint256 farthestExpiredEpochs = newPosition.expiredWith.max(oldPosition.expiredWith).sub(latestExpiredEpoch);
         unchecked {
+            Epoch epoch = latestExpiredEpoch;
             for (uint256 i = 0; i < farthestExpiredEpochs; ++i) {
-                latestExpiredEpoch = latestExpiredEpoch.add(1); // reuse latestExpiredEpoch as epoch
-                uint256 newAmount = newPosition.expiredWith < latestExpiredEpoch ? 0 : newPosition.debtAmount;
-                uint256 oldAmount = oldPosition.expiredWith < latestExpiredEpoch ? 0 : oldPosition.debtAmount;
+                epoch = epoch.add(1);
+                uint256 newAmount = newPosition.expiredWith < epoch ? 0 : newPosition.debtAmount;
+                uint256 oldAmount = oldPosition.expiredWith < epoch ? 0 : oldPosition.debtAmount;
                 if (newAmount > oldAmount) {
                     payCoupons[payCouponsLength++] =
-                        CouponLibrary.from(oldPosition.debtToken, latestExpiredEpoch, newAmount - oldAmount);
+                        CouponLibrary.from(oldPosition.debtToken, epoch, newAmount - oldAmount);
                 } else if (newAmount < oldAmount) {
                     refundCoupons[refundCouponsLength++] =
-                        CouponLibrary.from(oldPosition.debtToken, latestExpiredEpoch, oldAmount - newAmount);
+                        CouponLibrary.from(oldPosition.debtToken, epoch, oldAmount - newAmount);
                 }
             }
         }
