@@ -336,6 +336,60 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         vm.stopPrank();
     }
 
+    function testCollect() public {
+        vm.startPrank(user);
+        uint256 amount = usdc.amount(10);
+        uint256 tokenId = depositController.deposit(
+            Currency.wrap(address(usdc)),
+            amount,
+            1,
+            0,
+            _buildERC20PermitParams(1, IERC20Permit(address(usdc)), address(depositController), amount)
+        );
+        vm.warp(EpochLibrary.current().add(1).startTime());
+
+        BondPosition memory beforePosition = bondPositionManager.getPosition(tokenId);
+        uint256 beforeBalance = usdc.balanceOf(user);
+
+        depositController.collect(tokenId, _buildERC721PermitParams(1, IERC721Permit(bondPositionManager), address(depositController), tokenId));
+
+        BondPosition memory afterPosition = bondPositionManager.getPosition(tokenId);
+
+        vm.expectRevert("ERC721: invalid token ID");
+        bondPositionManager.ownerOf(tokenId);
+        assertEq(usdc.balanceOf(user), beforeBalance + beforePosition.amount, "USDC_BALANCE");
+        assertEq(afterPosition.asset, address(usdc), "POSITION_ASSET");
+        assertEq(afterPosition.amount, 0, "POSITION_AMOUNT");
+        assertEq(afterPosition.expiredWith, EpochLibrary.current().sub(1), "POSITION_EXPIRED_WITH");
+        assertEq(afterPosition.nonce, beforePosition.nonce + 1, "POSITION_NONCE");
+
+        vm.stopPrank();
+    }
+
+    function testCollectNative() public {
+        vm.startPrank(user);
+        uint256 amount = 10 ether;
+        uint256 tokenId = depositController.deposit{value: amount}(CurrencyLibrary.NATIVE, amount, 1, 0, emptyPermitParams);
+        vm.warp(EpochLibrary.current().add(1).startTime());
+
+        BondPosition memory beforePosition = bondPositionManager.getPosition(tokenId);
+        uint256 beforeBalance = user.balance;
+
+        depositController.collect(tokenId, _buildERC721PermitParams(1, IERC721Permit(bondPositionManager), address(depositController), tokenId));
+
+        BondPosition memory afterPosition = bondPositionManager.getPosition(tokenId);
+
+        vm.expectRevert("ERC721: invalid token ID");
+        bondPositionManager.ownerOf(tokenId);
+        assertEq(user.balance, beforeBalance + beforePosition.amount, "NATIVE_BALANCE");
+        assertEq(afterPosition.asset, Constants.WETH, "POSITION_ASSET");
+        assertEq(afterPosition.amount, 0, "POSITION_AMOUNT");
+        assertEq(afterPosition.expiredWith, EpochLibrary.current().sub(1), "POSITION_EXPIRED_WITH");
+        assertEq(afterPosition.nonce, beforePosition.nonce + 1, "POSITION_NONCE");
+
+        vm.stopPrank();
+    }
+
     function _buildERC20PermitParams(uint256 privateKey, IERC20Permit token, address spender, uint256 amount)
         internal
         view
