@@ -165,7 +165,6 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         }
         _marketMake();
 
-        _mintCoupons(user, 2 ether);
         vm.prank(Constants.USDC_WHALE);
         usdc.transfer(user, usdc.amount(10_000));
         vm.deal(address(assetPool), 100 ether);
@@ -239,19 +238,19 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         uint256 borrowAmount = 1 ether;
 
         uint256 beforeUSDCBalance = usdc.balanceOf(user);
-        uint256 beforeWETHBalance = weth.balanceOf(user);
+        uint256 beforeETHBalance = user.balance;
 
         uint256 positionId = _initialBorrow(user, Constants.USDC, Constants.WETH, collateralAmount, borrowAmount, 2);
         LoanPosition memory loanPosition = loanPositionManager.getPosition(positionId);
 
-        uint256 couponAmount = 0.04 ether;
+        uint256 couponAmount = 0.08 ether;
 
         assertEq(loanPositionManager.ownerOf(positionId), user, "POSITION_OWNER");
         assertEq(usdc.balanceOf(user), beforeUSDCBalance - collateralAmount, "USDC_BALANCE");
-        assertEq(weth.balanceOf(user), beforeWETHBalance + borrowAmount, "WETH_BALANCE");
+        assertEqSmallBalance(user.balance, beforeETHBalance + borrowAmount - couponAmount, "WETH_BALANCE");
         assertEq(loanPosition.expiredWith, EpochLibrary.current().add(1), "POSITION_EXPIRE_EPOCH");
         assertEq(loanPosition.collateralAmount, collateralAmount, "POSITION_COLLATERAL_AMOUNT");
-        assertEq(loanPosition.debtAmount, borrowAmount + couponAmount, "POSITION_DEBT_AMOUNT");
+        assertEq(loanPosition.debtAmount, borrowAmount, "POSITION_DEBT_AMOUNT");
         assertEq(loanPosition.collateralToken, Constants.USDC, "POSITION_COLLATERAL_TOKEN");
         assertEq(loanPosition.debtToken, Constants.WETH, "POSITION_DEBT_TOKEN");
     }
@@ -260,7 +259,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         uint256 positionId = _initialBorrow(user, Constants.USDC, Constants.WETH, usdc.amount(10000), 1 ether, 2);
 
         uint256 beforeUSDCBalance = usdc.balanceOf(user);
-        uint256 beforeWETHBalance = weth.balanceOf(user);
+        uint256 beforeETHBalance = user.balance;
         LoanPosition memory beforeLoanPosition = loanPositionManager.getPosition(positionId);
         PermitParams memory permitParams;
         vm.startPrank(user);
@@ -270,17 +269,13 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         LoanPosition memory afterLoanPosition = loanPositionManager.getPosition(positionId);
 
         uint256 borrowMoreAmount = 0.5 ether;
-        uint256 couponAmount = 0.02 ether;
+        uint256 couponAmount = 0.04 ether;
 
         assertEq(usdc.balanceOf(user), beforeUSDCBalance, "USDC_BALANCE");
-        assertEq(weth.balanceOf(user), beforeWETHBalance + borrowMoreAmount, "WETH_BALANCE");
+        assertEqSmallBalance(user.balance, beforeETHBalance + borrowMoreAmount - couponAmount, "WETH_BALANCE");
         assertEq(beforeLoanPosition.expiredWith, afterLoanPosition.expiredWith, "POSITION_EXPIRE_EPOCH");
         assertEq(beforeLoanPosition.collateralAmount, afterLoanPosition.collateralAmount, "POSITION_COLLATERAL_AMOUNT");
-        assertEq(
-            beforeLoanPosition.debtAmount + borrowMoreAmount + couponAmount,
-            afterLoanPosition.debtAmount,
-            "POSITION_DEBT_AMOUNT"
-        );
+        assertEq(beforeLoanPosition.debtAmount + borrowMoreAmount, afterLoanPosition.debtAmount, "POSITION_DEBT_AMOUNT");
         assertEq(beforeLoanPosition.collateralToken, afterLoanPosition.collateralToken, "POSITION_COLLATERAL_TOKEN");
         assertEq(beforeLoanPosition.debtToken, afterLoanPosition.debtToken, "POSITION_DEBT_TOKEN");
     }
@@ -319,6 +314,10 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         bytes32 hash = ECDSA.toTypedDataHash(token.DOMAIN_SEPARATOR(), structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, hash);
         return PermitParams(block.timestamp + 1, v, r, s);
+    }
+
+    function assertEqSmallBalance(uint256 b1, uint256 b2, string memory err) internal {
+        assertEq(b1 / 10 ** 12, b2 / 10 ** 12, err);
     }
 
     function assertEq(Epoch e1, Epoch e2, string memory err) internal {
