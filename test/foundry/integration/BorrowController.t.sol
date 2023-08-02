@@ -230,10 +230,6 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
     }
 
     function testBorrow() public {
-        uint256 collateralAmount = usdc.amount(10000);
-        uint256 borrowAmount = 1 ether;
-        console.log(couponManager.balanceOf(user, couponKeys[0].toId()));
-
         uint256 beforeUSDCBalance = usdc.balanceOf(user);
         uint256 beforeWETHBalance = weth.balanceOf(user);
 
