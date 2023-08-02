@@ -37,12 +37,13 @@ contract BorrowController is IBorrowController, Controller {
     bytes private _swapData;
 
     constructor(
+        address assetPool,
         address wrapped1155Factory,
         address cloberMarketFactory,
         address couponManager,
         address weth,
         address loanManager
-    ) Controller(wrapped1155Factory, cloberMarketFactory, couponManager, weth) {
+    ) Controller(assetPool, wrapped1155Factory, cloberMarketFactory, couponManager, weth) {
         _loanManager = ILoanPositionManager(loanManager);
         _loanManagerData = _EMPTY_BYTES;
         _swapData = _EMPTY_BYTES;
@@ -315,7 +316,7 @@ contract BorrowController is IBorrowController, Controller {
         Coupon[] memory couponsRefunded,
         bytes calldata data
     ) external {
-        if (msg.sender != address(_loanManager)) revert Access();
+        if (msg.sender != address(_loanManager)) revert InvalidAccess();
         (address user) = abi.decode(data, (address));
 
         if (couponsRefunded.length > 0) _wrapCoupons(couponsRefunded);

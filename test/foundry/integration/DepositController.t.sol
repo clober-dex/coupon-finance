@@ -89,6 +89,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
             Utils.toArr(Constants.USDC, Constants.WETH)
         );
         depositController = new DepositController(
+            address(assetPool),
             Constants.WRAPPED1155_FACTORY,
             Constants.CLOBER_FACTORY,
             address(couponManager),

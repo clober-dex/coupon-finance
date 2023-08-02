@@ -37,12 +37,13 @@ contract DepositController is IDepositController, Controller {
     bytes private _bondManagerData;
 
     constructor(
+        address assetPool,
         address wrapped1155Factory,
         address cloberMarketFactory,
         address couponManager,
         address weth,
         address bondManager
-    ) Controller(wrapped1155Factory, cloberMarketFactory, couponManager, weth) {
+    ) Controller(assetPool, wrapped1155Factory, cloberMarketFactory, couponManager, weth) {
         _bondManager = IBondPositionManager(bondManager);
         _bondManagerData = _EMPTY_BYTES;
     }
@@ -97,7 +98,7 @@ contract DepositController is IDepositController, Controller {
         Coupon[] memory couponsToBurn,
         bytes calldata data
     ) external {
-        if (msg.sender != address(_bondManager)) revert Access();
+        if (msg.sender != address(_bondManager)) revert InvalidAccess();
         (address user) = abi.decode(data, (address));
 
         if (couponsToBurn.length > 0) _unwrapCoupons(couponsToBurn);

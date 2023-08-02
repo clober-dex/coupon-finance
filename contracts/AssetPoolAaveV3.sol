@@ -19,7 +19,7 @@ contract AssetPoolAaveV3 is IAssetPool, Ownable {
     address public override treasury;
     mapping(address => uint256) public override totalReservedAmount;
 
-    mapping(address => address) private _aTokenMap;
+    mapping(address => address) public aTokenMap;
     mapping(address => bool) public override isOperator;
 
     constructor(address aaveV3Pool_, address treasury_, address[] memory operators) {
@@ -38,7 +38,7 @@ contract AssetPoolAaveV3 is IAssetPool, Ownable {
         if (_isAssetUnregistered(asset)) {
             return 0;
         }
-        return IERC20(_aTokenMap[asset]).balanceOf(address(this)) - totalReservedAmount[asset];
+        return IERC20(aTokenMap[asset]).balanceOf(address(this)) - totalReservedAmount[asset];
     }
 
     function claim(address asset) external {
@@ -72,7 +72,7 @@ contract AssetPoolAaveV3 is IAssetPool, Ownable {
             revert ExceedsBalance(balance);
         }
         totalReservedAmount[asset] = balance - amount;
-        address aToken = _aTokenMap[asset];
+        address aToken = aTokenMap[asset];
         uint256 maxUnderlyingAmount = IERC20(asset).balanceOf(aToken);
         if (amount > maxUnderlyingAmount) {
             IERC20(aToken).safeTransfer(recipient, amount - maxUnderlyingAmount);
@@ -90,7 +90,7 @@ contract AssetPoolAaveV3 is IAssetPool, Ownable {
         if (aToken == address(0)) {
             revert InvalidAsset();
         }
-        _aTokenMap[asset] = aToken;
+        aTokenMap[asset] = aToken;
         IERC20(asset).approve(address(_aaveV3Pool), type(uint256).max);
     }
 
@@ -109,6 +109,6 @@ contract AssetPoolAaveV3 is IAssetPool, Ownable {
     }
 
     function _isAssetUnregistered(address asset) internal view returns (bool) {
-        return _aTokenMap[asset] == address(0);
+        return aTokenMap[asset] == address(0);
     }
 }

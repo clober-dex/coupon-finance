@@ -21,9 +21,10 @@ import {CouponKey, CouponKeyLibrary} from "./CouponKey.sol";
 import {Wrapped1155MetadataBuilder} from "./Wrapped1155MetadataBuilder.sol";
 import {IERC721Permit} from "../interfaces/IERC721Permit.sol";
 import {ReentrancyGuard} from "./ReentrancyGuard.sol";
+import {AssetPoolAaveV3} from "../AssetPoolAaveV3.sol";
 
 abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver, Ownable, ReentrancyGuard {
-    error Access();
+    error InvalidAccess();
     error InvalidMarket();
     error ControllerSlippage();
 
@@ -32,6 +33,7 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
     using CouponKeyLibrary for CouponKey;
     using CouponLibrary for Coupon;
 
+    AssetPoolAaveV3 private immutable _assetPool;
     IWrapped1155Factory internal immutable _wrapped1155Factory;
     CloberMarketFactory internal immutable _cloberMarketFactory;
     ICouponManager internal immutable _couponManager;
@@ -39,7 +41,14 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
 
     mapping(uint256 couponId => address market) internal _couponMarkets;
 
-    constructor(address wrapped1155Factory, address cloberMarketFactory, address couponManager, address weth) {
+    constructor(
+        address assetPool,
+        address wrapped1155Factory,
+        address cloberMarketFactory,
+        address couponManager,
+        address weth
+    ) {
+        _assetPool = AssetPoolAaveV3(assetPool);
         _wrapped1155Factory = IWrapped1155Factory(wrapped1155Factory);
         _cloberMarketFactory = CloberMarketFactory(cloberMarketFactory);
         _couponManager = ICouponManager(couponManager);
@@ -94,9 +103,7 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
         bytes calldata data
     ) external payable {
         // check if caller is registered market
-        if (_cloberMarketFactory.getMarketHost(msg.sender) == address(0)) {
-            revert Access();
-        }
+        if (_cloberMarketFactory.getMarketHost(msg.sender) == address(0)) revert InvalidAccess();
 
         (Coupon[] memory buyCoupons, Coupon[] memory sellCoupons, uint256 amountToPay, uint256 earnedAmount) =
             abi.decode(data, (Coupon[], Coupon[], uint256, uint256));
@@ -130,13 +137,19 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
 
     function _flush(address token, address to) internal {
         uint256 leftAmount = IERC20(token).balanceOf(address(this));
-        if (leftAmount == 0) return;
-        if (token == address(_weth)) {
-            _weth.withdraw(leftAmount);
-            (bool success,) = payable(to).call{value: leftAmount}("");
-            require(success, "Value transfer failed");
-        } else {
-            IERC20(token).safeTransfer(to, leftAmount);
+        if (leftAmount > 0) {
+            if (token == address(_weth)) {
+                _weth.withdraw(leftAmount);
+                (bool success,) = payable(to).call{value: leftAmount}("");
+                require(success, "Value transfer failed");
+            } else {
+                IERC20(token).safeTransfer(to, leftAmount);
+            }
+        }
+        address aToken = _assetPool.aTokenMap(token);
+        uint256 aTokenBalance = IERC20(aToken).balanceOf(address(this));
+        if (aTokenBalance > 0) {
+            IERC20(aToken).safeTransfer(to, aTokenBalance);
         }
     }
 
