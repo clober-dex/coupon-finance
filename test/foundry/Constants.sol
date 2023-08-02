@@ -12,6 +12,7 @@ library Constants {
     address internal constant USDC = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831;
     address internal constant USDC_WHALE = 0xB38e8c17e38363aF6EbdCb3dAE12e0243582891D;
     address internal constant AAVE_V3_POOL = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
+    address internal constant AAVE_ORACLE = 0xb56c2F0B653B2e0b10C9b928C8580Ac5Df02C7C7;
     address internal constant WRAPPED1155_FACTORY = 0xfcBE16BfD991E4949244E59d9b524e6964b8BB75;
     address internal constant CLOBER_FACTORY = 0x24aC0938C010Fb520F1068e96d78E0458855111D;
     bytes32 internal constant PERMIT_TYPEHASH =

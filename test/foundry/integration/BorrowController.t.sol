@@ -1,0 +1,276 @@
+// SPDX-License-Identifier: UNLICENSED
+
+pragma solidity ^0.8.0;
+
+import "forge-std/Test.sol";
+
+import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
+import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {Create1} from "@clober/library/contracts/Create1.sol";
+
+import {Constants} from "../Constants.sol";
+import {ForkUtils, ERC20Utils, Utils} from "../Utils.sol";
+import {IAssetPool} from "../../../contracts/interfaces/IAssetPool.sol";
+import {IAaveOracle} from "../../../contracts/external/aave-v3/IAaveOracle.sol";
+import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
+import {IERC721Permit} from "../../../contracts/interfaces/IERC721Permit.sol";
+import {IBondPositionManager} from "../../../contracts/interfaces/IBondPositionManager.sol";
+import {PermitParams} from "../../../contracts/libraries/PermitParams.sol";
+import {Coupon, CouponLibrary} from "../../../contracts/libraries/Coupon.sol";
+import {CouponKey, CouponKeyLibrary} from "../../../contracts/libraries/CouponKey.sol";
+import {Epoch, EpochLibrary} from "../../../contracts/libraries/Epoch.sol";
+import {BondPosition} from "../../../contracts/libraries/BondPosition.sol";
+import {Wrapped1155MetadataBuilder} from "../../../contracts/libraries/Wrapped1155MetadataBuilder.sol";
+import {IWrapped1155Factory} from "../../../contracts/external/wrapped1155/IWrapped1155Factory.sol";
+import {CloberMarketFactory} from "../../../contracts/external/clober/CloberMarketFactory.sol";
+import {CloberMarketSwapCallbackReceiver} from "../../../contracts/external/clober/CloberMarketSwapCallbackReceiver.sol";
+import {CloberOrderBook} from "../../../contracts/external/clober/CloberOrderBook.sol";
+import {BorrowController} from "../../../contracts/BorrowController.sol";
+import {CouponManager} from "../../../contracts/CouponManager.sol";
+import {BondPositionManager} from "../../../contracts/BondPositionManager.sol";
+import {AssetPoolAaveV3} from "../../../contracts/AssetPoolAaveV3.sol";
+import "../../../contracts/LoanPositionManager.sol";
+import "../mocks/MockOracle.sol";
+import "../../../contracts/interfaces/IBorrowController.sol";
+
+contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiver, ERC1155Holder {
+    using Strings for *;
+    using ERC20Utils for IERC20;
+    using CouponKeyLibrary for CouponKey;
+    using EpochLibrary for Epoch;
+
+    address public constant MARKET_MAKER = address(999123);
+    bytes32 private constant _ERC20_PERMIT_TYPEHASH =
+        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
+
+    IAssetPool public assetPool;
+    BorrowController public borrowController;
+    ILoanPositionManager public loanPositionManager;
+    IWrapped1155Factory public wrapped1155Factory;
+    ICouponManager public couponManager;
+    IAaveOracle public oracle;
+    CloberMarketFactory public cloberMarketFactory;
+    IERC20 public usdc;
+    IERC20 public weth;
+    address public user;
+    PermitParams public emptyPermitParams;
+
+    CouponKey[] public couponKeys;
+    address[] public wrappedCoupons;
+
+    function setUp() public {
+        ForkUtils.fork(vm, Constants.FORK_BLOCK_NUMBER);
+        user = vm.addr(1);
+
+        usdc = IERC20(Constants.USDC);
+        weth = IERC20(Constants.WETH);
+        vm.startPrank(Constants.USDC_WHALE);
+        usdc.transfer(user, usdc.amount(1_000_000));
+        usdc.transfer(address(this), usdc.amount(1_000_000));
+        vm.stopPrank();
+        vm.deal(user, 1_000_000 ether);
+
+        bool success;
+        vm.startPrank(user);
+        (success,) = payable(address(weth)).call{value: 500_000 ether}("");
+        require(success, "transfer failed");
+        vm.stopPrank();
+
+        vm.deal(address(this), 1_000_000 ether);
+        (success,) = payable(address(weth)).call{value: 500_000 ether}("");
+        require(success, "transfer failed");
+
+        wrapped1155Factory = IWrapped1155Factory(Constants.WRAPPED1155_FACTORY);
+        cloberMarketFactory = CloberMarketFactory(Constants.CLOBER_FACTORY);
+
+        uint64 thisNonce = vm.getNonce(address(this));
+        assetPool = new AssetPoolAaveV3(
+            Constants.AAVE_V3_POOL,
+            Constants.TREASURY,
+            Utils.toArr(Create1.computeAddress(address(this), thisNonce + 2))
+        );
+
+        couponManager = new CouponManager(Create1.computeAddress(address(this), thisNonce + 1), "URI/");
+        oracle = IAaveOracle(Constants.AAVE_ORACLE);
+        loanPositionManager = new LoanPositionManager(
+            address(couponManager),
+            address(assetPool),
+            address(oracle),
+            Constants.TREASURY,
+            10 ** 16,
+            "loan/position/uri/"
+        );
+        loanPositionManager.setLoanConfiguration(Constants.USDC, Constants.WETH, 800000, 25000, 5000, 700000);
+        loanPositionManager.setLoanConfiguration(Constants.WETH, Constants.USDC, 800000, 25000, 5000, 700000);
+
+        borrowController = new BorrowController(
+            address (assetPool),
+            Constants.WRAPPED1155_FACTORY,
+            Constants.CLOBER_FACTORY,
+            address(couponManager),
+            Constants.WETH,
+            address(loanPositionManager)
+        );
+
+        // set assetPool
+        assetPool.registerAsset(Constants.USDC);
+        assetPool.registerAsset(Constants.WETH);
+        usdc.transfer(address(assetPool), usdc.amount(1_000));
+        IERC20(Constants.WETH).transfer(address(assetPool), 1_000 ether);
+        vm.startPrank(address(loanPositionManager));
+        assetPool.deposit(Constants.USDC, usdc.amount(1_000));
+        assetPool.deposit(Constants.WETH, 1_000 ether);
+        vm.stopPrank();
+
+        // create wrapped1155
+        for (uint8 i = 0; i < 4; i++) {
+            couponKeys.push(CouponKey({asset: Constants.USDC, epoch: EpochLibrary.current().add(i)}));
+        }
+        if (!cloberMarketFactory.registeredQuoteTokens(Constants.USDC)) {
+            vm.prank(cloberMarketFactory.owner());
+            cloberMarketFactory.registerQuoteToken(Constants.USDC);
+        }
+        for (uint8 i = 4; i < 8; i++) {
+            couponKeys.push(CouponKey({asset: Constants.WETH, epoch: EpochLibrary.current().add(i - 4)}));
+        }
+        if (!cloberMarketFactory.registeredQuoteTokens(Constants.WETH)) {
+            vm.prank(cloberMarketFactory.owner());
+            cloberMarketFactory.registerQuoteToken(Constants.WETH);
+        }
+        for (uint256 i = 0; i < 8; i++) {
+            address wrappedToken = wrapped1155Factory.requireWrapped1155(
+                address(couponManager),
+                couponKeys[i].toId(),
+                Wrapped1155MetadataBuilder.buildWrapped1155Metadata(couponKeys[i])
+            );
+            wrappedCoupons.push(wrappedToken);
+            address market = cloberMarketFactory.createVolatileMarket(
+                address(Constants.TREASURY),
+                couponKeys[i].asset,
+                wrappedToken,
+                i < 4 ? 1 : 1e9,
+                0,
+                400,
+                1e10,
+                1001 * 1e15
+            );
+            borrowController.setCouponMarket(couponKeys[i], market);
+        }
+        _marketMake();
+
+        //        _mintCoupons(user, 2 ether);
+        vm.prank(Constants.USDC_WHALE);
+        usdc.transfer(user, usdc.amount(10_000));
+        vm.deal(address(assetPool), 100 ether);
+    }
+
+    function _mintCoupons(address to, uint256 amount) internal {
+        address minter = couponManager.minter();
+        for (uint256 i = 0; i < wrappedCoupons.length; ++i) {
+            CouponKey memory key = couponKeys[i];
+            Coupon[] memory coupons = Utils.toArr(Coupon(key, amount));
+            vm.prank(minter);
+            couponManager.mintBatch(to, coupons, "");
+        }
+    }
+
+    function _marketMake() internal {
+        address minter = couponManager.minter();
+        for (uint256 i = 0; i < wrappedCoupons.length; ++i) {
+            CouponKey memory key = couponKeys[i];
+            CloberOrderBook market = CloberOrderBook(borrowController.getCouponMarket(key));
+            (uint16 bidIndex,) = market.priceToIndex(1e18 / 100 * 2, false); // 2%
+            (uint16 askIndex,) = market.priceToIndex(1e18 / 100 * 4, false); // 4%
+            CloberOrderBook(market).limitOrder(
+                MARKET_MAKER, bidIndex, market.quoteToRaw(IERC20(key.asset).amount(100), false), 0, 3, ""
+            );
+            uint256 amount = IERC20(wrappedCoupons[i]).amount(100);
+            Coupon[] memory coupons = Utils.toArr(Coupon(key, amount));
+            vm.prank(minter);
+            couponManager.mintBatch(address(this), coupons, "");
+            couponManager.safeBatchTransferFrom(
+                address(this),
+                address(wrapped1155Factory),
+                coupons,
+                Wrapped1155MetadataBuilder.buildWrapped1155Metadata(couponKeys[i])
+            );
+            CloberOrderBook(market).limitOrder(MARKET_MAKER, askIndex, 0, amount, 2, "");
+        }
+    }
+
+    function cloberMarketSwapCallback(address inputToken, address, uint256 inputAmount, uint256, bytes calldata)
+        external
+        payable
+    {
+        if (inputAmount > 0) {
+            IERC20(inputToken).transfer(msg.sender, inputAmount);
+        }
+    }
+
+    function testBorrow() public {
+        vm.startPrank(user);
+
+        uint256 collateralAmount = usdc.amount(10000);
+        uint256 borrowAmount = 1 ether;
+        console.log(couponManager.balanceOf(user, couponKeys[0].toId()));
+
+        uint256 beforeUSDCBalance = usdc.balanceOf(user);
+        uint256 beforeWETHBalance = weth.balanceOf(user);
+
+        uint256 tokenId = loanPositionManager.nextId();
+        PermitParams memory permitParams =
+            _buildERC20PermitParams(1, IERC20Permit(Constants.USDC), address(borrowController), collateralAmount);
+        borrowController.borrow(
+            Constants.USDC, Constants.WETH, collateralAmount, borrowAmount, type(uint256).max, 2, permitParams
+        );
+
+        LoanPosition memory loanPosition = loanPositionManager.getPosition(tokenId);
+
+        vm.stopPrank();
+
+        assertEq(loanPositionManager.ownerOf(tokenId), user, "POSITION_OWNER");
+        assertGt(usdc.balanceOf(user), beforeUSDCBalance - collateralAmount, "USDC_BALANCE");
+        assertGt(weth.balanceOf(user), beforeWETHBalance + borrowAmount, "WETH_BALANCE");
+        //        assertEq(loanPosition.expiredWith, 0, "POSITION_EXPIRE_EPOCH");
+        assertEq(loanPosition.collateralAmount, collateralAmount, "POSITION_COLLATERAL_AMOUNT");
+        assertEq(loanPosition.debtAmount, borrowAmount, "POSITION_DEBT_AMOUNT");
+        assertEq(loanPosition.collateralToken, Constants.USDC, "POSITION_COLLATERAL_TOKEN");
+        assertEq(loanPosition.debtToken, Constants.WETH, "POSITION_DEBT_TOKEN");
+        //        assertEq(loanPosition.nonce, 0, "POSITION_EXPIRE_EPOCH");
+    }
+
+    function _buildERC20PermitParams(uint256 privateKey, IERC20Permit token, address spender, uint256 amount)
+        internal
+        view
+        returns (PermitParams memory)
+    {
+        address owner = vm.addr(privateKey);
+        bytes32 structHash = keccak256(
+            abi.encode(_ERC20_PERMIT_TYPEHASH, owner, spender, amount, token.nonces(owner), block.timestamp + 1)
+        );
+        bytes32 hash = ECDSA.toTypedDataHash(token.DOMAIN_SEPARATOR(), structHash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, hash);
+        return PermitParams(block.timestamp + 1, v, r, s);
+    }
+
+    function _buildERC721PermitParams(uint256 privateKey, IERC721Permit token, address spender, uint256 tokenId)
+        internal
+        view
+        returns (PermitParams memory)
+    {
+        bytes32 structHash =
+            keccak256(abi.encode(token.PERMIT_TYPEHASH(), spender, tokenId, token.nonces(tokenId), block.timestamp + 1));
+        bytes32 hash = ECDSA.toTypedDataHash(token.DOMAIN_SEPARATOR(), structHash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, hash);
+        return PermitParams(block.timestamp + 1, v, r, s);
+    }
+
+    function assertEq(Epoch e1, Epoch e2, string memory err) internal {
+        assertEq(e1.unwrap(), e2.unwrap(), err);
+    }
+}
