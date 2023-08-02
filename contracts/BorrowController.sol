@@ -45,6 +45,7 @@ contract BorrowController is IBorrowController, Controller {
         address loanManager
     ) Controller(assetPool, wrapped1155Factory, cloberMarketFactory, couponManager, weth) {
         _loanManager = ILoanPositionManager(loanManager);
+        _couponManager.setApprovalForAll(loanManager, true);
         _loanManagerData = _EMPTY_BYTES;
         _swapData = _EMPTY_BYTES;
     }
@@ -54,7 +55,7 @@ contract BorrowController is IBorrowController, Controller {
         address debtToken,
         uint256 collateralAmount,
         uint256 borrowAmount,
-        uint256 maxDebtAmount,
+        uint256 maxPayAmount,
         uint8 loanEpochs,
         PermitParams calldata collateralPermitParams
     ) external payable nonReentrant wrapETH {
@@ -67,7 +68,7 @@ contract BorrowController is IBorrowController, Controller {
 
         _loanManagerData = abi.encode(
             CallType.MINT,
-            abi.encode(msg.sender, loanEpochs, collateralToken, collateralAmount, borrowAmount, maxDebtAmount)
+            abi.encode(msg.sender, loanEpochs, collateralToken, collateralAmount, borrowAmount, maxPayAmount)
         );
         _execute(debtToken, couponsToPay, new Coupon[](0), 0, 0);
         _loanManagerData = _EMPTY_BYTES;
@@ -79,14 +80,14 @@ contract BorrowController is IBorrowController, Controller {
     function borrowMore(
         uint256 positionId,
         uint256 amount,
-        uint256 maxDebtAmount,
+        uint256 maxPayAmount,
         PermitParams calldata positionPermitParams
     ) external nonReentrant {
         _permitERC721(_loanManager, positionId, positionPermitParams);
         LoanPosition memory oldPosition = _loanManager.getPosition(positionId);
         LoanPosition memory newPosition = oldPosition.clone();
         newPosition.debtAmount += amount;
-        _adjustPosition(CallType.INCREASE_DEBT, positionId, oldPosition, newPosition, maxDebtAmount);
+        _adjustPosition(CallType.INCREASE_DEBT, positionId, oldPosition, newPosition, maxPayAmount);
         _flush(oldPosition.debtToken, msg.sender);
     }
 
@@ -133,8 +134,17 @@ contract BorrowController is IBorrowController, Controller {
         _permitERC721(_loanManager, positionId, positionPermitParams);
         LoanPosition memory oldPosition = _loanManager.getPosition(positionId);
         LoanPosition memory newPosition = oldPosition.clone();
+        newPosition.debtAmount += maxDebtAmount;
         newPosition.expiredWith = newEpoch;
-        _adjustPosition(CallType.INCREASE_DEBT, positionId, oldPosition, newPosition, maxDebtAmount);
+        _adjustPosition(CallType.INCREASE_DEBT, positionId, oldPosition, newPosition, 0);
+
+        if (IERC20(newPosition.debtToken).balanceOf(address(this)) > 0) {
+            oldPosition = newPosition;
+            newPosition = oldPosition.clone();
+            newPosition.debtAmount -= maxDebtAmount;
+            _adjustPosition(CallType.DECREASE_DEBT, positionId, oldPosition, newPosition, 0);
+        }
+        _flush(newPosition.debtToken, msg.sender);
     }
 
     function repay(
@@ -217,52 +227,6 @@ contract BorrowController is IBorrowController, Controller {
         _loanManagerData = _EMPTY_BYTES;
     }
 
-    function _increaseDebt(
-        uint256 positionId,
-        LoanPosition memory oldPosition,
-        LoanPosition memory newPosition,
-        uint256 maxDebtAmount
-    ) internal {
-        (Coupon[] memory couponsToPay, Coupon[] memory couponsToRefund) =
-            oldPosition.calculateCouponRequirement(newPosition);
-        _loanManagerData = abi.encode(
-            CallType.INCREASE_DEBT,
-            abi.encode(
-                msg.sender,
-                newPosition.expiredWith,
-                newPosition.collateralAmount,
-                newPosition.debtAmount,
-                maxDebtAmount,
-                positionId
-            )
-        );
-        _execute(oldPosition.debtToken, couponsToPay, couponsToRefund, 0, 0);
-        _loanManagerData = _EMPTY_BYTES;
-    }
-
-    function _decreaseDebt(
-        uint256 positionId,
-        LoanPosition memory oldPosition,
-        LoanPosition memory newPosition,
-        uint256 minEarnedInterest
-    ) internal {
-        (Coupon[] memory couponsToPay, Coupon[] memory couponsToRefund) =
-            oldPosition.calculateCouponRequirement(newPosition);
-        _loanManagerData = abi.encode(
-            CallType.DECREASE_DEBT,
-            abi.encode(
-                msg.sender,
-                newPosition.expiredWith,
-                newPosition.collateralAmount,
-                newPosition.debtAmount,
-                minEarnedInterest,
-                positionId
-            )
-        );
-        _execute(oldPosition.debtToken, couponsToPay, couponsToRefund, 0, 0);
-        _loanManagerData = _EMPTY_BYTES;
-    }
-
     function _callManager(address debtToken, uint256 amountToPay, uint256 earnedAmount) internal override {
         (CallType callType, bytes memory data) = abi.decode(_loanManagerData, (CallType, bytes));
         if (callType == CallType.MINT) {
@@ -272,40 +236,36 @@ contract BorrowController is IBorrowController, Controller {
                 address collateralToken,
                 uint256 collateralAmount,
                 uint256 debtAmount,
-                uint256 maxDebtAmount
+                uint256 maxPayAmount
             ) = abi.decode(data, (address, uint8, address, uint256, uint256, uint256));
-            debtAmount += amountToPay;
-            if (debtAmount > maxDebtAmount) revert ControllerSlippage();
+            if (maxPayAmount < amountToPay) revert ControllerSlippage();
             uint256 positionId = _loanManager.mint(
                 collateralToken, debtToken, collateralAmount, debtAmount, loanEpochs, address(this), abi.encode(user)
             );
             _loanManager.transferFrom(address(this), user, positionId);
-        } else if (callType == CallType.INCREASE_DEBT) {
+            return;
+        } else if (callType <= CallType.DECREASE_DEBT) {
             (
                 address user,
                 Epoch expiredWith,
                 uint256 collateralAmount,
                 uint256 debtAmount,
-                uint256 maxDebtAmount,
+                uint256 threshold,
                 uint256 positionId
             ) = abi.decode(data, (address, Epoch, uint256, uint256, uint256, uint256));
-            debtAmount += amountToPay;
-            if (debtAmount > maxDebtAmount) revert ControllerSlippage();
-            _loanManager.adjustPosition(positionId, collateralAmount, debtAmount, expiredWith, abi.encode(user));
-        } else if (callType == CallType.DECREASE_DEBT) {
-            (
-                address user,
-                Epoch expiredWith,
-                uint256 collateralAmount,
-                uint256 debtAmount,
-                uint256 minEarnedInterest,
-                uint256 positionId
-            ) = abi.decode(data, (address, Epoch, uint256, uint256, uint256, uint256));
-            if (earnedAmount < minEarnedInterest) revert ControllerSlippage();
-            _loanManager.adjustPosition(positionId, collateralAmount, debtAmount, expiredWith, abi.encode(user));
-        } else {
-            revert("invalid call type");
+            if (callType == CallType.INCREASE_DEBT) {
+                // use threshold as maxAmountToPay
+                if (threshold < amountToPay) revert ControllerSlippage();
+                _loanManager.adjustPosition(positionId, collateralAmount, debtAmount, expiredWith, abi.encode(user));
+                return;
+            } else if (callType == CallType.DECREASE_DEBT) {
+                // use threshold as minEarnedInterest
+                if (earnedAmount < threshold) revert ControllerSlippage();
+                _loanManager.adjustPosition(positionId, collateralAmount, debtAmount, expiredWith, abi.encode(user));
+                return;
+            }
         }
+        revert("invalid call type");
     }
 
     function loanPositionAdjustCallback(
