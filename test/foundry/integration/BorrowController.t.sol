@@ -121,7 +121,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         assetPool.registerAsset(Constants.USDC);
         assetPool.registerAsset(Constants.WETH);
         usdc.transfer(address(assetPool), usdc.amount(1_000));
-        IERC20(Constants.WETH).transfer(address(assetPool), 1_000 ether);
+        weth.transfer(address(assetPool), 1_000 ether);
         vm.startPrank(address(loanPositionManager));
         assetPool.deposit(Constants.USDC, usdc.amount(1_000));
         assetPool.deposit(Constants.WETH, 1_000 ether);
@@ -163,7 +163,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         }
         _marketMake();
 
-        //        _mintCoupons(user, 2 ether);
+        _mintCoupons(user, 2 ether);
         vm.prank(Constants.USDC_WHALE);
         usdc.transfer(user, usdc.amount(10_000));
         vm.deal(address(assetPool), 100 ether);
@@ -212,9 +212,24 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         }
     }
 
-    function testBorrow() public {
-        vm.startPrank(user);
+    function _initialBorrow(
+        address borrower,
+        address collateralToken,
+        address borrowToken,
+        uint256 collateralAmount,
+        uint256 borrowAmount,
+        uint8 loanEpochs
+    ) internal returns (uint256 tokenId) {
+        tokenId = loanPositionManager.nextId();
+        PermitParams memory permitParams =
+            _buildERC20PermitParams(1, IERC20Permit(collateralToken), address(borrowController), collateralAmount);
+        vm.prank(borrower);
+        borrowController.borrow(
+            collateralToken, borrowToken, collateralAmount, borrowAmount, type(uint256).max, loanEpochs, permitParams
+        );
+    }
 
+    function testBorrow() public {
         uint256 collateralAmount = usdc.amount(10000);
         uint256 borrowAmount = 1 ether;
         console.log(couponManager.balanceOf(user, couponKeys[0].toId()));
@@ -222,27 +237,30 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         uint256 beforeUSDCBalance = usdc.balanceOf(user);
         uint256 beforeWETHBalance = weth.balanceOf(user);
 
-        uint256 tokenId = loanPositionManager.nextId();
-        PermitParams memory permitParams =
-            _buildERC20PermitParams(1, IERC20Permit(Constants.USDC), address(borrowController), collateralAmount);
-        borrowController.borrow(
-            Constants.USDC, Constants.WETH, collateralAmount, borrowAmount, type(uint256).max, 2, permitParams
-        );
-
+        uint256 tokenId = _initialBorrow(user, Constants.USDC, Constants.WETH, usdc.amount(10000), 1 ether, 2);
         LoanPosition memory loanPosition = loanPositionManager.getPosition(tokenId);
-
-        vm.stopPrank();
 
         assertEq(loanPositionManager.ownerOf(tokenId), user, "POSITION_OWNER");
         assertGt(usdc.balanceOf(user), beforeUSDCBalance - collateralAmount, "USDC_BALANCE");
         assertGt(weth.balanceOf(user), beforeWETHBalance + borrowAmount, "WETH_BALANCE");
-        //        assertEq(loanPosition.expiredWith, 0, "POSITION_EXPIRE_EPOCH");
+        assertEq(loanPosition.expiredWith, EpochLibrary.current().add(2), "POSITION_EXPIRE_EPOCH");
         assertEq(loanPosition.collateralAmount, collateralAmount, "POSITION_COLLATERAL_AMOUNT");
         assertEq(loanPosition.debtAmount, borrowAmount, "POSITION_DEBT_AMOUNT");
         assertEq(loanPosition.collateralToken, Constants.USDC, "POSITION_COLLATERAL_TOKEN");
         assertEq(loanPosition.debtToken, Constants.WETH, "POSITION_DEBT_TOKEN");
-        //        assertEq(loanPosition.nonce, 0, "POSITION_EXPIRE_EPOCH");
     }
+
+    function testBorrowMore() public {}
+
+    function testAddCollateral() public {}
+
+    function testRemoveCollateral() public {}
+
+    function testAdjustLoanEpochs() public {}
+
+    function testRepay() public {}
+
+    function testRepayWithCollateral() public {}
 
     function _buildERC20PermitParams(uint256 privateKey, IERC20Permit token, address spender, uint256 amount)
         internal
