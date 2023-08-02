@@ -214,7 +214,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         }
     }
 
-    function _buildPermitParams(address token, uint256 amount) internal returns (PermitParams memory) {
+    function _buildPermitParams(address token, uint256 amount) internal view returns (PermitParams memory) {
         return _buildERC20PermitParams(1, IERC20Permit(token), address(borrowController), amount);
     }
 
@@ -244,14 +244,14 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         uint256 positionId = _initialBorrow(user, Constants.USDC, Constants.WETH, collateralAmount, borrowAmount, 2);
         LoanPosition memory loanPosition = loanPositionManager.getPosition(positionId);
 
-        uint256 couponPrice = 0.04 ether;
+        uint256 couponAmount = 0.04 ether;
 
         assertEq(loanPositionManager.ownerOf(positionId), user, "POSITION_OWNER");
         assertEq(usdc.balanceOf(user), beforeUSDCBalance - collateralAmount, "USDC_BALANCE");
-        assertEq(weth.balanceOf(user), beforeWETHBalance + borrowAmount - couponPrice, "WETH_BALANCE");
+        assertEq(weth.balanceOf(user), beforeWETHBalance + borrowAmount, "WETH_BALANCE");
         assertEq(loanPosition.expiredWith, EpochLibrary.current().add(1), "POSITION_EXPIRE_EPOCH");
         assertEq(loanPosition.collateralAmount, collateralAmount, "POSITION_COLLATERAL_AMOUNT");
-        assertEq(loanPosition.debtAmount, borrowAmount, "POSITION_DEBT_AMOUNT");
+        assertEq(loanPosition.debtAmount, borrowAmount + couponAmount, "POSITION_DEBT_AMOUNT");
         assertEq(loanPosition.collateralToken, Constants.USDC, "POSITION_COLLATERAL_TOKEN");
         assertEq(loanPosition.debtToken, Constants.WETH, "POSITION_DEBT_TOKEN");
     }
@@ -262,20 +262,25 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         uint256 beforeUSDCBalance = usdc.balanceOf(user);
         uint256 beforeWETHBalance = weth.balanceOf(user);
         LoanPosition memory beforeLoanPosition = loanPositionManager.getPosition(positionId);
-        vm.prank(user);
-        borrowController.borrowMore(
-            positionId, 0.5 ether, type(uint256).max, _buildPermitParams(Constants.USDC, type(uint256).max)
-        );
+        PermitParams memory permitParams;
+        vm.startPrank(user);
+        loanPositionManager.approve(address(borrowController), positionId);
+        borrowController.borrowMore(positionId, 0.5 ether, type(uint256).max, permitParams);
+        vm.stopPrank();
         LoanPosition memory afterLoanPosition = loanPositionManager.getPosition(positionId);
 
         uint256 borrowMoreAmount = 0.5 ether;
-        uint256 couponPrice = 0.02 ether;
+        uint256 couponAmount = 0.02 ether;
 
-        assertGt(usdc.balanceOf(user), beforeUSDCBalance, "USDC_BALANCE");
-        assertGt(weth.balanceOf(user), beforeWETHBalance + borrowMoreAmount - couponPrice, "WETH_BALANCE");
+        assertEq(usdc.balanceOf(user), beforeUSDCBalance, "USDC_BALANCE");
+        assertEq(weth.balanceOf(user), beforeWETHBalance + borrowMoreAmount, "WETH_BALANCE");
         assertEq(beforeLoanPosition.expiredWith, afterLoanPosition.expiredWith, "POSITION_EXPIRE_EPOCH");
         assertEq(beforeLoanPosition.collateralAmount, afterLoanPosition.collateralAmount, "POSITION_COLLATERAL_AMOUNT");
-        assertEq(beforeLoanPosition.debtAmount + borrowMoreAmount, afterLoanPosition.debtAmount, "POSITION_DEBT_AMOUNT");
+        assertEq(
+            beforeLoanPosition.debtAmount + borrowMoreAmount + couponAmount,
+            afterLoanPosition.debtAmount,
+            "POSITION_DEBT_AMOUNT"
+        );
         assertEq(beforeLoanPosition.collateralToken, afterLoanPosition.collateralToken, "POSITION_COLLATERAL_TOKEN");
         assertEq(beforeLoanPosition.debtToken, afterLoanPosition.debtToken, "POSITION_DEBT_TOKEN");
     }
