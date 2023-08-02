@@ -332,7 +332,31 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
 
     function testAdjustLoanEpochs() public {}
 
-    function testRepay() public {}
+    function testRepay() public {
+        uint256 positionId = _initialBorrow(user, Constants.USDC, Constants.WETH, usdc.amount(10000), 1 ether, 2);
+
+        uint256 beforeUSDCBalance = usdc.balanceOf(user);
+        uint256 beforeETHBalance = user.balance;
+        LoanPosition memory beforeLoanPosition = loanPositionManager.getPosition(positionId);
+        uint256 repayAmount = 0.3 ether;
+        PermitParams memory permit721Params =
+            _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(borrowController), positionId);
+        PermitParams memory permit20Params =
+            _buildERC20PermitParams(1, IERC20Permit(Constants.WETH), address(borrowController), repayAmount);
+        vm.prank(user);
+        borrowController.repay{value: repayAmount}(positionId, repayAmount, 0, permit721Params, permit20Params);
+        LoanPosition memory afterLoanPosition = loanPositionManager.getPosition(positionId);
+
+        uint256 couponAmount = 0.011984284368 ether;
+
+        assertEq(usdc.balanceOf(user), beforeUSDCBalance, "USDC_BALANCE");
+        assertEq(user.balance, beforeETHBalance - repayAmount + couponAmount, "WETH_BALANCE");
+        assertEq(beforeLoanPosition.expiredWith, afterLoanPosition.expiredWith, "POSITION_EXPIRE_EPOCH");
+        assertEq(beforeLoanPosition.collateralAmount, afterLoanPosition.collateralAmount, "POSITION_COLLATERAL_AMOUNT");
+        assertEq(beforeLoanPosition.debtAmount, afterLoanPosition.debtAmount + repayAmount, "POSITION_DEBT_AMOUNT");
+        assertEq(beforeLoanPosition.collateralToken, afterLoanPosition.collateralToken, "POSITION_COLLATERAL_TOKEN");
+        assertEq(beforeLoanPosition.debtToken, afterLoanPosition.debtToken, "POSITION_DEBT_TOKEN");
+    }
 
     function testRepayWithCollateral() public {}
 
