@@ -116,6 +116,8 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
             Constants.WETH,
             address(loanPositionManager)
         );
+        borrowController.setCollateralAllowance(Constants.USDC);
+        borrowController.setCollateralAllowance(Constants.WETH);
 
         // set assetPool
         assetPool.registerAsset(Constants.USDC);
@@ -245,9 +247,9 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         uint256 couponPrice = 0.04 ether;
 
         assertEq(loanPositionManager.ownerOf(positionId), user, "POSITION_OWNER");
-        assertGt(usdc.balanceOf(user), beforeUSDCBalance - collateralAmount, "USDC_BALANCE");
-        assertGt(weth.balanceOf(user), beforeWETHBalance + borrowAmount - couponPrice, "WETH_BALANCE");
-        assertEq(loanPosition.expiredWith, EpochLibrary.current().add(2), "POSITION_EXPIRE_EPOCH");
+        assertEq(usdc.balanceOf(user), beforeUSDCBalance - collateralAmount, "USDC_BALANCE");
+        assertEq(weth.balanceOf(user), beforeWETHBalance + borrowAmount - couponPrice, "WETH_BALANCE");
+        assertEq(loanPosition.expiredWith, EpochLibrary.current().add(1), "POSITION_EXPIRE_EPOCH");
         assertEq(loanPosition.collateralAmount, collateralAmount, "POSITION_COLLATERAL_AMOUNT");
         assertEq(loanPosition.debtAmount, borrowAmount, "POSITION_DEBT_AMOUNT");
         assertEq(loanPosition.collateralToken, Constants.USDC, "POSITION_COLLATERAL_TOKEN");
