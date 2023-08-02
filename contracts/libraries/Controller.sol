@@ -78,7 +78,7 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
             }
 
             CloberOrderBook market = CloberOrderBook(_couponMarkets[lastCoupon.id()]);
-            bytes memory data = abi.encode(couponsToBuy, new Coupon[](0), amountToPay);
+            bytes memory data = abi.encode(couponsToBuy, new Coupon[](0), amountToPay, 0);
             uint256 dy = lastCoupon.amount - IERC20(market.baseToken()).balanceOf(address(this));
             market.marketOrder(address(this), type(uint16).max, type(uint64).max, dy, 1, data);
         } else if (couponsToSell.length > 0) {
@@ -88,7 +88,7 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
             }
 
             CloberOrderBook market = CloberOrderBook(_couponMarkets[lastCoupon.id()]);
-            bytes memory data = abi.encode(new Coupon[](0), couponsToSell, earnedAmount);
+            bytes memory data = abi.encode(new Coupon[](0), couponsToSell, 0, earnedAmount);
             market.marketOrder(address(this), 0, 0, lastCoupon.amount, 2, data);
         } else {
             _callManager(token, amountToPay, earnedAmount);
