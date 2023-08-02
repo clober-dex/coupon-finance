@@ -276,7 +276,33 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         assertEq(beforeLoanPosition.debtToken, afterLoanPosition.debtToken, "POSITION_DEBT_TOKEN");
     }
 
-    function testAddCollateral() public {}
+    function testAddCollateral() public {
+        uint256 positionId = _initialBorrow(user, Constants.USDC, Constants.WETH, usdc.amount(10000), 1 ether, 2);
+
+        uint256 beforeUSDCBalance = usdc.balanceOf(user);
+        uint256 beforeETHBalance = user.balance;
+        LoanPosition memory beforeLoanPosition = loanPositionManager.getPosition(positionId);
+        uint256 collateralAmount = usdc.amount(123);
+        PermitParams memory permit721Params =
+            _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(borrowController), positionId);
+        PermitParams memory permit20Params =
+            _buildERC20PermitParams(1, IERC20Permit(Constants.USDC), address(borrowController), collateralAmount);
+        vm.prank(user);
+        borrowController.addCollateral(positionId, collateralAmount, permit721Params, permit20Params);
+        LoanPosition memory afterLoanPosition = loanPositionManager.getPosition(positionId);
+
+        assertEq(usdc.balanceOf(user), beforeUSDCBalance - collateralAmount, "USDC_BALANCE");
+        assertEq(user.balance, beforeETHBalance, "WETH_BALANCE");
+        assertEq(beforeLoanPosition.expiredWith, afterLoanPosition.expiredWith, "POSITION_EXPIRE_EPOCH");
+        assertEq(
+            beforeLoanPosition.collateralAmount + collateralAmount,
+            afterLoanPosition.collateralAmount,
+            "POSITION_COLLATERAL_AMOUNT"
+        );
+        assertEq(beforeLoanPosition.debtAmount, afterLoanPosition.debtAmount, "POSITION_DEBT_AMOUNT");
+        assertEq(beforeLoanPosition.collateralToken, afterLoanPosition.collateralToken, "POSITION_COLLATERAL_TOKEN");
+        assertEq(beforeLoanPosition.debtToken, afterLoanPosition.debtToken, "POSITION_DEBT_TOKEN");
+    }
 
     function testRemoveCollateral() public {}
 
