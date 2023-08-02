@@ -213,10 +213,6 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         }
     }
 
-    function _buildPermitParams(address token, uint256 amount) internal view returns (PermitParams memory) {
-        return _buildERC20PermitParams(1, IERC20Permit(token), address(borrowController), amount);
-    }
-
     function _initialBorrow(
         address borrower,
         address collateralToken,
@@ -226,7 +222,8 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         uint8 loanEpochs
     ) internal returns (uint256 positionId) {
         positionId = loanPositionManager.nextId();
-        PermitParams memory permitParams = _buildPermitParams(collateralToken, collateralAmount);
+        PermitParams memory permitParams =
+            _buildERC20PermitParams(1, IERC20Permit(collateralToken), address(borrowController), collateralAmount);
         vm.prank(borrower);
         borrowController.borrow(
             collateralToken, borrowToken, collateralAmount, borrowAmount, type(uint256).max, loanEpochs, permitParams
@@ -261,11 +258,10 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         uint256 beforeUSDCBalance = usdc.balanceOf(user);
         uint256 beforeETHBalance = user.balance;
         LoanPosition memory beforeLoanPosition = loanPositionManager.getPosition(positionId);
-        PermitParams memory permitParams;
-        vm.startPrank(user);
-        loanPositionManager.approve(address(borrowController), positionId);
+        PermitParams memory permitParams =
+            _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(borrowController), positionId);
+        vm.prank(user);
         borrowController.borrowMore(positionId, 0.5 ether, type(uint256).max, permitParams);
-        vm.stopPrank();
         LoanPosition memory afterLoanPosition = loanPositionManager.getPosition(positionId);
 
         uint256 borrowMoreAmount = 0.5 ether;
