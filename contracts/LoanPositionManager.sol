@@ -213,7 +213,6 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
     }
 
     function settlePosition(uint256 positionId) external onlyByLocker {
-        if (!_isApprovedOrOwner(msg.sender, positionId)) revert InvalidAccess();
         LoanPosition memory position = _positionMap[positionId];
 
         // todo: check if this statement is necessary, this already checked in adjustPosition
