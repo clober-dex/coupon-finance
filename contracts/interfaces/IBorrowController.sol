@@ -35,7 +35,15 @@ interface IBorrowController is ILoanPositionCallbackReceiver {
     function removeCollateral(uint256 positionId, uint256 amount, PermitParams calldata positionPermitParams)
         external;
 
-    function adjustLoanEpochs(
+    function extendLoanDuration(
+        uint256 positionId,
+        Epoch newEpoch,
+        uint256 maxDebtAmount,
+        PermitParams calldata positionPermitParams,
+        PermitParams calldata debtPermitParams
+    ) external;
+
+    function shortenLoanDuration(
         uint256 positionId,
         Epoch newEpoch,
         uint256 maxDebtAmount,
