@@ -26,7 +26,7 @@ contract LoanPositionAdjustPositionHelper is ILoanPositionLocker, ERC1155Holder 
         );
     }
 
-    function lockAcquired(bytes calldata data) external returns (bytes memory) {
+    function loanPositionLockAcquired(bytes calldata data) external returns (bytes memory) {
         require(msg.sender == address(loanPositionManager), "not loan position manager");
         AdjustPositionParams memory params = abi.decode(data, (AdjustPositionParams));
 

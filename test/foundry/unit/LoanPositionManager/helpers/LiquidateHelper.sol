@@ -15,7 +15,7 @@ contract LoanPositionLiquidateHelper is ILoanPositionLocker, ERC1155Holder {
         loanPositionManager.lock(abi.encode(positionId, maxRepayAmount));
     }
 
-    function lockAcquired(bytes calldata data) external returns (bytes memory) {
+    function loanPositionLockAcquired(bytes calldata data) external returns (bytes memory) {
         require(msg.sender == address(loanPositionManager), "not loan position manager");
         (uint256 positionId, uint256 maxRepayAmount) = abi.decode(data, (uint256, uint256));
 

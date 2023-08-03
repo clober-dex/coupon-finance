@@ -96,7 +96,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
     function lock(bytes calldata data) external returns (bytes memory result) {
         lockData.push(msg.sender);
 
-        result = ILoanPositionLocker(msg.sender).lockAcquired(data);
+        result = ILoanPositionLocker(msg.sender).loanPositionLockAcquired(data);
 
         if (lockData.length == 1) {
             if (lockData.nonzeroDeltaCount != 0) revert NotSettled();
@@ -506,5 +506,5 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
 }
 
 interface ILoanPositionLocker {
-    function lockAcquired(bytes calldata data) external returns (bytes memory);
+    function loanPositionLockAcquired(bytes calldata data) external returns (bytes memory);
 }

@@ -34,7 +34,7 @@ contract LoanPositionMintHelper is ILoanPositionLocker, ERC1155Holder {
         positionId = abi.decode(result, (uint256));
     }
 
-    function lockAcquired(bytes calldata data) external returns (bytes memory) {
+    function loanPositionLockAcquired(bytes calldata data) external returns (bytes memory) {
         require(msg.sender == address(loanPositionManager), "not loan position manager");
         MintParams memory params = abi.decode(data, (MintParams));
 
