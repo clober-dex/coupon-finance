@@ -11,12 +11,6 @@ import {Epoch} from "../libraries/Epoch.sol";
 import {LoanPosition} from "../libraries/LoanPosition.sol";
 
 interface ILoanPositionManagerTypes {
-    struct LiquidationStatus {
-        uint256 liquidationAmount;
-        uint256 repayAmount;
-        uint256 protocolFeeAmount;
-    }
-
     // liquidationFee = liquidator fee + protocol fee
     // debt = collateral * (1 - liquidationFee)
     struct LoanConfiguration {
@@ -75,7 +69,7 @@ interface ILoanPositionManager is IERC721Metadata, IERC721Permit, ILoanPositionM
     function getLiquidationStatus(uint256 positionId, uint256 maxRepayAmount)
         external
         view
-        returns (LiquidationStatus memory);
+        returns (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount);
 
     function lock(bytes calldata data) external returns (bytes memory);
 

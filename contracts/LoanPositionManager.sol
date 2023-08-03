@@ -386,15 +386,9 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
     function getLiquidationStatus(uint256 positionId, uint256 maxRepayAmount)
         external
         view
-        returns (LiquidationStatus memory)
+        returns (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount)
     {
-        (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount) =
-            _getLiquidationAmount(_positionMap[positionId], maxRepayAmount > 0 ? maxRepayAmount : type(uint256).max);
-        return LiquidationStatus({
-            liquidationAmount: liquidationAmount,
-            repayAmount: repayAmount,
-            protocolFeeAmount: protocolFeeAmount
-        });
+        return _getLiquidationAmount(_positionMap[positionId], maxRepayAmount > 0 ? maxRepayAmount : type(uint256).max);
     }
 
     function liquidate(uint256 positionId, uint256 maxRepayAmount)

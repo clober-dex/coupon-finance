@@ -105,6 +105,12 @@ contract LoanPositionManagerLiquidateUnitTest is Test, ILoanPositionManagerTypes
         uint256 beforeTreasuryBalance;
     }
 
+    struct LiquidationStatus {
+        uint256 liquidationAmount;
+        uint256 repayAmount;
+        uint256 protocolFeeAmount;
+    }
+
     function _testLiquidation(
         uint256 debtAmount,
         uint256 collateralAmount,
@@ -130,7 +136,9 @@ contract LoanPositionManagerLiquidateUnitTest is Test, ILoanPositionManagerTypes
         if (changeData == 0) vm.warp(loanPositionManager.getPosition(tokenId).expiredWith.endTime() + 1);
         else oracle.setAssetPrice(address(weth), changeData);
 
-        LiquidationStatus memory liquidationStatus = loanPositionManager.getLiquidationStatus(tokenId, maxRepayAmount);
+        LiquidationStatus memory liquidationStatus;
+        (liquidationStatus.liquidationAmount, liquidationStatus.repayAmount, liquidationStatus.protocolFeeAmount) =
+            loanPositionManager.getLiquidationStatus(tokenId, maxRepayAmount);
 
         assertEq(liquidationStatus.liquidationAmount, workableAmount + protocolFee, "LIQUIDATION_AMOUNT");
         assertEq(liquidationStatus.repayAmount, repayAmount, "REPAY_AMOUNT");
@@ -432,7 +440,7 @@ contract LoanPositionManagerLiquidateUnitTest is Test, ILoanPositionManagerTypes
 
         oracle.setAssetPrice(address(weth), 1000 * 10 ** 8);
 
-        LiquidationStatus memory liquidationStatus = loanPositionManager.getLiquidationStatus(tokenId, 0);
+        //        LiquidationStatus memory liquidationStatus = loanPositionManager.getLiquidationStatus(tokenId, 0);
         helper.liquidate(tokenId, 0);
         // todo: should check state
     }
