@@ -16,6 +16,7 @@ import {IAssetPool} from "./interfaces/IAssetPool.sol";
 import {ICouponOracle} from "./interfaces/ICouponOracle.sol";
 import {ICouponManager} from "./interfaces/ICouponManager.sol";
 import {ILoanPositionManager} from "./interfaces/ILoanPositionManager.sol";
+import {ILoanPositionLocker} from "./interfaces/ILoanPositionLocker.sol";
 import {ERC721Permit, IERC165} from "./libraries/ERC721Permit.sol";
 import {ReentrancyGuard} from "./libraries/ReentrancyGuard.sol";
 import {CouponKey, CouponKeyLibrary} from "./libraries/CouponKey.sol";
@@ -503,8 +504,4 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
     function _isPairUnregistered(address collateral, address debt) internal view returns (bool) {
         return _loanConfiguration[_buildLoanPairId(collateral, debt)].liquidationThreshold == 0;
     }
-}
-
-interface ILoanPositionLocker {
-    function loanPositionLockAcquired(bytes calldata data) external returns (bytes memory);
 }
