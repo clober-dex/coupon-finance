@@ -13,8 +13,6 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {ERC1155Holder, ERC1155Receiver} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 
 import {IAssetPool} from "./interfaces/IAssetPool.sol";
-import {ILiquidateCallbackReceiver} from "./interfaces/ILiquidateCallbackReceiver.sol";
-import {ILoanPositionCallbackReceiver} from "./interfaces/ILoanPositionCallbackReceiver.sol";
 import {ICouponOracle} from "./interfaces/ICouponOracle.sol";
 import {ICouponManager} from "./interfaces/ICouponManager.sol";
 import {ILoanPositionManager} from "./interfaces/ILoanPositionManager.sol";
@@ -54,6 +52,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
     LockData public override lockData;
 
     mapping(address locker => mapping(uint256 assetId => int256 delta)) public override assetDelta;
+    // todo: merge this storage into _positionMap
     mapping(uint256 positionId => bool) public override unsettledPosition;
 
     constructor(
@@ -78,8 +77,8 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         _;
     }
 
-    function getPosition(uint256 tokenId) external view returns (LoanPosition memory) {
-        return _positionMap[tokenId];
+    function getPosition(uint256 positionId) external view returns (LoanPosition memory) {
+        return _positionMap[positionId];
     }
 
     function isPairRegistered(address collateral, address debt) external view returns (bool) {
@@ -384,13 +383,13 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         }
     }
 
-    function getLiquidationStatus(uint256 tokenId, uint256 maxRepayAmount)
+    function getLiquidationStatus(uint256 positionId, uint256 maxRepayAmount)
         external
         view
         returns (LiquidationStatus memory)
     {
         (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount) =
-            _getLiquidationAmount(_positionMap[tokenId], maxRepayAmount > 0 ? maxRepayAmount : type(uint256).max);
+            _getLiquidationAmount(_positionMap[positionId], maxRepayAmount > 0 ? maxRepayAmount : type(uint256).max);
         return LiquidationStatus({
             liquidationAmount: liquidationAmount,
             repayAmount: repayAmount,
@@ -398,10 +397,14 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         });
     }
 
-    function liquidate(uint256 tokenId, uint256 maxRepayAmount, bytes calldata data) external {
+    function liquidate(uint256 positionId, uint256 maxRepayAmount)
+        external
+        onlyByLocker
+        returns (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount)
+    {
         unchecked {
-            LoanPosition memory position = _positionMap[tokenId];
-            (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount) =
+            LoanPosition memory position = _positionMap[positionId];
+            (liquidationAmount, repayAmount, protocolFeeAmount) =
                 _getLiquidationAmount(position, maxRepayAmount > 0 ? maxRepayAmount : type(uint256).max);
 
             if (liquidationAmount == 0 && repayAmount == 0) revert UnableToLiquidate();
@@ -416,21 +419,24 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
             position.debtAmount -= repayAmount;
             if (position.debtAmount == 0) {
                 position.expiredWith = currentEpoch.sub(1);
-                _positionMap[tokenId].expiredWith = position.expiredWith;
+                _positionMap[positionId].expiredWith = position.expiredWith;
             }
-            _positionMap[tokenId].collateralAmount = position.collateralAmount;
-            _positionMap[tokenId].debtAmount = position.debtAmount;
+            _positionMap[positionId].collateralAmount = position.collateralAmount;
+            _positionMap[positionId].debtAmount = position.debtAmount;
 
-            IAssetPool(assetPool).withdraw(position.collateralToken, liquidationAmount - protocolFeeAmount, msg.sender);
+            _accountDelta(
+                uint256(uint160(position.collateralToken)), -(liquidationAmount - protocolFeeAmount).toInt256()
+            );
             IAssetPool(assetPool).withdraw(position.collateralToken, protocolFeeAmount, treasury);
+            _accountDelta(uint256(uint160(position.debtToken)), repayAmount.toInt256());
 
             if (validEpochLength > 0) {
-                address couponOwner = ownerOf(tokenId);
+                address couponOwner = ownerOf(positionId);
                 Coupon[] memory coupons = new Coupon[](validEpochLength);
                 for (uint256 i = 0; i < validEpochLength; ++i) {
                     coupons[i] = CouponLibrary.from(position.debtToken, currentEpoch.add(uint8(i)), repayAmount);
                 }
-                try ICouponManager(_couponManager).safeBatchTransferFrom(address(this), couponOwner, coupons, data) {}
+                try ICouponManager(_couponManager).safeBatchTransferFrom(address(this), couponOwner, coupons, "") {}
                 catch {
                     for (uint256 i = 0; i < validEpochLength; ++i) {
                         _couponOwed[couponOwner][coupons[i].id()] += coupons[i].amount;
@@ -438,21 +444,8 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
                 }
             }
 
-            if (data.length > 0) {
-                ILiquidateCallbackReceiver(msg.sender).couponFinanceLiquidateCallback(
-                    tokenId,
-                    position.collateralToken,
-                    position.debtToken,
-                    liquidationAmount - protocolFeeAmount,
-                    repayAmount,
-                    data
-                );
-            }
-            IERC20(position.debtToken).safeTransferFrom(msg.sender, assetPool, repayAmount);
-            IAssetPool(assetPool).deposit(position.debtToken, repayAmount);
-
-            emit PositionLiquidated(tokenId);
-            emit PositionUpdated(tokenId, position.collateralAmount, position.debtAmount, position.expiredWith);
+            emit PositionLiquidated(positionId);
+            emit PositionUpdated(positionId, position.collateralAmount, position.debtAmount, position.expiredWith);
         }
     }
 
@@ -491,16 +484,16 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         });
     }
 
-    function nonces(uint256 tokenId) external view returns (uint256) {
-        return _positionMap[tokenId].nonce;
+    function nonces(uint256 positionId) external view returns (uint256) {
+        return _positionMap[positionId].nonce;
     }
 
     function _baseURI() internal view override returns (string memory) {
         return baseURI;
     }
 
-    function _getAndIncrementNonce(uint256 tokenId) internal override returns (uint256) {
-        return _positionMap[tokenId].getAndIncrementNonce();
+    function _getAndIncrementNonce(uint256 positionId) internal override returns (uint256) {
+        return _positionMap[positionId].getAndIncrementNonce();
     }
 
     function supportsInterface(bytes4 interfaceId)

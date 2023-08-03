@@ -29,8 +29,9 @@ interface ILoanPositionManagerTypes {
     }
 
     event AssetRegistered(address indexed asset);
-    event PositionUpdated(uint256 indexed tokenId, uint256 collateralAmount, uint256 debtAmount, Epoch unlockedAt);
-    event PositionLiquidated(uint256 indexed tokenId);
+    event PositionUpdated(uint256 indexed positionId, uint256 collateralAmount, uint256 debtAmount, Epoch unlockedAt);
+    // todo: should give more information
+    event PositionLiquidated(uint256 indexed positionId);
 
     error NotSettled();
     error LockedBy(address locker);
@@ -63,7 +64,7 @@ interface ILoanPositionManager is IERC721Metadata, IERC721Permit, ILoanPositionM
 
     function unsettledPosition(uint256 positionId) external view returns (bool);
 
-    function getPosition(uint256 tokenId) external view returns (LoanPosition memory);
+    function getPosition(uint256 positionId) external view returns (LoanPosition memory);
 
     function isPairRegistered(address collateral, address debt) external view returns (bool);
 
@@ -71,7 +72,7 @@ interface ILoanPositionManager is IERC721Metadata, IERC721Permit, ILoanPositionM
 
     function getOwedCouponAmount(address user, uint256 couponId) external view returns (uint256);
 
-    function getLiquidationStatus(uint256 tokenId, uint256 maxRepayAmount)
+    function getLiquidationStatus(uint256 positionId, uint256 maxRepayAmount)
         external
         view
         returns (LiquidationStatus memory);
@@ -99,7 +100,9 @@ interface ILoanPositionManager is IERC721Metadata, IERC721Permit, ILoanPositionM
 
     function depositCoupons(Coupon[] calldata coupons) external;
 
-    function liquidate(uint256 tokenId, uint256 maxRepayAmount, bytes calldata data) external;
+    function liquidate(uint256 positionId, uint256 maxRepayAmount)
+        external
+        returns (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount);
 
     function claimOwedCoupons(CouponKey[] memory couponKeys, bytes calldata data) external;
 
