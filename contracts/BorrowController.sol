@@ -46,7 +46,6 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         address loanManager
     ) Controller(assetPool, wrapped1155Factory, cloberMarketFactory, couponManager, weth) {
         _loanManager = ILoanPositionManager(loanManager);
-        _couponManager.setApprovalForAll(loanManager, true);
         _swapData = _EMPTY_BYTES;
     }
 

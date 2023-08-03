@@ -109,7 +109,7 @@ abstract contract PositionManager is ERC721Permit, ERC1155Holder, IPositionManag
             for (uint256 i = 0; i < coupons.length; ++i) {
                 _accountDelta(coupons[i].id(), coupons[i].amount.toInt256());
             }
-            ICouponManager(_couponManager).safeBatchTransferFrom(address(this), to, coupons, data);
+            ICouponManager(_couponManager).mintBatch(to, coupons, data);
         }
     }
 
@@ -122,7 +122,7 @@ abstract contract PositionManager is ERC721Permit, ERC1155Holder, IPositionManag
 
     function depositCoupons(Coupon[] calldata coupons) external onlyByLocker {
         unchecked {
-            ICouponManager(_couponManager).safeBatchTransferFrom(msg.sender, address(this), coupons, "");
+            ICouponManager(_couponManager).burnBatch(msg.sender, coupons);
             for (uint256 i = 0; i < coupons.length; ++i) {
                 _accountDelta(coupons[i].id(), -coupons[i].amount.toInt256());
             }

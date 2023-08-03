@@ -40,7 +40,7 @@ contract LoanPositionManagerMintUnitTest is Test, ILoanPositionManagerTypes {
     function setUp() public {
         vm.warp(EpochLibrary.wrap(10).startTime());
 
-        TestInitHelper.TestParams memory p = TestInitHelper.init();
+        TestInitHelper.TestParams memory p = TestInitHelper.init(vm);
         weth = p.weth;
         usdc = p.usdc;
         oracle = p.oracle;
@@ -55,7 +55,6 @@ contract LoanPositionManagerMintUnitTest is Test, ILoanPositionManagerTypes {
         vm.startPrank(address(helper));
         weth.approve(address(loanPositionManager), type(uint256).max);
         usdc.approve(address(loanPositionManager), type(uint256).max);
-        couponManager.setApprovalForAll(address(loanPositionManager), true);
         vm.stopPrank();
 
         weth.transfer(address(helper), weth.balanceOf(address(this)));
@@ -80,14 +79,7 @@ contract LoanPositionManagerMintUnitTest is Test, ILoanPositionManagerTypes {
 
         vm.expectEmit(true, true, true, true);
         emit PositionUpdated(nextId, initialCollateralAmount, initialDebtAmount, epoch);
-        vm.expectCall(
-            address(couponManager),
-            abi.encodeCall(
-                ICouponManager.safeBatchTransferFrom,
-                (address(helper), address(loanPositionManager), coupons, new bytes(0))
-            ),
-            1
-        );
+        vm.expectCall(address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(helper), coupons)), 1);
         uint256 tokenId = helper.mint(
             address(weth), address(usdc), initialCollateralAmount, initialDebtAmount, epoch, Constants.USER1
         );

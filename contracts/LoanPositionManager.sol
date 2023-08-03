@@ -327,7 +327,7 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
                 for (uint256 i = 0; i < validEpochLength; ++i) {
                     coupons[i] = CouponLibrary.from(position.debtToken, currentEpoch.add(uint8(i)), repayAmount);
                 }
-                try ICouponManager(_couponManager).safeBatchTransferFrom(address(this), couponOwner, coupons, "") {}
+                try ICouponManager(_couponManager).mintBatch(couponOwner, coupons, "") {}
                 catch {
                     for (uint256 i = 0; i < validEpochLength; ++i) {
                         _couponOwed[couponOwner][coupons[i].id()] += coupons[i].amount;
@@ -340,18 +340,15 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
         }
     }
 
-    function claimOwedCoupons(CouponKey[] memory couponKeys, bytes calldata data) external {
+    function claimOwedCoupons(CouponKey[] calldata couponKeys, bytes calldata data) external {
         unchecked {
-            uint256 length = couponKeys.length;
-            uint256[] memory ids = new uint256[](length);
-            uint256[] memory amounts = new uint256[](length);
-            for (uint256 i = 0; i < length; ++i) {
+            Coupon[] memory coupons = new Coupon[](couponKeys.length);
+            for (uint256 i = 0; i < couponKeys.length; ++i) {
                 uint256 id = couponKeys[i].toId();
-                ids[i] = id;
-                amounts[i] = _couponOwed[msg.sender][id];
+                coupons[i] = Coupon(couponKeys[i], _couponOwed[msg.sender][id]);
                 _couponOwed[msg.sender][id] = 0;
             }
-            ICouponManager(_couponManager).safeBatchTransferFrom(address(this), msg.sender, ids, amounts, data);
+            ICouponManager(_couponManager).mintBatch(msg.sender, coupons, data);
         }
     }
 

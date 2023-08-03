@@ -2,6 +2,10 @@
 
 pragma solidity ^0.8.0;
 
+import "forge-std/Test.sol";
+
+import {Create1} from "@clober/library/contracts/Create1.sol";
+
 import {Epoch, EpochLibrary} from "../../../../../contracts/libraries/Epoch.sol";
 import {ILoanPositionManager} from "../../../../../contracts/interfaces/ILoanPositionManager.sol";
 import {ICouponManager} from "../../../../../contracts/interfaces/ICouponManager.sol";
@@ -28,7 +32,7 @@ library TestInitHelper {
         uint256 initialDebtAmount;
     }
 
-    function init() internal returns (TestParams memory) {
+    function init(Vm vm) internal returns (TestParams memory) {
         TestParams memory p;
         p.weth = new MockERC20("Collateral Token", "COL", 18);
         p.usdc = new MockERC20("USD coin", "USDC", 6);
@@ -38,7 +42,9 @@ library TestInitHelper {
 
         p.assetPool = new MockAssetPool();
         p.oracle = new MockOracle(address(p.weth));
-        p.couponManager = new CouponManager(Utils.toArr(address(this)), "URI/");
+        uint64 thisNonce = vm.getNonce(address(this));
+        p.couponManager =
+            new CouponManager(Utils.toArr(address(this), Create1.computeAddress(address(this), thisNonce + 1)), "URI/");
         p.loanPositionManager = new LoanPositionManager(
             address(p.couponManager),
             address(p.assetPool),
@@ -49,8 +55,6 @@ library TestInitHelper {
         );
         p.loanPositionManager.setLoanConfiguration(address(p.usdc), address(p.weth), 800000, 20000, 5000, 700000);
         p.loanPositionManager.setLoanConfiguration(address(p.weth), address(p.usdc), 800000, 20000, 5000, 700000);
-
-        p.couponManager.setApprovalForAll(address(p.loanPositionManager), true);
 
         p.weth.approve(address(p.loanPositionManager), type(uint256).max);
         p.usdc.approve(address(p.loanPositionManager), type(uint256).max);

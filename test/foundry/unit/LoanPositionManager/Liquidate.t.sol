@@ -43,7 +43,7 @@ contract LoanPositionManagerLiquidateUnitTest is Test, ILoanPositionManagerTypes
     function setUp() public {
         vm.warp(EpochLibrary.wrap(10).startTime());
 
-        TestInitHelper.TestParams memory p = TestInitHelper.init();
+        TestInitHelper.TestParams memory p = TestInitHelper.init(vm);
         weth = p.weth;
         usdc = p.usdc;
         oracle = p.oracle;
@@ -85,7 +85,6 @@ contract LoanPositionManagerLiquidateUnitTest is Test, ILoanPositionManagerTypes
         vm.startPrank(address(minter));
         weth.approve(address(loanPositionManager), type(uint256).max);
         usdc.approve(address(loanPositionManager), type(uint256).max);
-        couponManager.setApprovalForAll(address(loanPositionManager), true);
         vm.stopPrank();
 
         IERC20(collateralToken).transfer(address(minter), collateralAmount);

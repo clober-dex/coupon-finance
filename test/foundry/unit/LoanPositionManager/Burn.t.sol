@@ -45,7 +45,7 @@ contract LoanPositionManagerBurnUnitTest is Test, ILoanPositionManagerTypes {
     function setUp() public {
         vm.warp(EpochLibrary.wrap(10).startTime());
 
-        TestInitHelper.TestParams memory p = TestInitHelper.init();
+        TestInitHelper.TestParams memory p = TestInitHelper.init(vm);
         weth = p.weth;
         usdc = p.usdc;
         oracle = p.oracle;
@@ -66,7 +66,6 @@ contract LoanPositionManagerBurnUnitTest is Test, ILoanPositionManagerTypes {
         vm.startPrank(address(mintHelper));
         weth.approve(address(loanPositionManager), type(uint256).max);
         usdc.approve(address(loanPositionManager), type(uint256).max);
-        couponManager.setApprovalForAll(address(loanPositionManager), true);
         vm.stopPrank();
 
         weth.transfer(address(mintHelper), initialCollateralAmount);

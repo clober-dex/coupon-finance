@@ -44,7 +44,7 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
     function setUp() public {
         vm.warp(EpochLibrary.wrap(10).startTime());
 
-        TestInitHelper.TestParams memory p = TestInitHelper.init();
+        TestInitHelper.TestParams memory p = TestInitHelper.init(vm);
         weth = p.weth;
         usdc = p.usdc;
         oracle = p.oracle;
@@ -59,7 +59,6 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
         vm.startPrank(address(helper));
         weth.approve(address(loanPositionManager), type(uint256).max);
         usdc.approve(address(loanPositionManager), type(uint256).max);
-        couponManager.setApprovalForAll(address(loanPositionManager), true);
         vm.stopPrank();
 
         Coupon[] memory coupons = new Coupon[](8);
@@ -73,7 +72,6 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
         vm.startPrank(address(minter));
         weth.approve(address(loanPositionManager), type(uint256).max);
         usdc.approve(address(loanPositionManager), type(uint256).max);
-        couponManager.setApprovalForAll(address(loanPositionManager), true);
         vm.stopPrank();
 
         weth.transfer(address(minter), initialCollateralAmount);
@@ -103,12 +101,7 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
         vm.expectEmit(true, true, true, true);
         emit PositionUpdated(tokenId, initialCollateralAmount, debtAmount, epoch);
         vm.expectCall(
-            address(couponManager),
-            abi.encodeCall(
-                ICouponManager.safeBatchTransferFrom,
-                (address(helper), address(loanPositionManager), couponsToPay, new bytes(0))
-            ),
-            1
+            address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(helper), couponsToPay)), 1
         );
         vm.expectCall(
             address(assetPool), abi.encodeCall(IAssetPool.withdraw, (address(usdc), increaseAmount, address(helper))), 1
@@ -134,19 +127,11 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
         emit PositionUpdated(tokenId, initialCollateralAmount, debtAmount, epoch);
         vm.expectCall(
             address(couponManager),
-            abi.encodeCall(
-                ICouponManager.safeBatchTransferFrom,
-                (address(loanPositionManager), address(helper), couponsToRefund, new bytes(0))
-            ),
+            abi.encodeCall(ICouponManager.mintBatch, (address(helper), couponsToRefund, new bytes(0))),
             1
         );
         vm.expectCall(
-            address(couponManager),
-            abi.encodeCall(
-                ICouponManager.safeBatchTransferFrom,
-                (address(helper), address(loanPositionManager), couponsToPay, new bytes(0))
-            ),
-            1
+            address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(helper), couponsToPay)), 1
         );
         vm.expectCall(
             address(assetPool), abi.encodeCall(IAssetPool.withdraw, (address(usdc), increaseAmount, address(helper))), 1
@@ -175,19 +160,11 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
         vm.expectEmit(true, true, true, true);
         emit PositionUpdated(tokenId, initialCollateralAmount, debtAmount, epoch);
         vm.expectCall(
-            address(couponManager),
-            abi.encodeCall(
-                ICouponManager.safeBatchTransferFrom,
-                (address(helper), address(loanPositionManager), couponsToPay, new bytes(0))
-            ),
-            1
+            address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(helper), couponsToPay)), 1
         );
         vm.expectCall(
             address(couponManager),
-            abi.encodeCall(
-                ICouponManager.safeBatchTransferFrom,
-                (address(loanPositionManager), address(helper), couponsToRefund, new bytes(0))
-            ),
+            abi.encodeCall(ICouponManager.mintBatch, (address(helper), couponsToRefund, new bytes(0))),
             1
         );
         vm.expectCall(address(assetPool), abi.encodeCall(IAssetPool.deposit, (address(usdc), decreaseAmount)), 1);
@@ -214,10 +191,7 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
         emit PositionUpdated(tokenId, initialCollateralAmount, debtAmount, epoch);
         vm.expectCall(
             address(couponManager),
-            abi.encodeCall(
-                ICouponManager.safeBatchTransferFrom,
-                (address(loanPositionManager), address(helper), couponsToRefund, new bytes(0))
-            ),
+            abi.encodeCall(ICouponManager.mintBatch, (address(helper), couponsToRefund, new bytes(0))),
             1
         );
         vm.expectCall(address(assetPool), abi.encodeCall(IAssetPool.deposit, (address(usdc), decreaseAmount)), 1);
@@ -245,10 +219,7 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
         emit PositionUpdated(tokenId, initialCollateralAmount, debtAmount, epoch);
         vm.expectCall(
             address(couponManager),
-            abi.encodeCall(
-                ICouponManager.safeBatchTransferFrom,
-                (address(loanPositionManager), address(helper), couponsToRefund, new bytes(0))
-            ),
+            abi.encodeCall(ICouponManager.mintBatch, (address(helper), couponsToRefund, new bytes(0))),
             1
         );
         vm.expectCall(address(assetPool), abi.encodeCall(IAssetPool.deposit, (address(usdc), decreaseAmount)), 1);
