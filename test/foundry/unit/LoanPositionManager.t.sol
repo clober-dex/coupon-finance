@@ -867,6 +867,12 @@ contract LoanPositionManagerUnitTest is
         );
     }
 
+    function testLiquidationWhenDebtIsBig() public {
+        _testLiquidation(
+            usdc.amount(600), 1 ether, 500 * 10 ** 8, 0, 0.995 ether, usdc.amount(600), 0.005 ether, true, false
+        );
+    }
+
     function testLiquidationMaxEpoch() public {
         Coupon[] memory coupons = new Coupon[](200);
         uint256 debtAmount = usdc.amount(1000);
