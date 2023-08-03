@@ -34,10 +34,10 @@ library LoanPositionLibrary {
         });
     }
 
-    function empty(address collateralToken, address debtToken) internal view returns (LoanPosition memory position) {
+    function empty(address collateralToken, address debtToken) internal pure returns (LoanPosition memory position) {
         position = LoanPosition({
             nonce: 0,
-            expiredWith: EpochLibrary.current().sub(1),
+            expiredWith: Epoch.wrap(0),
             collateralToken: collateralToken,
             debtToken: debtToken,
             collateralAmount: 0,
@@ -78,7 +78,7 @@ library LoanPositionLibrary {
             )
         ) revert UnmatchedPosition();
 
-        Epoch latestExpiredEpoch = EpochLibrary.current().sub(1);
+        Epoch latestExpiredEpoch = EpochLibrary.lastExpiredEpoch();
         if (latestExpiredEpoch > newPosition.expiredWith || latestExpiredEpoch > oldPosition.expiredWith) {
             revert InvalidPositionEpoch();
         }

@@ -122,7 +122,7 @@ contract DepositController is IDepositController, Controller {
         BondPosition memory newPosition = BondPosition({
             asset: oldPosition.asset,
             nonce: oldPosition.nonce,
-            expiredWith: amount == 0 ? EpochLibrary.current().sub(1) : oldPosition.expiredWith,
+            expiredWith: amount == 0 ? EpochLibrary.lastExpiredEpoch() : oldPosition.expiredWith,
             amount: amount
         });
         (, Coupon[] memory burnCoupons) = oldPosition.calculateCouponRequirement(newPosition);

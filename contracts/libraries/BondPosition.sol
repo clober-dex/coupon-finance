@@ -22,7 +22,7 @@ library BondPositionLibrary {
     using EpochLibrary for Epoch;
 
     function empty(address asset) internal view returns (BondPosition memory position) {
-        position = BondPosition({asset: asset, nonce: 0, expiredWith: EpochLibrary.current().sub(1), amount: 0});
+        position = BondPosition({asset: asset, nonce: 0, expiredWith: EpochLibrary.lastExpiredEpoch(), amount: 0});
     }
 
     function from(address asset, Epoch expiredWith, uint256 amount)
@@ -46,7 +46,7 @@ library BondPositionLibrary {
             revert UnmatchedPosition();
         }
 
-        Epoch latestExpiredEpoch = EpochLibrary.current().sub(1);
+        Epoch latestExpiredEpoch = EpochLibrary.lastExpiredEpoch();
         if (latestExpiredEpoch > newPosition.expiredWith || latestExpiredEpoch > oldPosition.expiredWith) {
             revert InvalidPositionEpoch();
         }

@@ -7,34 +7,38 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {ERC1155Holder, ERC1155Receiver} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 
-import {ILoanPositionManager} from "./interfaces/ILoanPositionManager.sol";
 import {IAssetPool} from "./interfaces/IAssetPool.sol";
 import {ILiquidateCallbackReceiver} from "./interfaces/ILiquidateCallbackReceiver.sol";
 import {ILoanPositionCallbackReceiver} from "./interfaces/ILoanPositionCallbackReceiver.sol";
 import {ICouponOracle} from "./interfaces/ICouponOracle.sol";
 import {ICouponManager} from "./interfaces/ICouponManager.sol";
+import {ILoanPositionManager} from "./interfaces/ILoanPositionManager.sol";
 import {ERC721Permit, IERC165} from "./libraries/ERC721Permit.sol";
 import {ReentrancyGuard} from "./libraries/ReentrancyGuard.sol";
 import {CouponKey, CouponKeyLibrary} from "./libraries/CouponKey.sol";
 import {Coupon, CouponLibrary} from "./libraries/Coupon.sol";
+import {LockData, LockDataLibrary} from "./libraries/LockData.sol";
 import {Epoch, EpochLibrary} from "./libraries/Epoch.sol";
 import {LoanPosition, LoanPositionLibrary} from "./libraries/LoanPosition.sol";
 
 contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC1155Holder {
+    using SafeCast for uint256;
     using SafeERC20 for IERC20;
     using Strings for uint256;
     using LoanPositionLibrary for LoanPosition;
     using CouponKeyLibrary for CouponKey;
     using CouponLibrary for Coupon;
     using EpochLibrary for Epoch;
+    using LockDataLibrary for LockData;
 
     uint256 private constant _RATE_PRECISION = 10 ** 6;
 
-    address public immutable override couponManager;
+    address private immutable _couponManager;
     address public immutable override assetPool;
     address public immutable override oracle;
     address public immutable override treasury;
@@ -47,6 +51,11 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
     mapping(bytes32 => LoanConfiguration) private _loanConfiguration;
     mapping(uint256 id => LoanPosition) private _positionMap;
 
+    LockData public override lockData;
+
+    mapping(address locker => mapping(uint256 assetId => int256 delta)) public override assetDelta;
+    mapping(uint256 positionId => bool) public override unsettledPosition;
+
     constructor(
         address couponManager_,
         address assetPool_,
@@ -55,12 +64,18 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         uint256 minDebtValueInEth_,
         string memory baseURI_
     ) ERC721Permit("Loan Position", "LP", "1") {
-        couponManager = couponManager_;
+        _couponManager = couponManager_;
         assetPool = assetPool_;
         oracle = oracle_;
         baseURI = baseURI_;
         treasury = treasury_;
         minDebtValueInEth = minDebtValueInEth_;
+    }
+
+    modifier onlyByLocker() {
+        address locker = lockData.getActiveLock();
+        if (msg.sender != locker) revert LockedBy(locker);
+        _;
     }
 
     function getPosition(uint256 tokenId) external view returns (LoanPosition memory) {
@@ -77,6 +92,186 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
 
     function getLoanConfiguration(address collateral, address debt) external view returns (LoanConfiguration memory) {
         return _loanConfiguration[_buildLoanPairId(collateral, debt)];
+    }
+
+    function lock(bytes calldata data) external returns (bytes memory result) {
+        lockData.push(msg.sender);
+
+        result = ILoanPositionLocker(msg.sender).lockAcquired(data);
+
+        if (lockData.length == 1) {
+            if (lockData.nonzeroDeltaCount != 0) revert NotSettled();
+            delete lockData;
+        } else {
+            lockData.pop();
+        }
+    }
+
+    function _markUnsettled(uint256 positionId) internal {
+        if (unsettledPosition[positionId]) return;
+        unsettledPosition[positionId] = true;
+        unchecked {
+            lockData.nonzeroDeltaCount++;
+        }
+    }
+
+    function _markSettled(uint256 positionId) internal {
+        if (!unsettledPosition[positionId]) return;
+        delete unsettledPosition[positionId];
+        unchecked {
+            lockData.nonzeroDeltaCount--;
+        }
+    }
+
+    function _accountDelta(uint256 assetId, int256 delta) internal {
+        if (delta == 0) return;
+
+        address locker = lockData.getActiveLock();
+        int256 current = assetDelta[locker][assetId];
+        int256 next = current + delta;
+
+        unchecked {
+            if (next == 0) {
+                lockData.nonzeroDeltaCount--;
+            } else if (current == 0) {
+                lockData.nonzeroDeltaCount++;
+            }
+        }
+
+        assetDelta[locker][assetId] = next;
+    }
+
+    function mint(address collateralToken, address debtToken) external onlyByLocker returns (uint256 positionId) {
+        if (_isPairUnregistered(collateralToken, debtToken)) {
+            revert InvalidPair();
+        }
+
+        _positionMap[(positionId = nextId++)] = LoanPositionLibrary.empty(collateralToken, debtToken);
+
+        _mint(msg.sender, positionId);
+        _markUnsettled(positionId);
+    }
+
+    function adjustPosition(uint256 positionId, uint256 collateralAmount, uint256 debtAmount, Epoch expiredWith)
+        external
+        onlyByLocker
+        returns (
+            Coupon[] memory couponsToPay,
+            Coupon[] memory couponsToRefund,
+            int256 collateralDelta,
+            int256 debtDelta
+        )
+    {
+        if (!_isApprovedOrOwner(msg.sender, positionId)) revert InvalidAccess();
+        _markUnsettled(positionId);
+
+        Epoch lastExpiredEpoch = EpochLibrary.lastExpiredEpoch();
+        LoanPosition memory oldPosition = _positionMap[positionId];
+        _positionMap[positionId].collateralAmount = collateralAmount;
+
+        if (Epoch.wrap(0) < oldPosition.expiredWith && oldPosition.expiredWith <= lastExpiredEpoch) {
+            // Only unexpired position can adjust debtAmount
+            if (oldPosition.debtAmount != debtAmount) revert AlreadyExpired();
+        } else {
+            if (oldPosition.expiredWith == Epoch.wrap(0)) {
+                oldPosition.expiredWith = lastExpiredEpoch;
+            }
+            _positionMap[positionId].debtAmount = debtAmount;
+            _positionMap[positionId].expiredWith = debtAmount == 0 ? lastExpiredEpoch : expiredWith;
+
+            (couponsToPay, couponsToRefund) = oldPosition.calculateCouponRequirement(_positionMap[positionId]);
+        }
+
+        unchecked {
+            if (couponsToRefund.length > 0) {
+                for (uint256 i = 0; i < couponsToRefund.length; ++i) {
+                    _accountDelta(couponsToRefund[i].id(), -couponsToRefund[i].amount.toInt256());
+                }
+            }
+            if (debtAmount > oldPosition.debtAmount) {
+                debtDelta = (debtAmount - oldPosition.debtAmount).toInt256();
+                _accountDelta(uint256(uint160(oldPosition.debtToken)), -debtDelta);
+            }
+            if (collateralAmount < oldPosition.collateralAmount) {
+                collateralDelta = -(oldPosition.collateralAmount - collateralAmount).toInt256();
+                _accountDelta(uint256(uint160(oldPosition.collateralToken)), collateralDelta);
+            }
+            if (debtAmount < oldPosition.debtAmount) {
+                debtDelta = -(oldPosition.debtAmount - debtAmount).toInt256();
+                _accountDelta(uint256(uint160(oldPosition.debtToken)), -debtDelta);
+            }
+            if (collateralAmount > oldPosition.collateralAmount) {
+                collateralDelta = (collateralAmount - oldPosition.collateralAmount).toInt256();
+                _accountDelta(uint256(uint160(oldPosition.collateralToken)), collateralDelta);
+            }
+            if (couponsToPay.length > 0) {
+                for (uint256 i = 0; i < couponsToPay.length; ++i) {
+                    _accountDelta(couponsToPay[i].id(), couponsToPay[i].amount.toInt256());
+                }
+            }
+        }
+    }
+
+    function settlePosition(uint256 positionId) external onlyByLocker {
+        if (!_isApprovedOrOwner(msg.sender, positionId)) revert InvalidAccess();
+        LoanPosition memory position = _positionMap[positionId];
+
+        // todo: check if this statement is necessary, this already checked in adjustPosition
+        if (position.debtAmount > 0 && position.expiredWith <= EpochLibrary.lastExpiredEpoch()) {
+            revert UnpaidDebt();
+        }
+
+        LoanConfiguration memory loanConfig =
+            _loanConfiguration[_buildLoanPairId(position.collateralToken, position.debtToken)];
+        (
+            uint256 collateralPriceWithPrecisionComplement,
+            uint256 debtPriceWithPrecisionComplement,
+            uint256 minDebtAmount
+        ) = _calculatePricesAndMinDebtAmount(position.collateralToken, position.debtToken, loanConfig);
+
+        if (position.debtAmount > 0 && minDebtAmount > position.debtAmount) revert TooSmallDebt();
+        if (
+            (position.collateralAmount * collateralPriceWithPrecisionComplement) * loanConfig.liquidationThreshold
+                < position.debtAmount * debtPriceWithPrecisionComplement * _RATE_PRECISION
+        ) revert LiquidationThreshold();
+
+        _markSettled(positionId);
+
+        if (position.debtAmount == 0 && position.collateralAmount == 0) {
+            _burn(positionId);
+        }
+
+        emit PositionUpdated(positionId, position.collateralAmount, position.debtAmount, position.expiredWith);
+    }
+
+    function withdrawToken(address token, address to, uint256 amount) external onlyByLocker {
+        _accountDelta(uint256(uint160(token)), amount.toInt256());
+        IAssetPool(assetPool).withdraw(token, amount, to);
+    }
+
+    function withdrawCoupons(Coupon[] calldata coupons, address to, bytes calldata data) external onlyByLocker {
+        unchecked {
+            for (uint256 i = 0; i < coupons.length; ++i) {
+                _accountDelta(coupons[i].id(), coupons[i].amount.toInt256());
+            }
+            ICouponManager(_couponManager).safeBatchTransferFrom(address(this), to, coupons, data);
+        }
+    }
+
+    function depositToken(address token, uint256 amount) external onlyByLocker {
+        if (amount == 0) return;
+        IERC20(token).safeTransferFrom(msg.sender, assetPool, amount);
+        IAssetPool(assetPool).deposit(token, amount);
+        _accountDelta(uint256(uint160(token)), -amount.toInt256());
+    }
+
+    function depositCoupons(Coupon[] calldata coupons) external onlyByLocker {
+        unchecked {
+            ICouponManager(_couponManager).safeBatchTransferFrom(msg.sender, address(this), coupons, "");
+            for (uint256 i = 0; i < coupons.length; ++i) {
+                _accountDelta(coupons[i].id(), -coupons[i].amount.toInt256());
+            }
+        }
     }
 
     function _buildLoanPairId(address collateral, address debt) internal pure returns (bytes32) {
@@ -204,146 +399,6 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
         });
     }
 
-    function _validatePosition(LoanPosition memory position, Epoch latestExpiredEpoch) internal view {
-        if (position.debtAmount > 0 && position.expiredWith <= latestExpiredEpoch) {
-            revert UnpaidDebt();
-        }
-
-        LoanConfiguration memory loanConfig =
-            _loanConfiguration[_buildLoanPairId(position.collateralToken, position.debtToken)];
-        (
-            uint256 collateralPriceWithPrecisionComplement,
-            uint256 debtPriceWithPrecisionComplement,
-            uint256 minDebtAmount
-        ) = _calculatePricesAndMinDebtAmount(position.collateralToken, position.debtToken, loanConfig);
-
-        if (position.debtAmount > 0 && minDebtAmount > position.debtAmount) revert TooSmallDebt();
-        if (
-            (position.collateralAmount * collateralPriceWithPrecisionComplement) * loanConfig.liquidationThreshold
-                < position.debtAmount * debtPriceWithPrecisionComplement * _RATE_PRECISION
-        ) revert LiquidationThreshold();
-    }
-
-    function mint(
-        address collateralToken,
-        address debtToken,
-        uint256 collateralAmount,
-        uint256 debtAmount,
-        uint8 loanEpochs,
-        address recipient,
-        bytes calldata data
-    ) external returns (uint256 tokenId) {
-        unchecked {
-            if (_isPairUnregistered(collateralToken, debtToken)) {
-                revert InvalidPair();
-            }
-            if (loanEpochs == 0 || debtAmount == 0) revert EmptyInput();
-            Epoch currentEpoch = EpochLibrary.current();
-
-            LoanPosition memory position = LoanPositionLibrary.from(
-                currentEpoch.add(loanEpochs - 1), collateralToken, debtToken, collateralAmount, debtAmount
-            );
-            _validatePosition(position, currentEpoch.sub(1));
-
-            Coupon[] memory coupons = new Coupon[](loanEpochs);
-            for (uint256 i = 0; i < loanEpochs; ++i) {
-                coupons[i] = CouponLibrary.from(debtToken, currentEpoch.add(uint8(i)), debtAmount);
-            }
-
-            tokenId = nextId++;
-            _positionMap[tokenId] = position;
-            emit PositionUpdated(tokenId, collateralAmount, debtAmount, position.expiredWith);
-
-            _mint(recipient, tokenId);
-            IAssetPool(assetPool).withdraw(debtToken, debtAmount, recipient);
-
-            if (data.length > 0) {
-                ILoanPositionCallbackReceiver(msg.sender).loanPositionAdjustCallback(
-                    tokenId,
-                    LoanPositionLibrary.empty(collateralToken, debtToken),
-                    position,
-                    coupons,
-                    new Coupon[](0),
-                    data
-                );
-            }
-
-            IERC20(collateralToken).safeTransferFrom(msg.sender, assetPool, collateralAmount);
-            IAssetPool(assetPool).deposit(collateralToken, collateralAmount);
-            ICouponManager(couponManager).safeBatchTransferFrom(msg.sender, address(this), coupons, data);
-        }
-    }
-
-    function adjustPosition(
-        uint256 tokenId,
-        uint256 collateralAmount,
-        uint256 debtAmount,
-        Epoch expiredWith,
-        bytes calldata data
-    ) external {
-        unchecked {
-            if (!_isApprovedOrOwner(msg.sender, tokenId)) revert InvalidAccess();
-
-            LoanPosition memory oldPosition = _positionMap[tokenId];
-            Epoch latestExpiredEpoch = EpochLibrary.current().sub(1);
-            if (oldPosition.expiredWith <= latestExpiredEpoch) revert InvalidEpoch();
-
-            LoanPosition memory newPosition = LoanPosition({
-                nonce: oldPosition.nonce,
-                expiredWith: debtAmount == 0 ? latestExpiredEpoch : expiredWith,
-                collateralToken: oldPosition.collateralToken,
-                debtToken: oldPosition.debtToken,
-                collateralAmount: collateralAmount,
-                debtAmount: debtAmount
-            });
-
-            _validatePosition(newPosition, latestExpiredEpoch);
-
-            (Coupon[] memory couponsToPay, Coupon[] memory couponsToRefund) =
-                oldPosition.calculateCouponRequirement(newPosition);
-
-            _positionMap[tokenId].debtAmount = newPosition.debtAmount;
-            _positionMap[tokenId].collateralAmount = newPosition.collateralAmount;
-            _positionMap[tokenId].expiredWith = newPosition.expiredWith;
-
-            emit PositionUpdated(tokenId, newPosition.collateralAmount, newPosition.debtAmount, newPosition.expiredWith);
-
-            if (couponsToRefund.length > 0) {
-                ICouponManager(couponManager).safeBatchTransferFrom(address(this), msg.sender, couponsToRefund, data);
-            }
-            if (newPosition.debtAmount > oldPosition.debtAmount) {
-                IAssetPool(assetPool).withdraw(
-                    newPosition.debtToken, newPosition.debtAmount - oldPosition.debtAmount, msg.sender
-                );
-            }
-            if (newPosition.collateralAmount < oldPosition.collateralAmount) {
-                IAssetPool(assetPool).withdraw(
-                    newPosition.collateralToken, oldPosition.collateralAmount - newPosition.collateralAmount, msg.sender
-                );
-            }
-
-            if (data.length > 0) {
-                ILoanPositionCallbackReceiver(msg.sender).loanPositionAdjustCallback(
-                    tokenId, oldPosition, newPosition, couponsToPay, couponsToRefund, data
-                );
-            }
-
-            if (newPosition.debtAmount < oldPosition.debtAmount) {
-                uint256 repayAmount = oldPosition.debtAmount - newPosition.debtAmount;
-                IERC20(newPosition.debtToken).safeTransferFrom(msg.sender, assetPool, repayAmount);
-                IAssetPool(assetPool).deposit(newPosition.debtToken, repayAmount);
-            }
-            if (newPosition.collateralAmount > oldPosition.collateralAmount) {
-                uint256 addCollateralAmount = newPosition.collateralAmount - oldPosition.collateralAmount;
-                IERC20(newPosition.collateralToken).safeTransferFrom(msg.sender, assetPool, addCollateralAmount);
-                IAssetPool(assetPool).deposit(newPosition.collateralToken, addCollateralAmount);
-            }
-            if (couponsToPay.length > 0) {
-                ICouponManager(couponManager).safeBatchTransferFrom(msg.sender, address(this), couponsToPay, data);
-            }
-        }
-    }
-
     function liquidate(uint256 tokenId, uint256 maxRepayAmount, bytes calldata data) external {
         unchecked {
             LoanPosition memory position = _positionMap[tokenId];
@@ -376,7 +431,7 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
                 for (uint256 i = 0; i < validEpochLength; ++i) {
                     coupons[i] = CouponLibrary.from(position.debtToken, currentEpoch.add(uint8(i)), repayAmount);
                 }
-                try ICouponManager(couponManager).safeBatchTransferFrom(address(this), couponOwner, coupons, data) {}
+                try ICouponManager(_couponManager).safeBatchTransferFrom(address(this), couponOwner, coupons, data) {}
                 catch {
                     for (uint256 i = 0; i < validEpochLength; ++i) {
                         _couponOwed[couponOwner][coupons[i].id()] += coupons[i].amount;
@@ -413,23 +468,8 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
                 amounts[i] = _couponOwed[msg.sender][id];
                 _couponOwed[msg.sender][id] = 0;
             }
-            ICouponManager(couponManager).safeBatchTransferFrom(address(this), msg.sender, ids, amounts, data);
+            ICouponManager(_couponManager).safeBatchTransferFrom(address(this), msg.sender, ids, amounts, data);
         }
-    }
-
-    function burn(uint256 tokenId) external {
-        if (!_isApprovedOrOwner(msg.sender, tokenId)) revert InvalidAccess();
-        LoanPosition memory position = _positionMap[tokenId];
-        if (position.debtAmount > 0) revert UnpaidDebt();
-        uint256 collateralAmount = position.collateralAmount;
-        position.collateralAmount = 0;
-
-        _positionMap[tokenId].collateralAmount = position.collateralAmount;
-        emit PositionUpdated(tokenId, 0, 0, position.expiredWith);
-
-        IAssetPool(assetPool).withdraw(position.collateralToken, collateralAmount, msg.sender);
-
-        _burn(tokenId);
     }
 
     function setLoanConfiguration(
@@ -477,4 +517,8 @@ contract LoanPositionManager is ILoanPositionManager, ERC721Permit, Ownable, ERC
     function _isPairUnregistered(address collateral, address debt) internal view returns (bool) {
         return _loanConfiguration[_buildLoanPairId(collateral, debt)].liquidationThreshold == 0;
     }
+}
+
+interface ILoanPositionLocker {
+    function lockAcquired(bytes calldata data) external returns (bytes memory);
 }

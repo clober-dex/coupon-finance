@@ -98,7 +98,7 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
         }
 
         BondPosition memory oldPosition = _positionMap[tokenId];
-        Epoch latestExpiredEpoch = EpochLibrary.current().sub(1);
+        Epoch latestExpiredEpoch = EpochLibrary.lastExpiredEpoch();
         if (oldPosition.expiredWith <= latestExpiredEpoch || _MAX_EPOCH < expiredWith) {
             revert InvalidEpoch();
         }
