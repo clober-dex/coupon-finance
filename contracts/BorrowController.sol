@@ -16,9 +16,9 @@ import {Coupon} from "./libraries/Coupon.sol";
 import {Epoch, EpochLibrary} from "./libraries/Epoch.sol";
 import {PermitParams} from "./libraries/PermitParams.sol";
 import {Controller} from "./libraries/Controller.sol";
-import {ILoanPositionLocker} from "./interfaces/ILoanPositionLocker.sol";
+import {IPositionLocker} from "./interfaces/IPositionLocker.sol";
 
-contract BorrowController is IBorrowController, Controller, ILoanPositionLocker {
+contract BorrowController is IBorrowController, Controller, IPositionLocker {
     using SafeERC20 for IERC20;
     using LoanPositionLibrary for LoanPosition;
     using CouponKeyLibrary for CouponKey;
@@ -50,7 +50,7 @@ contract BorrowController is IBorrowController, Controller, ILoanPositionLocker 
         _swapData = _EMPTY_BYTES;
     }
 
-    function loanPositionLockAcquired(bytes memory data) external returns (bytes memory result) {
+    function positionLockAcquired(bytes memory data) external returns (bytes memory result) {
         if (msg.sender != address(_loanManager)) revert InvalidAccess();
 
         uint256 positionId;

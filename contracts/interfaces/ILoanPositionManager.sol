@@ -5,12 +5,13 @@ pragma solidity ^0.8.0;
 import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
 
 import {IERC721Permit} from "./IERC721Permit.sol";
+import {IPositionManagerTypes, IPositionManager} from "./IPositionManager.sol";
 import {CouponKey} from "../libraries/CouponKey.sol";
 import {Coupon} from "../libraries/Coupon.sol";
 import {Epoch} from "../libraries/Epoch.sol";
 import {LoanPosition} from "../libraries/LoanPosition.sol";
 
-interface ILoanPositionManagerTypes {
+interface ILoanPositionManagerTypes is IPositionManagerTypes {
     // liquidationFee = liquidator fee + protocol fee
     // debt = collateral * (1 - liquidationFee)
     struct LoanConfiguration {
@@ -27,9 +28,6 @@ interface ILoanPositionManagerTypes {
     // todo: should give more information
     event PositionLiquidated(uint256 indexed positionId);
 
-    error NotSettled();
-    error LockedBy(address locker);
-
     error AlreadyExpired();
     error TooSmallDebt();
     error InvalidAccess();
@@ -39,24 +37,12 @@ interface ILoanPositionManagerTypes {
     error UnableToLiquidate();
 }
 
-interface ILoanPositionManager is IERC721Metadata, IERC721Permit, ILoanPositionManagerTypes {
-    function baseURI() external view returns (string memory);
-
+interface ILoanPositionManager is ILoanPositionManagerTypes, IPositionManager {
     function treasury() external view returns (address);
 
     function oracle() external view returns (address);
 
-    function nextId() external view returns (uint256);
-
-    function assetPool() external view returns (address);
-
     function minDebtValueInEth() external view returns (uint256);
-
-    function lockData() external view returns (uint128, uint128);
-
-    function assetDelta(address locker, uint256 assetId) external view returns (int256);
-
-    function unsettledPosition(uint256 positionId) external view returns (bool);
 
     function getPosition(uint256 positionId) external view returns (LoanPosition memory);
 
@@ -71,8 +57,6 @@ interface ILoanPositionManager is IERC721Metadata, IERC721Permit, ILoanPositionM
         view
         returns (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount);
 
-    function lock(bytes calldata data) external returns (bytes memory);
-
     function mint(address collateralToken, address debtToken) external returns (uint256 positionId);
 
     function adjustPosition(uint256 positionId, uint256 collateralAmount, uint256 debtAmount, Epoch expiredWith)
@@ -85,14 +69,6 @@ interface ILoanPositionManager is IERC721Metadata, IERC721Permit, ILoanPositionM
         );
 
     function settlePosition(uint256 positionId) external;
-
-    function withdrawToken(address token, address to, uint256 amount) external;
-
-    function withdrawCoupons(Coupon[] calldata coupons, address to, bytes calldata data) external;
-
-    function depositToken(address token, uint256 amount) external;
-
-    function depositCoupons(Coupon[] calldata coupons) external;
 
     function liquidate(uint256 positionId, uint256 maxRepayAmount)
         external

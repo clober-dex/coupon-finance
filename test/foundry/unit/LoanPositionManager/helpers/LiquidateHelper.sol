@@ -2,9 +2,10 @@
 
 pragma solidity ^0.8.0;
 
+import {IPositionLocker} from "../../../../../contracts/interfaces/IPositionLocker.sol";
 import "../../../../../contracts/LoanPositionManager.sol";
 
-contract LoanPositionLiquidateHelper is ILoanPositionLocker, ERC1155Holder {
+contract LoanPositionLiquidateHelper is IPositionLocker, ERC1155Holder {
     ILoanPositionManager public immutable loanPositionManager;
 
     constructor(address loanPositionManager_) {
@@ -15,7 +16,7 @@ contract LoanPositionLiquidateHelper is ILoanPositionLocker, ERC1155Holder {
         loanPositionManager.lock(abi.encode(positionId, maxRepayAmount));
     }
 
-    function loanPositionLockAcquired(bytes calldata data) external returns (bytes memory) {
+    function positionLockAcquired(bytes calldata data) external returns (bytes memory) {
         require(msg.sender == address(loanPositionManager), "not loan position manager");
         (uint256 positionId, uint256 maxRepayAmount) = abi.decode(data, (uint256, uint256));
 
