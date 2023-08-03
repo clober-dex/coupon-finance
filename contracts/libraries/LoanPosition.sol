@@ -23,6 +23,17 @@ library LoanPositionLibrary {
 
     using EpochLibrary for Epoch;
 
+    function clone(LoanPosition memory position) internal pure returns (LoanPosition memory) {
+        return LoanPosition({
+            nonce: position.nonce,
+            expiredWith: position.expiredWith,
+            collateralToken: position.collateralToken,
+            debtToken: position.debtToken,
+            collateralAmount: position.collateralAmount,
+            debtAmount: position.debtAmount
+        });
+    }
+
     function empty(address collateralToken, address debtToken) internal view returns (LoanPosition memory position) {
         position = LoanPosition({
             nonce: 0,

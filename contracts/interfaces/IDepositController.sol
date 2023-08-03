@@ -4,16 +4,16 @@ pragma solidity ^0.8.0;
 
 import {IBondPositionCallbackReceiver} from "./IBondPositionCallbackReceiver.sol";
 import {PermitParams} from "../libraries/PermitParams.sol";
-import {Currency} from "../libraries/Currency.sol";
+import {CouponKey} from "../libraries/CouponKey.sol";
 
 interface IDepositController is IBondPositionCallbackReceiver {
     function deposit(
-        Currency currency,
+        address token,
         uint256 amount,
-        uint16 lockEpochs,
+        uint8 lockEpochs,
         uint256 minInterestEarned,
         PermitParams calldata tokenPermitParams
-    ) external payable returns (uint256);
+    ) external payable;
 
     function withdraw(
         uint256 positionId,

@@ -95,11 +95,11 @@ contract BondPositionManagerUnitTest is
     }
 
     function bondPositionAdjustCallback(
-        uint256 tokenId,
+        uint256,
         BondPosition memory oldPosition,
         BondPosition memory newPosition,
         Coupon[] memory couponsMinted,
-        Coupon[] memory couponsToBurn,
+        Coupon[] memory,
         bytes calldata data
     ) external {
         address asset = oldPosition.asset;

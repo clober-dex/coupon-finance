@@ -19,9 +19,12 @@ interface IWrapped1155Factory is IERC1155Receiver {
         bytes calldata data
     ) external;
 
-    function getWrapped1155DeployBytecode(address multiToken, uint256 tokenId) external view returns (bytes memory);
+    function getWrapped1155DeployBytecode(address multiToken, uint256 tokenId, bytes calldata data)
+        external
+        view
+        returns (bytes memory);
 
-    function getWrapped1155(address multiToken, uint256 tokenId) external view returns (address);
+    function getWrapped1155(address multiToken, uint256 tokenId, bytes calldata data) external view returns (address);
 
-    function requireWrapped1155(address multiToken, uint256 tokenId) external returns (address);
+    function requireWrapped1155(address multiToken, uint256 tokenId, bytes calldata data) external returns (address);
 }

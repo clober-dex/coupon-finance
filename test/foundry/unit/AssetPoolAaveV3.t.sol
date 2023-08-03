@@ -16,6 +16,8 @@ import {MockERC20} from "../mocks/MockERC20.sol";
 contract AssetPoolAaveV3UnitTest is Test, IAssetPoolTypes {
     using ERC20Utils for IERC20;
 
+    address public OPERATOR = address(0x42341);
+
     IAssetPool public assetPool;
     IERC20 public usdc;
     IPool public aavePool;
@@ -28,7 +30,7 @@ contract AssetPoolAaveV3UnitTest is Test, IAssetPoolTypes {
         vm.stopPrank();
         aavePool = IPool(Constants.AAVE_V3_POOL);
 
-        assetPool = new AssetPoolAaveV3(address(aavePool), Constants.TREASURY, Utils.toArr(address(this)));
+        assetPool = new AssetPoolAaveV3(address(aavePool), Constants.TREASURY, Utils.toArr(OPERATOR));
         assetPool.registerAsset(address(usdc));
     }
 
@@ -42,6 +44,7 @@ contract AssetPoolAaveV3UnitTest is Test, IAssetPoolTypes {
         vm.expectCall(
             address(aavePool), abi.encodeCall(aavePool.supply, (address(usdc), amount, address(assetPool), 0)), 1
         );
+        vm.prank(OPERATOR);
         assetPool.deposit(address(usdc), amount);
 
         uint256 afterAssetPoolBalance = usdc.balanceOf(address(assetPool));
@@ -56,7 +59,7 @@ contract AssetPoolAaveV3UnitTest is Test, IAssetPoolTypes {
         usdc.transfer(address(assetPool), amount * 10);
 
         vm.expectRevert(abi.encodeWithSelector(InvalidAsset.selector));
-        vm.prank(address(0x123));
+        vm.prank(OPERATOR);
         assetPool.deposit(address(0x123), amount);
     }
 
@@ -67,11 +70,15 @@ contract AssetPoolAaveV3UnitTest is Test, IAssetPoolTypes {
         vm.expectRevert(abi.encodeWithSelector(InvalidAccess.selector));
         vm.prank(address(0x123));
         assetPool.deposit(address(usdc), amount);
+
+        vm.expectRevert(abi.encodeWithSelector(InvalidAccess.selector));
+        assetPool.deposit(address(usdc), amount);
     }
 
     function testWithdraw() public {
         uint256 amount = usdc.amount(100);
         usdc.transfer(address(assetPool), amount * 10);
+        vm.prank(OPERATOR);
         assetPool.deposit(address(usdc), amount * 5);
 
         uint256 beforeAssetPoolBalance = usdc.balanceOf(address(assetPool));
@@ -79,6 +86,7 @@ contract AssetPoolAaveV3UnitTest is Test, IAssetPoolTypes {
         uint256 beforeUserBalance = usdc.balanceOf(Constants.USER1);
 
         vm.expectCall(address(aavePool), abi.encodeCall(aavePool.withdraw, (address(usdc), amount, Constants.USER1)), 1);
+        vm.prank(OPERATOR);
         assetPool.withdraw(address(usdc), amount, Constants.USER1);
 
         uint256 afterAssetPoolBalance = usdc.balanceOf(address(assetPool));
@@ -93,6 +101,7 @@ contract AssetPoolAaveV3UnitTest is Test, IAssetPoolTypes {
     function testWithdrawWhenNotEnoughReserved() public {
         uint256 amount = usdc.amount(100);
         usdc.transfer(address(assetPool), amount * 10);
+        vm.prank(OPERATOR);
         assetPool.deposit(address(usdc), amount * 5);
 
         // withdraw until utilization rate is 0
@@ -115,6 +124,7 @@ contract AssetPoolAaveV3UnitTest is Test, IAssetPoolTypes {
             abi.encodeCall(aavePool.withdraw, (address(usdc), aTokenUnderlyingBalance, Constants.USER1)),
             1
         );
+        vm.prank(OPERATOR);
         assetPool.withdraw(address(usdc), amount, Constants.USER1);
 
         uint256 afterRecipientBalance = usdc.balanceOf(Constants.USER1);
@@ -133,35 +143,42 @@ contract AssetPoolAaveV3UnitTest is Test, IAssetPoolTypes {
     function testWithdrawWithInvalidAsset() public {
         uint256 amount = usdc.amount(100);
         usdc.transfer(address(assetPool), amount * 10);
+        vm.prank(OPERATOR);
         assetPool.deposit(address(usdc), amount * 5);
 
         vm.expectRevert(abi.encodeWithSelector(InvalidAsset.selector));
-        vm.prank(address(0x123));
+        vm.prank(OPERATOR);
         assetPool.withdraw(address(0x123), amount, Constants.USER1);
     }
 
     function testWithdrawAccess() public {
         uint256 amount = usdc.amount(100);
         usdc.transfer(address(assetPool), amount * 10);
+        vm.prank(OPERATOR);
         assetPool.deposit(address(usdc), amount * 5);
 
         vm.expectRevert(abi.encodeWithSelector(InvalidAccess.selector));
         vm.prank(address(0x123));
+        assetPool.withdraw(address(usdc), amount, Constants.USER1);
+        vm.expectRevert(abi.encodeWithSelector(InvalidAccess.selector));
         assetPool.withdraw(address(usdc), amount, Constants.USER1);
     }
 
     function testWithdrawMoreThanBalance() public {
         uint256 amount = usdc.amount(100);
         usdc.transfer(address(assetPool), amount * 10);
+        vm.prank(OPERATOR);
         assetPool.deposit(address(usdc), amount * 5);
 
         vm.expectRevert(abi.encodeWithSelector(ExceedsBalance.selector, amount * 5));
+        vm.prank(OPERATOR);
         assetPool.withdraw(address(usdc), amount * 10, Constants.USER1);
     }
 
     function testClaim() public {
         uint256 amount = usdc.amount(100);
         usdc.transfer(address(assetPool), amount * 10);
+        vm.prank(OPERATOR);
         assetPool.deposit(address(usdc), amount * 5);
 
         IERC20 aToken = IERC20(aavePool.getReserveData(address(usdc)).aTokenAddress);
@@ -200,16 +217,20 @@ contract AssetPoolAaveV3UnitTest is Test, IAssetPoolTypes {
         vm.expectRevert("Ownable: caller is not the owner");
         vm.prank(address(0x123));
         assetPool.setTreasury(address(0x123));
+        vm.expectRevert("Ownable: caller is not the owner");
+        vm.prank(OPERATOR);
+        assetPool.setTreasury(address(0x123));
     }
 
     function testRegisterAsset() public {
-        address btc = 0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f;
-        assertFalse(assetPool.isAssetRegistered(btc), "IS_ASSET_REGISTERED");
+        assertFalse(assetPool.isAssetRegistered(Constants.WBTC), "IS_ASSET_REGISTERED");
 
-        assetPool.registerAsset(btc);
+        assetPool.registerAsset(Constants.WBTC);
 
-        assertTrue(assetPool.isAssetRegistered(btc), "IS_ASSET_REGISTERED");
-        assertEq(IERC20(btc).allowance(address(assetPool), address(aavePool)), type(uint256).max, "ALLOWANCE");
+        assertTrue(assetPool.isAssetRegistered(Constants.WBTC), "IS_ASSET_REGISTERED");
+        assertEq(
+            IERC20(Constants.WBTC).allowance(address(assetPool), address(aavePool)), type(uint256).max, "ALLOWANCE"
+        );
     }
 
     function testRegisterAssetWithInvalidAsset() public {
@@ -218,8 +239,11 @@ contract AssetPoolAaveV3UnitTest is Test, IAssetPoolTypes {
     }
 
     function testRegisterAssetAccess() public {
-        vm.expectRevert(abi.encodeWithSelector(InvalidAccess.selector));
+        vm.expectRevert("Ownable: caller is not the owner");
         vm.prank(address(0x123));
+        assetPool.registerAsset(address(0x123));
+        vm.expectRevert("Ownable: caller is not the owner");
+        vm.prank(OPERATOR);
         assetPool.registerAsset(address(0x123));
     }
 
@@ -254,8 +278,11 @@ contract AssetPoolAaveV3UnitTest is Test, IAssetPoolTypes {
         MockERC20 lostToken = new MockERC20("Lost Token", "LOST", 18);
         lostToken.mint(address(assetPool), lostToken.amount(100));
 
-        vm.expectRevert(abi.encodeWithSelector(InvalidAccess.selector));
+        vm.expectRevert("Ownable: caller is not the owner");
         vm.prank(address(0x123));
+        assetPool.withdrawLostToken(address(lostToken), Constants.USER1);
+        vm.expectRevert("Ownable: caller is not the owner");
+        vm.prank(OPERATOR);
         assetPool.withdrawLostToken(address(lostToken), Constants.USER1);
     }
 }

@@ -4,6 +4,8 @@ pragma solidity ^0.8.0;
 
 import {ILoanPositionCallbackReceiver} from "./ILoanPositionCallbackReceiver.sol";
 import {PermitParams} from "../libraries/PermitParams.sol";
+import {CouponKey} from "../libraries/CouponKey.sol";
+import {Epoch} from "../libraries/Epoch.sol";
 
 interface IBorrowController is ILoanPositionCallbackReceiver {
     function borrow(
@@ -11,15 +13,15 @@ interface IBorrowController is ILoanPositionCallbackReceiver {
         address debtToken,
         uint256 collateralAmount,
         uint256 borrowAmount,
-        uint256 maxDebtAmount,
-        uint16 loanEpochs,
+        uint256 maxPayAmount,
+        uint8 loanEpochs,
         PermitParams calldata collateralPermitParams
-    ) external returns (uint256);
+    ) external payable;
 
     function borrowMore(
         uint256 positionId,
         uint256 amount,
-        uint256 maxDebtIncreaseAmount,
+        uint256 maxPayAmount,
         PermitParams calldata positionPermitParams
     ) external;
 
@@ -35,7 +37,7 @@ interface IBorrowController is ILoanPositionCallbackReceiver {
 
     function adjustLoanEpochs(
         uint256 positionId,
-        uint16 loanEpochs,
+        Epoch newEpoch,
         uint256 maxDebtAmount,
         PermitParams calldata positionPermitParams
     ) external;
@@ -50,7 +52,7 @@ interface IBorrowController is ILoanPositionCallbackReceiver {
 
     function repayWithCollateral(
         uint256 positionId,
-        uint256 repayAmount,
+        uint256 collateralAmount,
         uint256 minEarnedInterest,
         bytes calldata swapData,
         PermitParams calldata positionPermitParams
