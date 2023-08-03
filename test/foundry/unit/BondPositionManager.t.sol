@@ -52,7 +52,7 @@ contract BondPositionManagerUnitTest is
         initialAmount = usdc.amount(100);
         assetPool = new MockAssetPool();
         uint64 thisNonce = vm.getNonce(address(this));
-        couponManager = new CouponManager(Create1.computeAddress(address(this), thisNonce + 1), "URI/");
+        couponManager = new CouponManager(Utils.toArr(Create1.computeAddress(address(this), thisNonce + 1)), "URI/");
         bondPositionManager = new BondPositionManager(
             address(couponManager),
             address(assetPool),

@@ -87,10 +87,7 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
     }
 
     function _mintCoupons(address to, Coupon[] memory coupons) internal {
-        address minter = couponManager.minter();
-        vm.startPrank(minter);
         couponManager.mintBatch(to, coupons, new bytes(0));
-        vm.stopPrank();
     }
 
     function testAdjustPositionIncreaseDebtAndEpochs() public {

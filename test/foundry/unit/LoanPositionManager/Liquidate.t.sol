@@ -65,10 +65,7 @@ contract LoanPositionManagerLiquidateUnitTest is Test, ILoanPositionManagerTypes
     }
 
     function _mintCoupons(address to, Coupon[] memory coupons) internal {
-        address minter = couponManager.minter();
-        vm.startPrank(minter);
         couponManager.mintBatch(to, coupons, new bytes(0));
-        vm.stopPrank();
     }
 
     function _mintPosition(

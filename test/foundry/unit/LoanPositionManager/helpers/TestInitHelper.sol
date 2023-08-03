@@ -11,6 +11,7 @@ import {MockERC20} from "../../../mocks/MockERC20.sol";
 import {Constants} from "../../../Constants.sol";
 import {CouponManager} from "../../../../../contracts/CouponManager.sol";
 import {LoanPositionManager} from "../../../../../contracts/LoanPositionManager.sol";
+import {Utils} from "../../../Utils.sol";
 
 library TestInitHelper {
     using EpochLibrary for Epoch;
@@ -37,7 +38,7 @@ library TestInitHelper {
 
         p.assetPool = new MockAssetPool();
         p.oracle = new MockOracle(address(p.weth));
-        p.couponManager = new CouponManager(address(this), "URI/");
+        p.couponManager = new CouponManager(Utils.toArr(address(this)), "URI/");
         p.loanPositionManager = new LoanPositionManager(
             address(p.couponManager),
             address(p.assetPool),
