@@ -91,7 +91,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
             position.debtToken,
             couponsToPay,
             couponsToRefund,
-            uint256(-debtDelta),
+            debtDelta < 0 ? uint256(-debtDelta) : 0,
             maxPayInterest,
             minEarnInterest
         );
@@ -142,7 +142,9 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
             abi.encode(
                 collateralToken,
                 debtToken,
-                abi.encode(collateralAmount, borrowAmount, EpochLibrary.current().add(loanEpochs - 1), maxPayInterest, 0)
+                abi.encode(
+                    collateralAmount, borrowAmount, EpochLibrary.current().add(loanEpochs - 1), maxPayInterest, 0
+                )
             )
         );
         uint256 positionId = abi.decode(_loanManager.lock(lockData), (uint256));
