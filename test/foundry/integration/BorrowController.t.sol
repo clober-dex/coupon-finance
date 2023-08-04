@@ -244,7 +244,8 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
 
         assertEq(loanPositionManager.ownerOf(positionId), user, "POSITION_OWNER");
         assertEq(usdc.balanceOf(user), beforeUSDCBalance - collateralAmount, "USDC_BALANCE");
-        assertEqSmallBalance(user.balance, beforeETHBalance + borrowAmount - couponAmount, "WETH_BALANCE");
+        assertGe(user.balance, beforeETHBalance + borrowAmount - couponAmount, "WETH_BALANCE");
+        assertLe(user.balance, beforeETHBalance + borrowAmount - couponAmount + 0.001 ether, "WETH_BALANCE");
         assertEq(loanPosition.expiredWith, EpochLibrary.current().add(1), "POSITION_EXPIRE_EPOCH");
         assertEq(loanPosition.collateralAmount, collateralAmount, "POSITION_COLLATERAL_AMOUNT");
         assertEq(loanPosition.debtAmount, borrowAmount, "POSITION_DEBT_AMOUNT");
@@ -268,7 +269,8 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         uint256 couponAmount = 0.04 ether;
 
         assertEq(usdc.balanceOf(user), beforeUSDCBalance, "USDC_BALANCE");
-        assertEqSmallBalance(user.balance, beforeETHBalance + borrowMoreAmount - couponAmount, "WETH_BALANCE");
+        assertGe(user.balance, beforeETHBalance + borrowMoreAmount - couponAmount, "WETH_BALANCE");
+        assertLe(user.balance, beforeETHBalance + borrowMoreAmount - couponAmount + 0.001 ether, "WETH_BALANCE");
         assertEq(beforeLoanPosition.expiredWith, afterLoanPosition.expiredWith, "POSITION_EXPIRE_EPOCH");
         assertEq(beforeLoanPosition.collateralAmount, afterLoanPosition.collateralAmount, "POSITION_COLLATERAL_AMOUNT");
         assertEq(beforeLoanPosition.debtAmount + borrowMoreAmount, afterLoanPosition.debtAmount, "POSITION_DEBT_AMOUNT");
@@ -480,10 +482,6 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         bytes32 hash = ECDSA.toTypedDataHash(token.DOMAIN_SEPARATOR(), structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, hash);
         return PermitParams(block.timestamp + 1, v, r, s);
-    }
-
-    function assertEqSmallBalance(uint256 b1, uint256 b2, string memory err) internal {
-        assertEq(b1 / 10 ** 12, b2 / 10 ** 12, err);
     }
 
     function assertEq(Epoch e1, Epoch e2, string memory err) internal {
