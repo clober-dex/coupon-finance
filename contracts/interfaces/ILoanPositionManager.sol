@@ -65,8 +65,6 @@ interface ILoanPositionManager is ILoanPositionManagerTypes, IPositionManager {
             int256 debtDelta
         );
 
-    function settlePosition(uint256 positionId) external;
-
     function liquidate(uint256 positionId, uint256 maxRepayAmount)
         external
         returns (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount);

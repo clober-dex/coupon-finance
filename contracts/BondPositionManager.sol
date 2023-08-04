@@ -11,6 +11,7 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 import {IBondPositionManager} from "./interfaces/IBondPositionManager.sol";
 import {ICouponManager} from "./interfaces/ICouponManager.sol";
+import {IPositionManager} from "./interfaces/IPositionManager.sol";
 import {IAssetPool} from "./interfaces/IAssetPool.sol";
 import {IBondPositionCallbackReceiver} from "./interfaces/IBondPositionCallbackReceiver.sol";
 import {ERC721Permit} from "./libraries/ERC721Permit.sol";
@@ -57,17 +58,17 @@ contract BondPositionManager is IBondPositionManager, PositionManager, Ownable {
         _positionMap[positionId] = BondPositionLibrary.empty(asset);
 
         _mint(msg.sender, positionId);
-        _markUnsettled(positionId);
     }
 
     function adjustPosition(uint256 positionId, uint256 amount, Epoch expiredWith)
         external
+        onlyByLocker
+        modifyPosition(positionId)
         returns (Coupon[] memory couponsToMint, Coupon[] memory couponsToBurn, int256 amountDelta)
     {
         if (!_isApprovedOrOwner(msg.sender, positionId)) {
             revert InvalidAccess();
         }
-        _markUnsettled(positionId);
         Epoch lastExpiredEpoch = EpochLibrary.lastExpiredEpoch();
         if (amount == 0 || expiredWith == Epoch.wrap(0)) {
             amount = 0;
@@ -112,7 +113,8 @@ contract BondPositionManager is IBondPositionManager, PositionManager, Ownable {
         }
     }
 
-    function settlePosition(uint256 positionId) external onlyByLocker {
+    function settlePosition(uint256 positionId) public override(IPositionManager, PositionManager) onlyByLocker {
+        super.settlePosition(positionId);
         BondPosition memory position = _positionMap[positionId];
         if (_MAX_EPOCH < position.expiredWith) {
             revert InvalidEpoch();
@@ -124,7 +126,6 @@ contract BondPositionManager is IBondPositionManager, PositionManager, Ownable {
                 revert InvalidEpoch();
             }
         }
-        _markSettled(positionId);
         emit PositionUpdated(positionId, position.amount, position.expiredWith);
     }
 

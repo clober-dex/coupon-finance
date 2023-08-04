@@ -27,6 +27,8 @@ interface IPositionManager is IERC721Metadata, IERC721Permit, IPositionManagerTy
 
     function lock(bytes calldata data) external returns (bytes memory);
 
+    function settlePosition(uint256 positionId) external;
+
     function withdrawToken(address token, address to, uint256 amount) external;
 
     function withdrawCoupons(Coupon[] calldata coupons, address to, bytes calldata data) external;

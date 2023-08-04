@@ -13,6 +13,7 @@ import {ERC1155Holder, ERC1155Receiver} from "@openzeppelin/contracts/token/ERC1
 import {IAssetPool} from "./interfaces/IAssetPool.sol";
 import {ICouponOracle} from "./interfaces/ICouponOracle.sol";
 import {ICouponManager} from "./interfaces/ICouponManager.sol";
+import {IPositionManager} from "./interfaces/IPositionManager.sol";
 import {ILoanPositionManager} from "./interfaces/ILoanPositionManager.sol";
 import {ERC721Permit, IERC165} from "./libraries/ERC721Permit.sol";
 import {CouponKey, CouponKeyLibrary} from "./libraries/CouponKey.sol";
@@ -75,12 +76,12 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
         _positionMap[(positionId = _getAndIncreaseId())] = LoanPositionLibrary.empty(collateralToken, debtToken);
 
         _mint(msg.sender, positionId);
-        _markUnsettled(positionId);
     }
 
     function adjustPosition(uint256 positionId, uint256 collateralAmount, uint256 debtAmount, Epoch expiredWith)
         external
         onlyByLocker
+        modifyPosition(positionId)
         returns (
             Coupon[] memory couponsToPay,
             Coupon[] memory couponsToRefund,
@@ -89,7 +90,6 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
         )
     {
         if (!_isApprovedOrOwner(msg.sender, positionId)) revert InvalidAccess();
-        _markUnsettled(positionId);
 
         Epoch lastExpiredEpoch = EpochLibrary.lastExpiredEpoch();
         LoanPosition memory oldPosition = _positionMap[positionId];
@@ -138,7 +138,8 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
         }
     }
 
-    function settlePosition(uint256 positionId) external onlyByLocker {
+    function settlePosition(uint256 positionId) public override(IPositionManager, PositionManager) onlyByLocker {
+        super.settlePosition(positionId);
         LoanPosition memory position = _positionMap[positionId];
 
         if (position.debtAmount > 0 && position.expiredWith <= EpochLibrary.lastExpiredEpoch()) {
@@ -158,8 +159,6 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
             (position.collateralAmount * collateralPriceWithPrecisionComplement) * loanConfig.liquidationThreshold
                 < position.debtAmount * debtPriceWithPrecisionComplement * _RATE_PRECISION
         ) revert LiquidationThreshold();
-
-        _markSettled(positionId);
 
         if (position.debtAmount == 0 && position.collateralAmount == 0) {
             _burn(positionId);
@@ -287,6 +286,7 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
         return _getLiquidationAmount(_positionMap[positionId], maxRepayAmount > 0 ? maxRepayAmount : type(uint256).max);
     }
 
+    // @dev We don't have to check the settlement of the position
     function liquidate(uint256 positionId, uint256 maxRepayAmount)
         external
         onlyByLocker

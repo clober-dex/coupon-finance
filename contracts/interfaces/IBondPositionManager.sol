@@ -32,8 +32,6 @@ interface IBondPositionManager is IBondPositionManagerTypes, IPositionManager {
         external
         returns (Coupon[] memory couponsToMint, Coupon[] memory couponsToBurn, int256 amountDelta);
 
-    function settlePosition(uint256 positionId) external;
-
     // Admin Functions //
     function registerAsset(address asset) external;
 }

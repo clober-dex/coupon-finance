@@ -28,8 +28,9 @@ abstract contract PositionManager is ERC721Permit, ERC1155Holder, IPositionManag
     string public override baseURI;
     uint256 private _nextId = 1;
 
-    LockData public override lockData;
+    LockData private _lockData;
 
+    // @dev Since the epoch is greater than 0, the coupon ID and address can never be the same.
     mapping(address locker => mapping(uint256 assetId => int256 delta)) public override assetDelta;
     // todo: merge this storage into _positionMap
     mapping(uint256 positionId => bool) public override unsettledPosition;
@@ -46,53 +47,50 @@ abstract contract PositionManager is ERC721Permit, ERC1155Holder, IPositionManag
         baseURI = baseURI_;
     }
 
+    modifier modifyPosition(uint256 positionId) {
+        _;
+        _unsettlePosition(positionId);
+    }
+
     modifier onlyByLocker() {
-        address locker = lockData.getActiveLock();
+        address locker = _lockData.getActiveLock();
         if (msg.sender != locker) revert LockedBy(locker);
         _;
     }
 
     function lock(bytes calldata data) external returns (bytes memory result) {
-        lockData.push(msg.sender);
+        _lockData.push(msg.sender);
 
         result = IPositionLocker(msg.sender).positionLockAcquired(data);
 
-        if (lockData.length == 1) {
-            if (lockData.nonzeroDeltaCount != 0) revert NotSettled();
-            delete lockData;
+        if (_lockData.length == 1) {
+            if (_lockData.nonzeroDeltaCount != 0) revert NotSettled();
+            delete _lockData;
         } else {
-            lockData.pop();
+            _lockData.pop();
         }
     }
 
-    function _markUnsettled(uint256 positionId) internal {
+    function _unsettlePosition(uint256 positionId) internal {
         if (unsettledPosition[positionId]) return;
         unsettledPosition[positionId] = true;
         unchecked {
-            lockData.nonzeroDeltaCount++;
-        }
-    }
-
-    function _markSettled(uint256 positionId) internal {
-        if (!unsettledPosition[positionId]) return;
-        delete unsettledPosition[positionId];
-        unchecked {
-            lockData.nonzeroDeltaCount--;
+            _lockData.nonzeroDeltaCount++;
         }
     }
 
     function _accountDelta(uint256 assetId, int256 delta) internal {
         if (delta == 0) return;
 
-        address locker = lockData.getActiveLock();
+        address locker = _lockData.getActiveLock();
         int256 current = assetDelta[locker][assetId];
         int256 next = current + delta;
 
         unchecked {
             if (next == 0) {
-                lockData.nonzeroDeltaCount--;
+                _lockData.nonzeroDeltaCount--;
             } else if (current == 0) {
-                lockData.nonzeroDeltaCount++;
+                _lockData.nonzeroDeltaCount++;
             }
         }
 
@@ -129,12 +127,29 @@ abstract contract PositionManager is ERC721Permit, ERC1155Holder, IPositionManag
         }
     }
 
+    function settlePosition(uint256 positionId) public virtual {
+        if (!unsettledPosition[positionId]) return;
+        unsettledPosition[positionId] = false;
+        unchecked {
+            _lockData.nonzeroDeltaCount--;
+        }
+    }
+
     function _baseURI() internal view override returns (string memory) {
         return baseURI;
     }
 
     function nextId() external view override returns (uint256) {
         return _nextId;
+    }
+
+    function lockData() external view override returns (uint128, uint128) {
+        return (_lockData.length, _lockData.nonzeroDeltaCount);
+    }
+
+    function _mint(address to, uint256 tokenId) internal virtual override {
+        super._mint(to, tokenId);
+        _unsettlePosition(tokenId);
     }
 
     function _getAndIncreaseId() internal returns (uint256 id) {
