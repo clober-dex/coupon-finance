@@ -12,7 +12,7 @@ interface IBorrowController {
         address debtToken,
         uint256 collateralAmount,
         uint256 borrowAmount,
-        uint256 maxPayAmount,
+        uint256 maxPayInterest,
         uint8 loanEpochs,
         PermitParams calldata collateralPermitParams
     ) external payable;
@@ -20,7 +20,7 @@ interface IBorrowController {
     function borrowMore(
         uint256 positionId,
         uint256 amount,
-        uint256 maxPayAmount,
+        uint256 maxPayInterest,
         PermitParams calldata positionPermitParams
     ) external;
 
@@ -37,7 +37,7 @@ interface IBorrowController {
     function extendLoanDuration(
         uint256 positionId,
         uint8 epochs,
-        uint256 maxDebtAmount,
+        uint256 maxPayInterest,
         PermitParams calldata positionPermitParams,
         PermitParams calldata debtPermitParams
     ) external payable;
@@ -45,14 +45,14 @@ interface IBorrowController {
     function shortenLoanDuration(
         uint256 positionId,
         uint8 epochs,
-        uint256 maxDebtAmount,
+        uint256 minEarnInterest,
         PermitParams calldata positionPermitParams
     ) external;
 
     function repay(
         uint256 positionId,
         uint256 amount,
-        uint256 minEarnedInterest,
+        uint256 minEarnInterest,
         PermitParams calldata positionPermitParams,
         PermitParams calldata debtPermitParams
     ) external payable;
@@ -60,7 +60,7 @@ interface IBorrowController {
     function repayWithCollateral(
         uint256 positionId,
         uint256 collateralAmount,
-        uint256 minEarnedInterest,
+        uint256 minEarnInterest,
         bytes calldata swapData,
         PermitParams calldata positionPermitParams
     ) external;

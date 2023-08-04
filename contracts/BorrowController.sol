@@ -64,9 +64,9 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         }
         LoanPosition memory position = _loanManager.getPosition(positionId);
 
-        uint256 maxPayAmount;
-        uint256 minEarnedInterest;
-        (position.collateralAmount, position.debtAmount, position.expiredWith, maxPayAmount, minEarnedInterest) =
+        uint256 maxPayInterest;
+        uint256 minEarnInterest;
+        (position.collateralAmount, position.debtAmount, position.expiredWith, maxPayInterest, minEarnInterest) =
             abi.decode(data, (uint256, uint256, Epoch, uint256, uint256));
 
         (Coupon[] memory couponsToPay, Coupon[] memory couponsToRefund, int256 collateralDelta, int256 debtDelta) =
@@ -92,8 +92,8 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
             couponsToPay,
             couponsToRefund,
             uint256(-debtDelta),
-            maxPayAmount,
-            minEarnedInterest
+            maxPayInterest,
+            minEarnInterest
         );
 
         if (collateralDelta > 0) {
@@ -130,7 +130,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         address debtToken,
         uint256 collateralAmount,
         uint256 borrowAmount,
-        uint256 maxPayAmount,
+        uint256 maxPayInterest,
         uint8 loanEpochs,
         PermitParams calldata collateralPermitParams
     ) external payable nonReentrant wrapETH {
@@ -142,7 +142,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
             abi.encode(
                 collateralToken,
                 debtToken,
-                abi.encode(collateralAmount, borrowAmount, EpochLibrary.current().add(loanEpochs - 1), maxPayAmount, 0)
+                abi.encode(collateralAmount, borrowAmount, EpochLibrary.current().add(loanEpochs - 1), maxPayInterest, 0)
             )
         );
         uint256 positionId = abi.decode(_loanManager.lock(lockData), (uint256));
@@ -155,7 +155,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
     function borrowMore(
         uint256 positionId,
         uint256 amount,
-        uint256 maxPayAmount,
+        uint256 maxPayInterest,
         PermitParams calldata positionPermitParams
     ) external nonReentrant onlyPositionOwner(positionId) {
         _permitERC721(_loanManager, positionId, positionPermitParams);
@@ -165,7 +165,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
                 positionId,
                 msg.sender,
                 abi.encode(
-                    position.collateralAmount, position.debtAmount + amount, position.expiredWith, maxPayAmount, 0
+                    position.collateralAmount, position.debtAmount + amount, position.expiredWith, maxPayInterest, 0
                 )
             )
         );
@@ -210,19 +210,19 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
     function extendLoanDuration(
         uint256 positionId,
         uint8 epochs,
-        uint256 maxPayAmount,
+        uint256 maxPayInterest,
         PermitParams calldata positionPermitParams,
         PermitParams calldata debtPermitParams
     ) external payable nonReentrant onlyPositionOwner(positionId) wrapETH {
         _permitERC721(_loanManager, positionId, positionPermitParams);
         LoanPosition memory position = _loanManager.getPosition(positionId);
-        _permitERC20(position.collateralToken, maxPayAmount, debtPermitParams);
+        _permitERC20(position.collateralToken, maxPayInterest, debtPermitParams);
         _loanManager.lock(
             abi.encode(
                 positionId,
                 msg.sender,
                 abi.encode(
-                    position.collateralAmount, position.debtAmount, position.expiredWith.add(epochs), maxPayAmount, 0
+                    position.collateralAmount, position.debtAmount, position.expiredWith.add(epochs), maxPayInterest, 0
                 )
             )
         );
@@ -252,7 +252,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
     function repay(
         uint256 positionId,
         uint256 amount,
-        uint256 minEarnedInterest,
+        uint256 minEarnInterest,
         PermitParams calldata positionPermitParams,
         PermitParams calldata debtPermitParams
     ) external payable nonReentrant onlyPositionOwner(positionId) wrapETH {
@@ -264,7 +264,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
                 positionId,
                 msg.sender,
                 abi.encode(
-                    position.collateralAmount, position.debtAmount - amount, position.expiredWith, 0, minEarnedInterest
+                    position.collateralAmount, position.debtAmount - amount, position.expiredWith, 0, minEarnInterest
                 )
             )
         );
