@@ -21,8 +21,8 @@ library BondPositionLibrary {
 
     using EpochLibrary for Epoch;
 
-    function empty(address asset) internal view returns (BondPosition memory position) {
-        position = BondPosition({asset: asset, nonce: 0, expiredWith: EpochLibrary.lastExpiredEpoch(), amount: 0});
+    function empty(address asset) internal pure returns (BondPosition memory position) {
+        position = BondPosition({asset: asset, nonce: 0, expiredWith: Epoch.wrap(0), amount: 0});
     }
 
     function from(address asset, Epoch expiredWith, uint256 amount)

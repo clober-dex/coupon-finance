@@ -20,7 +20,7 @@ import {MockAssetPool} from "../../mocks/MockAssetPool.sol";
 import {Constants} from "../../Constants.sol";
 import {LoanPositionLiquidateHelper} from "./helpers/LiquidateHelper.sol";
 import {LoanPositionMintHelper} from "./helpers/MintHelper.sol";
-import {TestInitHelper} from "./helpers/TestInitHelper.sol";
+import {TestInitializer} from "./helpers/TestInitializer.sol";
 
 contract LoanPositionManagerLiquidateUnitTest is Test, ILoanPositionManagerTypes {
     using CouponLibrary for Coupon;
@@ -43,7 +43,7 @@ contract LoanPositionManagerLiquidateUnitTest is Test, ILoanPositionManagerTypes
     function setUp() public {
         vm.warp(EpochLibrary.wrap(10).startTime());
 
-        TestInitHelper.TestParams memory p = TestInitHelper.init(vm);
+        TestInitializer.Params memory p = TestInitializer.init(vm);
         weth = p.weth;
         usdc = p.usdc;
         oracle = p.oracle;

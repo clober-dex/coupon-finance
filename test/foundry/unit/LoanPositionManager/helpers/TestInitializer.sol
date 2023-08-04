@@ -17,10 +17,10 @@ import {CouponManager} from "../../../../../contracts/CouponManager.sol";
 import {LoanPositionManager} from "../../../../../contracts/LoanPositionManager.sol";
 import {Utils} from "../../../Utils.sol";
 
-library TestInitHelper {
+library TestInitializer {
     using EpochLibrary for Epoch;
 
-    struct TestParams {
+    struct Params {
         MockERC20 weth;
         MockERC20 usdc;
         MockOracle oracle;
@@ -32,8 +32,8 @@ library TestInitHelper {
         uint256 initialDebtAmount;
     }
 
-    function init(Vm vm) internal returns (TestParams memory) {
-        TestParams memory p;
+    function init(Vm vm) internal returns (Params memory) {
+        Params memory p;
         p.weth = new MockERC20("Collateral Token", "COL", 18);
         p.usdc = new MockERC20("USD coin", "USDC", 6);
 

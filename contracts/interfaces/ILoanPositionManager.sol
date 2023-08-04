@@ -2,9 +2,6 @@
 
 pragma solidity ^0.8.0;
 
-import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
-
-import {IERC721Permit} from "./IERC721Permit.sol";
 import {IPositionManagerTypes, IPositionManager} from "./IPositionManager.sol";
 import {CouponKey} from "../libraries/CouponKey.sol";
 import {Coupon} from "../libraries/Coupon.sol";
