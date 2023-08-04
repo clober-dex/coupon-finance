@@ -13,7 +13,7 @@ interface IBorrowController {
         uint256 collateralAmount,
         uint256 borrowAmount,
         uint256 maxPayAmount,
-        Epoch expiredWith,
+        uint8 loanEpochs,
         PermitParams calldata collateralPermitParams
     ) external payable;
 
