@@ -81,10 +81,10 @@ contract BondPositionManager is IBondPositionManager, PositionManager, Ownable {
         BondPosition memory position = _positionMap[positionId];
 
         _positionMap[positionId].amount = amount;
-        _positionMap[positionId].expiredWith = expiredWith;
         if (Epoch.wrap(0) < position.expiredWith && position.expiredWith <= lastExpiredEpoch) {
             if (amount > 0) revert AlreadyExpired();
         } else {
+            _positionMap[positionId].expiredWith = expiredWith;
             if (position.expiredWith == Epoch.wrap(0)) {
                 position.expiredWith = lastExpiredEpoch;
             }
