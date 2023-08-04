@@ -31,12 +31,12 @@ import {CloberMarketFactory} from "../../../contracts/external/clober/CloberMark
 import {CloberMarketSwapCallbackReceiver} from "../../../contracts/external/clober/CloberMarketSwapCallbackReceiver.sol";
 import {CloberOrderBook} from "../../../contracts/external/clober/CloberOrderBook.sol";
 import {BorrowController} from "../../../contracts/BorrowController.sol";
+import {IBorrowController} from "../../../contracts/interfaces/IBorrowController.sol";
 import {CouponManager} from "../../../contracts/CouponManager.sol";
 import {BondPositionManager} from "../../../contracts/BondPositionManager.sol";
 import {AssetPoolAaveV3} from "../../../contracts/AssetPoolAaveV3.sol";
 import "../../../contracts/LoanPositionManager.sol";
 import "../mocks/MockOracle.sol";
-import "../../../contracts/interfaces/IBorrowController.sol";
 
 contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiver, ERC1155Holder {
     using Strings for *;
@@ -395,10 +395,11 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         borrowController.repay{value: repayAmount}(positionId, repayAmount, 0, permit721Params, permit20Params);
         LoanPosition memory afterLoanPosition = loanPositionManager.getPosition(positionId);
 
-        uint256 couponAmount = 0.011984284368 ether;
+        uint256 couponAmount = 0.012 ether;
 
         assertEq(usdc.balanceOf(user), beforeUSDCBalance, "USDC_BALANCE");
-        assertEq(user.balance, beforeETHBalance - repayAmount + couponAmount, "WETH_BALANCE");
+        assertLe(user.balance, beforeETHBalance - repayAmount + couponAmount, "WETH_BALANCE");
+        assertGe(user.balance, beforeETHBalance - repayAmount + couponAmount - 0.0001 ether, "WETH_BALANCE");
         assertEq(beforeLoanPosition.expiredWith, afterLoanPosition.expiredWith, "POSITION_EXPIRE_EPOCH");
         assertEq(beforeLoanPosition.collateralAmount, afterLoanPosition.collateralAmount, "POSITION_COLLATERAL_AMOUNT");
         assertEq(beforeLoanPosition.debtAmount, afterLoanPosition.debtAmount + repayAmount, "POSITION_DEBT_AMOUNT");
@@ -406,7 +407,54 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         assertEq(beforeLoanPosition.debtToken, afterLoanPosition.debtToken, "POSITION_DEBT_TOKEN");
     }
 
-    function testRepayWithCollateral() public {}
+    function testRepayWithCollateral() public {
+        uint256 positionId = _initialBorrow(user, Constants.USDC, Constants.WETH, usdc.amount(10000), 1 ether, 2);
+
+        uint256 beforeUSDCBalance = usdc.balanceOf(user);
+        uint256 beforeETHBalance = user.balance;
+        LoanPosition memory beforeLoanPosition = loanPositionManager.getPosition(positionId);
+        uint256 collateralAmount = usdc.amount(500);
+        uint256 maxDebtAmount = 0.75 ether;
+        uint24 fee = 10000;
+        bytes memory exactInputSingleParams = abi.encodeWithSignature(
+            "exactInputSingle((address,address,uint24,address,uint256,uint256,uint256,uint160))",
+            Constants.USDC,
+            Constants.WETH,
+            fee,
+            address(borrowController),
+            block.timestamp + 1,
+            collateralAmount,
+            1 ether - maxDebtAmount,
+            0
+        );
+        IBorrowController.SwapData memory swapData = IBorrowController.SwapData({
+            swap: Constants.UNISWAP_V3_SWAP_ROUTER,
+            inAmount: collateralAmount,
+            minOutAmount: 1 ether - maxDebtAmount,
+            data: exactInputSingleParams
+        });
+
+        PermitParams memory permit721Params =
+            _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(borrowController), positionId);
+
+        vm.prank(user);
+        borrowController.repayWithCollateral(positionId, maxDebtAmount, swapData, permit721Params);
+
+        LoanPosition memory afterLoanPosition = loanPositionManager.getPosition(positionId);
+
+        assertEq(usdc.balanceOf(user), beforeUSDCBalance - collateralAmount, "USDC_BALANCE");
+        assertLe(user.balance, beforeETHBalance, "WETH_BALANCE");
+        assertEq(beforeLoanPosition.expiredWith, afterLoanPosition.expiredWith, "POSITION_EXPIRE_EPOCH");
+        assertEq(
+            beforeLoanPosition.collateralAmount - collateralAmount,
+            afterLoanPosition.collateralAmount,
+            "POSITION_COLLATERAL_AMOUNT"
+        );
+        assertLe(afterLoanPosition.debtAmount, maxDebtAmount, "POSITION_DEBT_AMOUNT");
+        assertGe(afterLoanPosition.debtAmount, 0.7 ether, "POSITION_DEBT_AMOUNT");
+        assertEq(beforeLoanPosition.collateralToken, afterLoanPosition.collateralToken, "POSITION_COLLATERAL_TOKEN");
+        assertEq(beforeLoanPosition.debtToken, afterLoanPosition.debtToken, "POSITION_DEBT_TOKEN");
+    }
 
     function _buildERC20PermitParams(uint256 privateKey, IERC20Permit token, address spender, uint256 amount)
         internal

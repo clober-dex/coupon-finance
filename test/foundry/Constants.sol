@@ -15,6 +15,7 @@ library Constants {
     address internal constant AAVE_ORACLE = 0xb56c2F0B653B2e0b10C9b928C8580Ac5Df02C7C7;
     address internal constant WRAPPED1155_FACTORY = 0xfcBE16BfD991E4949244E59d9b524e6964b8BB75;
     address internal constant CLOBER_FACTORY = 0x24aC0938C010Fb520F1068e96d78E0458855111D;
+    address internal constant UNISWAP_V3_SWAP_ROUTER = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
     bytes32 internal constant PERMIT_TYPEHASH =
         keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
 }
