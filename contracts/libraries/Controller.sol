@@ -62,10 +62,8 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
         _;
     }
 
-    address private _currentUser = address(1);
-
     function _executeCouponTrade(
-        address payer,
+        address user,
         address token,
         Coupon[] memory couponsToBuy,
         Coupon[] memory couponsToSell,
@@ -73,12 +71,11 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
         uint256 maxPayInterest,
         uint256 minEarnInterest
     ) internal {
-        _currentUser = payer;
-        _tradeCouponsOnClober(token, couponsToBuy, couponsToSell, amountToPay, maxPayInterest, minEarnInterest);
-        _currentUser = address(1);
+        _tradeCouponsOnClober(user, token, couponsToBuy, couponsToSell, amountToPay, maxPayInterest, minEarnInterest);
     }
 
     function _tradeCouponsOnClober(
+        address user,
         address token,
         Coupon[] memory couponsToBuy,
         Coupon[] memory couponsToSell,
@@ -92,7 +89,7 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
                 mstore(couponsToBuy, sub(mload(couponsToBuy), 1))
             }
             bytes memory data =
-                abi.encode(couponsToBuy, new Coupon[](0), amountToPay, maxPayInterest, leftRequiredInterest);
+                abi.encode(user, couponsToBuy, new Coupon[](0), amountToPay, maxPayInterest, leftRequiredInterest);
             assembly {
                 mstore(couponsToBuy, add(mload(couponsToBuy), 1))
             }
@@ -106,7 +103,7 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
                 mstore(couponsToSell, sub(mload(couponsToSell), 1))
             }
             bytes memory data =
-                abi.encode(new Coupon[](0), couponsToSell, amountToPay, maxPayInterest, leftRequiredInterest);
+                abi.encode(user, new Coupon[](0), couponsToSell, amountToPay, maxPayInterest, leftRequiredInterest);
             assembly {
                 mstore(couponsToSell, add(mload(couponsToSell), 1))
             }
@@ -115,7 +112,7 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
             market.marketOrder(address(this), 0, 0, lastCoupon.amount, 2, data);
         } else {
             if (leftRequiredInterest > 0) revert ControllerSlippage();
-            _ensureBalance(token, _currentUser, amountToPay);
+            _ensureBalance(token, user, amountToPay);
         }
     }
 
@@ -130,12 +127,13 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
         if (_cloberMarketFactory.getMarketHost(msg.sender) == address(0)) revert InvalidAccess();
 
         (
+            address user,
             Coupon[] memory buyCoupons,
             Coupon[] memory sellCoupons,
             uint256 amountToPay,
             uint256 maxPayInterest,
             uint256 leftRequiredInterest
-        ) = abi.decode(data, (Coupon[], Coupon[], uint256, uint256, uint256));
+        ) = abi.decode(data, (address, Coupon[], Coupon[], uint256, uint256, uint256));
 
         address asset = CloberOrderBook(msg.sender).quoteToken();
         if (asset == inputToken) {
@@ -150,7 +148,7 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
             }
         }
 
-        _tradeCouponsOnClober(asset, buyCoupons, sellCoupons, amountToPay, maxPayInterest, leftRequiredInterest);
+        _tradeCouponsOnClober(user, asset, buyCoupons, sellCoupons, amountToPay, maxPayInterest, leftRequiredInterest);
 
         // transfer input tokens
         if (inputAmount > 0) {
