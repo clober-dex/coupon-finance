@@ -55,11 +55,17 @@ interface IBorrowController {
         PermitParams calldata debtPermitParams
     ) external payable;
 
+    struct SwapData {
+        address swap;
+        uint256 inAmount;
+        uint256 minOutAmount;
+        bytes data;
+    }
+
     function repayWithCollateral(
         uint256 positionId,
-        uint256 collateralAmount,
         uint256 maxDebtAmount,
-        bytes calldata swapData,
+        SwapData calldata swapData,
         PermitParams calldata positionPermitParams
     ) external;
 }
