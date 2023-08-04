@@ -91,10 +91,13 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
             assembly {
                 mstore(couponsToBuy, sub(mload(couponsToBuy), 1))
             }
-
-            CloberOrderBook market = CloberOrderBook(_couponMarkets[lastCoupon.id()]);
             bytes memory data =
                 abi.encode(couponsToBuy, new Coupon[](0), amountToPay, maxPayInterest, leftRequiredInterest);
+            assembly {
+                mstore(couponsToBuy, add(mload(couponsToBuy), 1))
+            }
+
+            CloberOrderBook market = CloberOrderBook(_couponMarkets[lastCoupon.id()]);
             uint256 dy = lastCoupon.amount - IERC20(market.baseToken()).balanceOf(address(this));
             market.marketOrder(address(this), type(uint16).max, type(uint64).max, dy, 1, data);
         } else if (couponsToSell.length > 0) {
@@ -102,10 +105,13 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
             assembly {
                 mstore(couponsToSell, sub(mload(couponsToSell), 1))
             }
-
-            CloberOrderBook market = CloberOrderBook(_couponMarkets[lastCoupon.id()]);
             bytes memory data =
                 abi.encode(new Coupon[](0), couponsToSell, amountToPay, maxPayInterest, leftRequiredInterest);
+            assembly {
+                mstore(couponsToSell, add(mload(couponsToSell), 1))
+            }
+
+            CloberOrderBook market = CloberOrderBook(_couponMarkets[lastCoupon.id()]);
             market.marketOrder(address(this), 0, 0, lastCoupon.amount, 2, data);
         } else {
             if (leftRequiredInterest > 0) revert ControllerSlippage();
