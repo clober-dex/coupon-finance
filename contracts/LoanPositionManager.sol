@@ -141,7 +141,6 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
     function settlePosition(uint256 positionId) external onlyByLocker {
         LoanPosition memory position = _positionMap[positionId];
 
-        // todo: check if this statement is necessary, this already checked in adjustPosition
         if (position.debtAmount > 0 && position.expiredWith <= EpochLibrary.lastExpiredEpoch()) {
             revert UnpaidDebt();
         }
