@@ -12,6 +12,7 @@ struct BondPosition {
     address asset;
     uint64 nonce;
     Epoch expiredWith;
+    bool isSettled;
     uint256 amount;
 }
 
@@ -20,18 +21,6 @@ library BondPositionLibrary {
     error InvalidPositionEpoch();
 
     using EpochLibrary for Epoch;
-
-    function empty(address asset) internal pure returns (BondPosition memory position) {
-        position = BondPosition({asset: asset, nonce: 0, expiredWith: Epoch.wrap(0), amount: 0});
-    }
-
-    function from(address asset, Epoch expiredWith, uint256 amount)
-        internal
-        pure
-        returns (BondPosition memory position)
-    {
-        position = BondPosition({asset: asset, nonce: 0, expiredWith: expiredWith, amount: amount});
-    }
 
     function getAndIncrementNonce(BondPosition storage positionStorage) internal returns (uint64 nonce) {
         nonce = positionStorage.nonce++;

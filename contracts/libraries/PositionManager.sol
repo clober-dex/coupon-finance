@@ -32,8 +32,6 @@ abstract contract PositionManager is ERC721Permit, ERC1155Holder, IPositionManag
 
     // @dev Since the epoch is greater than 0, the coupon ID and address can never be the same.
     mapping(address locker => mapping(uint256 assetId => int256 delta)) public override assetDelta;
-    // todo: merge this storage into _positionMap
-    mapping(uint256 positionId => bool) public override unsettledPosition;
 
     constructor(
         address couponManager_,
@@ -71,9 +69,13 @@ abstract contract PositionManager is ERC721Permit, ERC1155Holder, IPositionManag
         }
     }
 
+    function _isSettled(uint256 positionId) internal view virtual returns (bool);
+
+    function _setPositionSettlement(uint256 positionId, bool settled) internal virtual;
+
     function _unsettlePosition(uint256 positionId) internal {
-        if (unsettledPosition[positionId]) return;
-        unsettledPosition[positionId] = true;
+        if (!_isSettled(positionId)) return;
+        _setPositionSettlement(positionId, false);
         unchecked {
             _lockData.nonzeroDeltaCount++;
         }
@@ -128,8 +130,8 @@ abstract contract PositionManager is ERC721Permit, ERC1155Holder, IPositionManag
     }
 
     function settlePosition(uint256 positionId) public virtual {
-        if (!unsettledPosition[positionId]) return;
-        unsettledPosition[positionId] = false;
+        if (_isSettled(positionId)) return;
+        _setPositionSettlement(positionId, true);
         unchecked {
             _lockData.nonzeroDeltaCount--;
         }
@@ -147,9 +149,12 @@ abstract contract PositionManager is ERC721Permit, ERC1155Holder, IPositionManag
         return (_lockData.length, _lockData.nonzeroDeltaCount);
     }
 
-    function _mint(address to, uint256 tokenId) internal virtual override {
-        super._mint(to, tokenId);
-        _unsettlePosition(tokenId);
+    function _mint(address to, uint256 positionId) internal virtual override {
+        super._mint(to, positionId);
+        _setPositionSettlement(positionId, false);
+        unchecked {
+            _lockData.nonzeroDeltaCount++;
+        }
     }
 
     function _getAndIncreaseId() internal returns (uint256 id) {

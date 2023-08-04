@@ -73,7 +73,9 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
             revert InvalidPair();
         }
 
-        _positionMap[(positionId = _getAndIncreaseId())] = LoanPositionLibrary.empty(collateralToken, debtToken);
+        positionId = _getAndIncreaseId();
+        _positionMap[positionId].collateralToken = collateralToken;
+        _positionMap[positionId].debtToken = debtToken;
 
         _mint(msg.sender, positionId);
     }
@@ -292,6 +294,7 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
         onlyByLocker
         returns (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount)
     {
+        if (!_isSettled(positionId)) revert NotSettled();
         unchecked {
             LoanPosition memory position = _positionMap[positionId];
             (liquidationAmount, repayAmount, protocolFeeAmount) =
@@ -381,5 +384,13 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
 
     function _isPairUnregistered(address collateral, address debt) internal view returns (bool) {
         return _loanConfiguration[_buildLoanPairId(collateral, debt)].liquidationThreshold == 0;
+    }
+
+    function _isSettled(uint256 positionId) internal view override returns (bool) {
+        return _positionMap[positionId].isSettled;
+    }
+
+    function _setPositionSettlement(uint256 positionId, bool settled) internal override {
+        _positionMap[positionId].isSettled = settled;
     }
 }

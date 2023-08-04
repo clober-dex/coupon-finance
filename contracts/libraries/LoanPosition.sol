@@ -11,6 +11,7 @@ import {Coupon, CouponLibrary} from "./Coupon.sol";
 struct LoanPosition {
     uint64 nonce;
     Epoch expiredWith;
+    bool isSettled;
     address collateralToken;
     address debtToken;
     uint256 collateralAmount;
@@ -22,45 +23,6 @@ library LoanPositionLibrary {
     error InvalidPositionEpoch();
 
     using EpochLibrary for Epoch;
-
-    function clone(LoanPosition memory position) internal pure returns (LoanPosition memory) {
-        return LoanPosition({
-            nonce: position.nonce,
-            expiredWith: position.expiredWith,
-            collateralToken: position.collateralToken,
-            debtToken: position.debtToken,
-            collateralAmount: position.collateralAmount,
-            debtAmount: position.debtAmount
-        });
-    }
-
-    function empty(address collateralToken, address debtToken) internal pure returns (LoanPosition memory position) {
-        position = LoanPosition({
-            nonce: 0,
-            expiredWith: Epoch.wrap(0),
-            collateralToken: collateralToken,
-            debtToken: debtToken,
-            collateralAmount: 0,
-            debtAmount: 0
-        });
-    }
-
-    function from(
-        Epoch expiredWith,
-        address collateralToken,
-        address debtToken,
-        uint256 collateralAmount,
-        uint256 debtAmount
-    ) internal pure returns (LoanPosition memory position) {
-        position = LoanPosition({
-            nonce: 0,
-            expiredWith: expiredWith,
-            collateralToken: collateralToken,
-            debtToken: debtToken,
-            collateralAmount: collateralAmount,
-            debtAmount: debtAmount
-        });
-    }
 
     function getAndIncrementNonce(LoanPosition storage positionStorage) internal returns (uint64 nonce) {
         nonce = positionStorage.nonce++;

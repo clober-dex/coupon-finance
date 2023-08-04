@@ -23,8 +23,6 @@ interface IPositionManager is IERC721Metadata, IERC721Permit, IPositionManagerTy
 
     function assetDelta(address locker, uint256 assetId) external view returns (int256);
 
-    function unsettledPosition(uint256 positionId) external view returns (bool);
-
     function lock(bytes calldata data) external returns (bytes memory);
 
     function settlePosition(uint256 positionId) external;

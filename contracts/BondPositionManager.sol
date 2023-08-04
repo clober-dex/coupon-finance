@@ -55,8 +55,7 @@ contract BondPositionManager is IBondPositionManager, PositionManager, Ownable {
         }
 
         positionId = _getAndIncreaseId();
-        _positionMap[positionId] = BondPositionLibrary.empty(asset);
-
+        _positionMap[positionId].asset = asset;
         _mint(msg.sender, positionId);
     }
 
@@ -145,5 +144,13 @@ contract BondPositionManager is IBondPositionManager, PositionManager, Ownable {
 
     function _getAndIncrementNonce(uint256 positionId) internal override returns (uint256) {
         return _positionMap[positionId].getAndIncrementNonce();
+    }
+
+    function _isSettled(uint256 positionId) internal view override returns (bool) {
+        return _positionMap[positionId].isSettled;
+    }
+
+    function _setPositionSettlement(uint256 positionId, bool settled) internal override {
+        _positionMap[positionId].isSettled = settled;
     }
 }

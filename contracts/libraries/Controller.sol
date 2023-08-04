@@ -74,6 +74,7 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
         _tradeCouponsOnClober(user, token, couponsToBuy, couponsToSell, amountToPay, maxPayInterest, minEarnInterest);
     }
 
+    // todo merge with above
     function _tradeCouponsOnClober(
         address user,
         address token,
