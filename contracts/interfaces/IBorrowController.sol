@@ -3,8 +3,6 @@
 pragma solidity ^0.8.0;
 
 import {PermitParams} from "../libraries/PermitParams.sol";
-import {CouponKey} from "../libraries/CouponKey.sol";
-import {Epoch} from "../libraries/Epoch.sol";
 
 interface IBorrowController {
     function borrow(
@@ -60,7 +58,7 @@ interface IBorrowController {
     function repayWithCollateral(
         uint256 positionId,
         uint256 collateralAmount,
-        uint256 minEarnInterest,
+        uint256 maxDebtAmount,
         bytes calldata swapData,
         PermitParams calldata positionPermitParams
     ) external;

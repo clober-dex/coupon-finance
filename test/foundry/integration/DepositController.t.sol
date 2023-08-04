@@ -81,7 +81,8 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
             Utils.toArr(Create1.computeAddress(address(this), thisNonce + 2))
         );
 
-        couponManager = new CouponManager(Create1.computeAddress(address(this), thisNonce + 2), "URI/");
+        couponManager =
+            new CouponManager(Utils.toArr(Create1.computeAddress(address(this), thisNonce + 2), address(this)), "URI/");
         bondPositionManager = new BondPositionManager(
             address(couponManager),
             address(assetPool),
@@ -155,7 +156,6 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
     }
 
     function _marketMake() internal {
-        address minter = couponManager.minter();
         for (uint256 i = 0; i < wrappedCoupons.length; ++i) {
             CouponKey memory key = couponKeys[i];
             CloberOrderBook market = CloberOrderBook(depositController.getCouponMarket(key));
@@ -166,7 +166,6 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
             );
             uint256 amount = IERC20(wrappedCoupons[i]).amount(100);
             Coupon[] memory coupons = Utils.toArr(Coupon(key, amount));
-            vm.prank(minter);
             couponManager.mintBatch(address(this), coupons, "");
             couponManager.safeBatchTransferFrom(
                 address(this),
