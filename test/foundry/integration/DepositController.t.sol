@@ -32,7 +32,7 @@ import {CloberOrderBook} from "../../../contracts/external/clober/CloberOrderBoo
 import {DepositController} from "../../../contracts/DepositController.sol";
 import {CouponManager} from "../../../contracts/CouponManager.sol";
 import {BondPositionManager} from "../../../contracts/BondPositionManager.sol";
-import {AssetPoolAaveV3} from "../../../contracts/AssetPoolAaveV3.sol";
+import {AssetPool} from "../../../contracts/AssetPool.sol";
 
 contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiver, ERC1155Holder {
     using Strings for *;
@@ -75,13 +75,12 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         cloberMarketFactory = CloberMarketFactory(Constants.CLOBER_FACTORY);
 
         uint64 thisNonce = vm.getNonce(address(this));
-        assetPool = new AssetPoolAaveV3(
-            Constants.AAVE_V3_POOL,
-            Constants.TREASURY,
+        assetPool = new AssetPool(
             Utils.toArr(Create1.computeAddress(address(this), thisNonce + 2))
         );
 
-        couponManager = new CouponManager(Create1.computeAddress(address(this), thisNonce + 2), "URI/");
+        couponManager =
+            new CouponManager(Utils.toArr(Create1.computeAddress(address(this), thisNonce + 2), address(this)), "URI/");
         bondPositionManager = new BondPositionManager(
             address(couponManager),
             address(assetPool),
@@ -89,23 +88,12 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
             Utils.toArr(Constants.USDC, Constants.WETH)
         );
         depositController = new DepositController(
-            address(assetPool),
             Constants.WRAPPED1155_FACTORY,
             Constants.CLOBER_FACTORY,
             address(couponManager),
             Constants.WETH,
             address(bondPositionManager)
         );
-
-        // set assetPool
-        assetPool.registerAsset(Constants.USDC);
-        assetPool.registerAsset(Constants.WETH);
-        usdc.transfer(address(assetPool), usdc.amount(1_000));
-        IERC20(Constants.WETH).transfer(address(assetPool), 1_000 ether);
-        vm.startPrank(address(bondPositionManager));
-        assetPool.deposit(address(usdc), usdc.amount(1_000));
-        assetPool.deposit(Constants.WETH, 1_000 ether);
-        vm.stopPrank();
 
         // create wrapped1155
         for (uint8 i = 0; i < 4; i++) {
@@ -155,7 +143,6 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
     }
 
     function _marketMake() internal {
-        address minter = couponManager.minter();
         for (uint256 i = 0; i < wrappedCoupons.length; ++i) {
             CouponKey memory key = couponKeys[i];
             CloberOrderBook market = CloberOrderBook(depositController.getCouponMarket(key));
@@ -166,7 +153,6 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
             );
             uint256 amount = IERC20(wrappedCoupons[i]).amount(100);
             Coupon[] memory coupons = Utils.toArr(Coupon(key, amount));
-            vm.prank(minter);
             couponManager.mintBatch(address(this), coupons, "");
             couponManager.safeBatchTransferFrom(
                 address(this),
@@ -284,7 +270,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         console.log("diff", beforeBalance + beforePosition.amount - usdc.balanceOf(user));
         assertEq(afterPosition.asset, address(usdc), "POSITION_ASSET_1");
         assertEq(afterPosition.amount, 0, "POSITION_AMOUNT_1");
-        assertEq(afterPosition.expiredWith, EpochLibrary.current().sub(1), "POSITION_EXPIRED_WITH_1");
+        assertEq(afterPosition.expiredWith, EpochLibrary.lastExpiredEpoch(), "POSITION_EXPIRED_WITH_1");
         assertEq(afterPosition.nonce, beforePosition.nonce, "POSITION_NONCE_1");
         _checkWrappedTokenAlmost0Balance(address(depositController));
 
@@ -330,7 +316,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         console.log("diff", beforeBalance + beforePosition.amount - user.balance);
         assertEq(afterPosition.asset, Constants.WETH, "POSITION_ASSET_1");
         assertEq(afterPosition.amount, 0, "POSITION_AMOUNT_1");
-        assertEq(afterPosition.expiredWith, EpochLibrary.current().sub(1), "POSITION_EXPIRED_WITH_1");
+        assertEq(afterPosition.expiredWith, EpochLibrary.lastExpiredEpoch(), "POSITION_EXPIRED_WITH_1");
         assertEq(afterPosition.nonce, beforePosition.nonce, "POSITION_NONCE_1");
         _checkWrappedTokenAlmost0Balance(address(depositController));
 
@@ -365,7 +351,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         assertEq(usdc.balanceOf(user), beforeBalance + beforePosition.amount, "USDC_BALANCE");
         assertEq(afterPosition.asset, address(usdc), "POSITION_ASSET");
         assertEq(afterPosition.amount, 0, "POSITION_AMOUNT");
-        assertEq(afterPosition.expiredWith, EpochLibrary.current().sub(1), "POSITION_EXPIRED_WITH");
+        assertEq(afterPosition.expiredWith, EpochLibrary.lastExpiredEpoch(), "POSITION_EXPIRED_WITH");
         assertEq(afterPosition.nonce, beforePosition.nonce + 1, "POSITION_NONCE");
 
         vm.stopPrank();
@@ -393,7 +379,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         assertEq(user.balance, beforeBalance + beforePosition.amount, "NATIVE_BALANCE");
         assertEq(afterPosition.asset, Constants.WETH, "POSITION_ASSET");
         assertEq(afterPosition.amount, 0, "POSITION_AMOUNT");
-        assertEq(afterPosition.expiredWith, EpochLibrary.current().sub(1), "POSITION_EXPIRED_WITH");
+        assertEq(afterPosition.expiredWith, EpochLibrary.lastExpiredEpoch(), "POSITION_EXPIRED_WITH");
         assertEq(afterPosition.nonce, beforePosition.nonce + 1, "POSITION_NONCE");
 
         vm.stopPrank();

@@ -15,7 +15,7 @@ import {Epoch} from "../../../../contracts/libraries/Epoch.sol";
 import {Wrapped1155MetadataBuilder} from "../../../../contracts/libraries/Wrapped1155MetadataBuilder.sol";
 import {CouponManager} from "../../../../contracts/CouponManager.sol";
 import {Constants} from "../../Constants.sol";
-import {ForkUtils} from "../../Utils.sol";
+import {ForkUtils, Utils} from "../../Utils.sol";
 
 contract Wrapped1155MetadataBuilderUnitTest is Test, ERC1155Holder {
     using CouponLibrary for Coupon;
@@ -28,7 +28,7 @@ contract Wrapped1155MetadataBuilderUnitTest is Test, ERC1155Holder {
         ForkUtils.fork(vm, Constants.FORK_BLOCK_NUMBER);
 
         wrapped1155Factory = IWrapped1155Factory(Constants.WRAPPED1155_FACTORY);
-        couponManager = new CouponManager(address(this), "URI/");
+        couponManager = new CouponManager(Utils.toArr(address(this)), "URI/");
     }
 
     function testBuildWrapped1155Metadata() public {

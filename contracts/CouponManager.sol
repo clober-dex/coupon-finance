@@ -21,17 +21,18 @@ contract CouponManager is ERC1155Permit, ERC1155Supply, ICouponManager {
     using CouponLibrary for Coupon;
     using EpochLibrary for Epoch;
 
-    address public immutable override minter;
-
+    mapping(address => bool) public override isMinter;
     string public override baseURI;
 
-    constructor(address minter_, string memory uri_) ERC1155Permit(uri_, "Coupon", "1") {
-        minter = minter_;
+    constructor(address[] memory minters, string memory uri_) ERC1155Permit(uri_, "Coupon", "1") {
+        for (uint256 i = 0; i < minters.length; ++i) {
+            isMinter[minters[i]] = true;
+        }
         baseURI = uri_;
     }
 
     modifier onlyMinter() {
-        if (msg.sender != minter) {
+        if (!isMinter[msg.sender]) {
             revert InvalidAccess();
         }
         _;

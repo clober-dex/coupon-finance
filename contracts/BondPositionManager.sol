@@ -11,36 +11,31 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 import {IBondPositionManager} from "./interfaces/IBondPositionManager.sol";
 import {ICouponManager} from "./interfaces/ICouponManager.sol";
+import {IPositionManager} from "./interfaces/IPositionManager.sol";
 import {IAssetPool} from "./interfaces/IAssetPool.sol";
 import {IBondPositionCallbackReceiver} from "./interfaces/IBondPositionCallbackReceiver.sol";
 import {ERC721Permit} from "./libraries/ERC721Permit.sol";
 import {BondPosition, BondPositionLibrary} from "./libraries/BondPosition.sol";
 import {Coupon, CouponLibrary} from "./libraries/Coupon.sol";
 import {Epoch, EpochLibrary} from "./libraries/Epoch.sol";
+import {PositionManager} from "./libraries/PositionManager.sol";
 
-contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
+contract BondPositionManager is IBondPositionManager, PositionManager, Ownable {
+    using SafeCast for uint256;
     using SafeERC20 for IERC20;
     using Strings for uint256;
     using EpochLibrary for Epoch;
     using BondPositionLibrary for BondPosition;
+    using CouponLibrary for Coupon;
 
     Epoch private constant _MAX_EPOCH = Epoch.wrap(157); // Ends at 31 Dec 2048 23:59:59 GMT
-
-    address public immutable override couponManager;
-    address public immutable override assetPool;
-
-    string public override baseURI;
-    uint256 public override nextId = 1;
 
     mapping(address asset => bool) public override isAssetRegistered;
     mapping(uint256 id => BondPosition) private _positionMap;
 
     constructor(address coupon_, address assetPool_, string memory baseURI_, address[] memory initialAssets)
-        ERC721Permit("Bond Position", "BP", "1")
+        PositionManager(coupon_, assetPool_, baseURI_, "Bond Position", "BP")
     {
-        couponManager = coupon_;
-        assetPool = assetPool_;
-        baseURI = baseURI_;
         for (uint256 i = 0; i < initialAssets.length; ++i) {
             _registerAsset(initialAssets[i]);
         }
@@ -50,136 +45,113 @@ contract BondPositionManager is IBondPositionManager, ERC721Permit, Ownable {
         return _MAX_EPOCH;
     }
 
-    function getPosition(uint256 tokenId) external view returns (BondPosition memory) {
-        return _positionMap[tokenId];
+    function getPosition(uint256 positionId) external view returns (BondPosition memory) {
+        return _positionMap[positionId];
     }
 
-    function mint(address asset, uint256 amount, uint8 lockEpochs, address recipient, bytes calldata data)
-        external
-        returns (uint256 tokenId)
-    {
+    function mint(address asset) external onlyByLocker returns (uint256 positionId) {
         if (!isAssetRegistered[asset]) {
             revert UnregisteredAsset();
         }
-        if (lockEpochs == 0 || amount == 0) {
-            revert EmptyInput();
-        }
-        Epoch currentEpoch = EpochLibrary.current();
-        Coupon[] memory coupons = new Coupon[](lockEpochs);
-        for (uint256 i = 0; i < lockEpochs; ++i) {
-            coupons[i] = CouponLibrary.from(asset, currentEpoch.add(uint8(i)), amount);
-        }
-        Epoch expiredWith = currentEpoch.add(lockEpochs - 1);
-        if (_MAX_EPOCH < expiredWith) {
-            revert InvalidEpoch();
-        }
 
-        tokenId = nextId++;
-        BondPosition memory position = BondPositionLibrary.from(asset, expiredWith, amount);
-        _positionMap[tokenId] = position;
-        emit PositionUpdated(tokenId, amount, expiredWith);
-
-        _mint(recipient, tokenId);
-        ICouponManager(couponManager).mintBatch(recipient, coupons, data);
-
-        if (data.length > 0) {
-            IBondPositionCallbackReceiver(recipient).bondPositionAdjustCallback(
-                tokenId, BondPositionLibrary.empty(asset), position, coupons, new Coupon[](0), data
-            );
+        unchecked {
+            positionId = nextId++;
         }
-
-        IERC20(asset).safeTransferFrom(msg.sender, address(assetPool), amount);
-        IAssetPool(assetPool).deposit(asset, amount);
+        _positionMap[positionId].asset = asset;
+        _mint(msg.sender, positionId);
     }
 
-    function adjustPosition(uint256 tokenId, uint256 amount, Epoch expiredWith, bytes calldata data) external {
-        if (!_isApprovedOrOwner(msg.sender, tokenId)) {
+    function adjustPosition(uint256 positionId, uint256 amount, Epoch expiredWith)
+        external
+        onlyByLocker
+        modifyPosition(positionId)
+        returns (Coupon[] memory couponsToMint, Coupon[] memory couponsToBurn, int256 amountDelta)
+    {
+        if (!_isApprovedOrOwner(msg.sender, positionId)) {
             revert InvalidAccess();
         }
+        Epoch lastExpiredEpoch = EpochLibrary.lastExpiredEpoch();
+        if (amount == 0 || expiredWith == Epoch.wrap(0)) {
+            amount = 0;
+            expiredWith = lastExpiredEpoch;
+        }
 
-        BondPosition memory oldPosition = _positionMap[tokenId];
-        Epoch latestExpiredEpoch = EpochLibrary.current().sub(1);
-        if (oldPosition.expiredWith <= latestExpiredEpoch || _MAX_EPOCH < expiredWith) {
+        if (expiredWith < lastExpiredEpoch || _MAX_EPOCH < expiredWith) {
             revert InvalidEpoch();
         }
 
-        address asset = oldPosition.asset;
-        BondPosition memory newPosition = BondPosition({
-            asset: asset,
-            nonce: oldPosition.nonce,
-            expiredWith: (amount == 0 || latestExpiredEpoch > expiredWith) ? latestExpiredEpoch : expiredWith,
-            amount: amount
-        });
+        BondPosition memory position = _positionMap[positionId];
 
-        (Coupon[] memory couponsToMint, Coupon[] memory couponsToBurn) =
-            oldPosition.calculateCouponRequirement(newPosition);
+        _positionMap[positionId].amount = amount;
+        if (Epoch.wrap(0) < position.expiredWith && position.expiredWith <= lastExpiredEpoch) {
+            if (amount > 0) revert AlreadyExpired();
+        } else {
+            _positionMap[positionId].expiredWith = expiredWith;
+            if (position.expiredWith == Epoch.wrap(0)) {
+                position.expiredWith = lastExpiredEpoch;
+            }
 
-        _positionMap[tokenId] = newPosition;
-        emit PositionUpdated(tokenId, newPosition.amount, newPosition.expiredWith);
+            (couponsToMint, couponsToBurn) = position.calculateCouponRequirement(_positionMap[positionId]);
+        }
 
         if (couponsToMint.length > 0) {
-            ICouponManager(couponManager).mintBatch(msg.sender, couponsToMint, data);
+            for (uint256 i = 0; i < couponsToMint.length; ++i) {
+                _accountDelta(couponsToMint[i].id(), -couponsToMint[i].amount.toInt256());
+            }
         }
-        if (oldPosition.amount > newPosition.amount) {
-            IAssetPool(assetPool).withdraw(asset, oldPosition.amount - newPosition.amount, msg.sender);
+        if (position.amount > amount) {
+            amountDelta = -(position.amount - amount).toInt256();
+            _accountDelta(uint256(uint160(position.asset)), amountDelta);
         }
-        if (data.length > 0) {
-            IBondPositionCallbackReceiver(msg.sender).bondPositionAdjustCallback(
-                tokenId, oldPosition, newPosition, couponsToMint, couponsToBurn, data
-            );
-        }
-        if (newPosition.amount > oldPosition.amount) {
-            uint256 assetToDeposit = newPosition.amount - oldPosition.amount;
-            IERC20(asset).safeTransferFrom(msg.sender, address(assetPool), assetToDeposit);
-            IAssetPool(assetPool).deposit(asset, assetToDeposit);
+        if (amount > position.amount) {
+            amountDelta = (amount - position.amount).toInt256();
+            _accountDelta(uint256(uint160(position.asset)), amountDelta);
         }
         if (couponsToBurn.length > 0) {
-            ICouponManager(couponManager).burnBatch(msg.sender, couponsToBurn);
-        }
-        if (newPosition.amount == 0) {
-            _burn(tokenId);
+            for (uint256 i = 0; i < couponsToBurn.length; ++i) {
+                _accountDelta(couponsToBurn[i].id(), couponsToBurn[i].amount.toInt256());
+            }
         }
     }
 
-    function burnExpiredPosition(uint256 tokenId) external {
-        if (!_isApprovedOrOwner(msg.sender, tokenId)) {
-            revert InvalidAccess();
-        }
-        BondPosition memory position = _positionMap[tokenId];
-        if (position.expiredWith >= EpochLibrary.current()) {
+    function settlePosition(uint256 positionId) public override(IPositionManager, PositionManager) onlyByLocker {
+        super.settlePosition(positionId);
+        BondPosition memory position = _positionMap[positionId];
+        if (_MAX_EPOCH < position.expiredWith) {
             revert InvalidEpoch();
         }
-
-        uint256 assetToWithdraw = position.amount;
-        if (assetToWithdraw > 0) {
-            IAssetPool(assetPool).withdraw(position.asset, assetToWithdraw, msg.sender);
-            position.amount -= assetToWithdraw;
-            _positionMap[tokenId] = position;
-        }
         if (position.amount == 0) {
-            _burn(tokenId);
+            _burn(positionId);
+        } else {
+            if (position.expiredWith < EpochLibrary.current()) {
+                revert InvalidEpoch();
+            }
         }
+        emit PositionUpdated(positionId, position.amount, position.expiredWith);
     }
 
     function registerAsset(address asset) external onlyOwner {
         _registerAsset(asset);
     }
 
-    function nonces(uint256 tokenId) external view returns (uint256) {
-        return _positionMap[tokenId].nonce;
+    function nonces(uint256 positionId) external view returns (uint256) {
+        return _positionMap[positionId].nonce;
     }
 
     function _registerAsset(address asset) internal {
-        IERC20(asset).approve(address(assetPool), type(uint256).max);
         isAssetRegistered[asset] = true;
         emit AssetRegistered(asset);
     }
 
-    function _baseURI() internal view override returns (string memory) {
-        return baseURI;
+    function _getAndIncrementNonce(uint256 positionId) internal override returns (uint256) {
+        return _positionMap[positionId].getAndIncrementNonce();
     }
 
-    function _getAndIncrementNonce(uint256 tokenId) internal override returns (uint256) {
-        return _positionMap[tokenId].getAndIncrementNonce();
+    function _isSettled(uint256 positionId) internal view override returns (bool) {
+        return _positionMap[positionId].isSettled;
+    }
+
+    function _setPositionSettlement(uint256 positionId, bool settled) internal override {
+        _positionMap[positionId].isSettled = settled;
     }
 }

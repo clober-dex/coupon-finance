@@ -2,20 +2,13 @@
 
 pragma solidity ^0.8.0;
 
-import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
-
-import {IERC721Permit} from "./IERC721Permit.sol";
+import {IPositionManagerTypes, IPositionManager} from "./IPositionManager.sol";
 import {CouponKey} from "../libraries/CouponKey.sol";
+import {Coupon} from "../libraries/Coupon.sol";
 import {Epoch} from "../libraries/Epoch.sol";
 import {LoanPosition} from "../libraries/LoanPosition.sol";
 
-interface ILoanPositionManagerTypes {
-    struct LiquidationStatus {
-        uint256 liquidationAmount;
-        uint256 repayAmount;
-        uint256 protocolFeeAmount;
-    }
-
+interface ILoanPositionManagerTypes is IPositionManagerTypes {
     // liquidationFee = liquidator fee + protocol fee
     // debt = collateral * (1 - liquidationFee)
     struct LoanConfiguration {
@@ -28,11 +21,11 @@ interface ILoanPositionManagerTypes {
     }
 
     event AssetRegistered(address indexed asset);
-    event PositionUpdated(uint256 indexed tokenId, uint256 collateralAmount, uint256 debtAmount, Epoch unlockedAt);
-    event PositionLiquidated(uint256 indexed tokenId);
+    event PositionUpdated(uint256 indexed positionId, uint256 collateralAmount, uint256 debtAmount, Epoch unlockedAt);
+    // todo: should give more information
+    event PositionLiquidated(uint256 indexed positionId);
 
-    error EmptyInput();
-    error InvalidEpoch();
+    error AlreadyExpired();
     error TooSmallDebt();
     error InvalidAccess();
     error UnpaidDebt();
@@ -41,22 +34,14 @@ interface ILoanPositionManagerTypes {
     error UnableToLiquidate();
 }
 
-interface ILoanPositionManager is IERC721Metadata, IERC721Permit, ILoanPositionManagerTypes {
-    function baseURI() external view returns (string memory);
-
+interface ILoanPositionManager is ILoanPositionManagerTypes, IPositionManager {
     function treasury() external view returns (address);
 
     function oracle() external view returns (address);
 
-    function nextId() external view returns (uint256);
-
-    function couponManager() external view returns (address);
-
-    function assetPool() external view returns (address);
-
     function minDebtValueInEth() external view returns (uint256);
 
-    function getPosition(uint256 tokenId) external view returns (LoanPosition memory);
+    function getPosition(uint256 positionId) external view returns (LoanPosition memory);
 
     function isPairRegistered(address collateral, address debt) external view returns (bool);
 
@@ -64,34 +49,27 @@ interface ILoanPositionManager is IERC721Metadata, IERC721Permit, ILoanPositionM
 
     function getOwedCouponAmount(address user, uint256 couponId) external view returns (uint256);
 
-    function getLiquidationStatus(uint256 tokenId, uint256 maxRepayAmount)
+    function getLiquidationStatus(uint256 positionId, uint256 maxRepayAmount)
         external
         view
-        returns (LiquidationStatus memory);
+        returns (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount);
 
-    function mint(
-        address collateralToken,
-        address debtToken,
-        uint256 collateralAmount,
-        uint256 debtAmount,
-        uint8 loanEpochs,
-        address recipient,
-        bytes calldata data
-    ) external returns (uint256);
+    function mint(address collateralToken, address debtToken) external returns (uint256 positionId);
 
-    function adjustPosition(
-        uint256 tokenId,
-        uint256 collateralAmount,
-        uint256 debtAmount,
-        Epoch expiredWith,
-        bytes calldata data
-    ) external;
+    function adjustPosition(uint256 positionId, uint256 collateralAmount, uint256 debtAmount, Epoch expiredWith)
+        external
+        returns (
+            Coupon[] memory couponsToPay,
+            Coupon[] memory couponsToRefund,
+            int256 collateralDelta,
+            int256 debtDelta
+        );
 
-    function liquidate(uint256 tokenId, uint256 maxRepayAmount, bytes calldata data) external;
+    function liquidate(uint256 positionId, uint256 maxRepayAmount)
+        external
+        returns (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount);
 
     function claimOwedCoupons(CouponKey[] memory couponKeys, bytes calldata data) external;
-
-    function burn(uint256 tokenId) external;
 
     function setLoanConfiguration(
         address collateral,

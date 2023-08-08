@@ -10,6 +10,7 @@ import {IWETH9} from "./external/weth/IWETH9.sol";
 import {IERC721Permit} from "./interfaces/IERC721Permit.sol";
 import {IDepositController} from "./interfaces/IDepositController.sol";
 import {IBondPositionManager} from "./interfaces/IBondPositionManager.sol";
+import {IPositionLocker} from "./interfaces/IPositionLocker.sol";
 import {BondPosition, BondPositionLibrary} from "./libraries/BondPosition.sol";
 import {Epoch, EpochLibrary} from "./libraries/Epoch.sol";
 import {CouponKey, CouponKeyLibrary} from "./libraries/CouponKey.sol";
@@ -18,128 +19,131 @@ import {PermitParams} from "./libraries/PermitParams.sol";
 import {Controller} from "./libraries/Controller.sol";
 import {Wrapped1155MetadataBuilder} from "./libraries/Wrapped1155MetadataBuilder.sol";
 
-contract DepositController is IDepositController, Controller {
+contract DepositController is IDepositController, Controller, IPositionLocker {
     using SafeERC20 for IERC20;
     using BondPositionLibrary for BondPosition;
     using EpochLibrary for Epoch;
     using CouponKeyLibrary for CouponKey;
     using CouponLibrary for Coupon;
 
-    bytes private constant _EMPTY_BYTES = "E";
-
     IBondPositionManager private immutable _bondManager;
 
-    enum CallType {
-        DEPOSIT,
-        WITHDRAW
+    modifier onlyPositionOwner(uint256 positionId) {
+        if (_bondManager.ownerOf(positionId) != msg.sender) {
+            revert InvalidAccess();
+        }
+        _;
     }
 
-    bytes private _bondManagerData;
-
     constructor(
-        address assetPool,
         address wrapped1155Factory,
         address cloberMarketFactory,
         address couponManager,
         address weth,
         address bondManager
-    ) Controller(assetPool, wrapped1155Factory, cloberMarketFactory, couponManager, weth) {
+    ) Controller(wrapped1155Factory, cloberMarketFactory, couponManager, weth) {
         _bondManager = IBondPositionManager(bondManager);
-        _bondManagerData = _EMPTY_BYTES;
+    }
+
+    function positionLockAcquired(bytes memory data) external returns (bytes memory result) {
+        if (msg.sender != address(_bondManager)) revert InvalidAccess();
+
+        uint256 positionId;
+        address user;
+        (positionId, user, data) = abi.decode(data, (uint256, address, bytes));
+        if (positionId == 0) {
+            address asset;
+            (asset, data) = abi.decode(data, (address, bytes));
+            positionId = _bondManager.mint(asset);
+            result = abi.encode(positionId);
+        }
+        BondPosition memory position = _bondManager.getPosition(positionId);
+
+        uint256 maxPayInterest;
+        uint256 minEarnInterest;
+        (position.amount, position.expiredWith, maxPayInterest, minEarnInterest) =
+            abi.decode(data, (uint256, Epoch, uint256, uint256));
+        (Coupon[] memory couponsToMint, Coupon[] memory couponsToBurn, int256 amountDelta) =
+            _bondManager.adjustPosition(positionId, position.amount, position.expiredWith);
+        if (amountDelta < 0) {
+            _bondManager.withdrawToken(position.asset, address(this), uint256(-amountDelta));
+        }
+        if (couponsToMint.length > 0) {
+            _bondManager.withdrawCoupons(couponsToMint, address(this), new bytes(0));
+            _wrapCoupons(couponsToMint);
+        }
+
+        _executeCouponTrade(
+            user,
+            position.asset,
+            couponsToBurn,
+            couponsToMint,
+            amountDelta > 0 ? uint256(amountDelta) : 0,
+            maxPayInterest,
+            minEarnInterest
+        );
+
+        if (amountDelta > 0) {
+            _bondManager.depositToken(position.asset, uint256(amountDelta));
+        }
+        for (uint256 i = 0; i < couponsToBurn.length; i++) {}
+        if (couponsToBurn.length > 0) {
+            _unwrapCoupons(couponsToBurn);
+            _bondManager.depositCoupons(couponsToBurn);
+        }
+
+        _bondManager.settlePosition(positionId);
     }
 
     function deposit(
-        address token,
+        address asset,
         uint256 amount,
         uint8 lockEpochs,
-        uint256 minInterestEarned,
+        uint256 minEarnInterest,
         PermitParams calldata tokenPermitParams
     ) external payable nonReentrant wrapETH {
-        _permitERC20(token, amount, tokenPermitParams);
-        BondPosition memory emptyPosition = BondPositionLibrary.empty(token);
-        BondPosition memory newPosition =
-            BondPositionLibrary.from(token, EpochLibrary.current().add(lockEpochs - 1), amount);
-        (Coupon[] memory mintCoupons,) = emptyPosition.calculateCouponRequirement(newPosition);
+        _permitERC20(asset, amount, tokenPermitParams);
 
-        _bondManagerData = abi.encode(CallType.DEPOSIT, abi.encode(msg.sender, lockEpochs, amount, minInterestEarned));
-        _execute(token, new Coupon[](0), mintCoupons, 0, 0);
-        _bondManagerData = _EMPTY_BYTES;
+        bytes memory lockData = abi.encode(
+            0,
+            msg.sender,
+            abi.encode(asset, abi.encode(amount, EpochLibrary.current().add(lockEpochs - 1), 0, minEarnInterest))
+        );
+        uint256 positionId = abi.decode(_bondManager.lock(lockData), (uint256));
 
-        _flush(token, msg.sender);
-    }
-
-    function _callManager(address token, uint256 amountToPay, uint256 earnedAmount) internal override {
-        (CallType callType, bytes memory data) = abi.decode(_bondManagerData, (CallType, bytes));
-        if (callType == CallType.DEPOSIT) {
-            (address user, uint8 lockEpochs, uint256 amount, uint256 minInterestEarned) =
-                abi.decode(data, (address, uint8, uint256, uint256));
-            if (minInterestEarned > earnedAmount) {
-                revert ControllerSlippage();
-            }
-            uint256 positionId = _bondManager.mint(token, amount, lockEpochs, address(this), abi.encode(user));
-            _bondManager.transferFrom(address(this), user, positionId);
-        } else if (callType == CallType.WITHDRAW) {
-            (Epoch expiredWith, address user, uint256 amount, uint256 positionId, uint256 maxInterestPaid) =
-                abi.decode(data, (Epoch, address, uint256, uint256, uint256));
-            if (maxInterestPaid < amountToPay) {
-                revert ControllerSlippage();
-            }
-            _bondManager.adjustPosition(positionId, amount, expiredWith, abi.encode(user));
-        } else {
-            revert("invalid call type");
-        }
-    }
-
-    function bondPositionAdjustCallback(
-        uint256,
-        BondPosition memory oldPosition,
-        BondPosition memory newPosition,
-        Coupon[] memory couponsMinted,
-        Coupon[] memory couponsToBurn,
-        bytes calldata data
-    ) external {
-        if (msg.sender != address(_bondManager)) revert InvalidAccess();
-        (address user) = abi.decode(data, (address));
-
-        if (couponsToBurn.length > 0) _unwrapCoupons(couponsToBurn);
-
-        if (oldPosition.amount < newPosition.amount) {
-            _ensureBalance(newPosition.asset, user, newPosition.amount - oldPosition.amount);
-        }
-
-        if (couponsMinted.length > 0) _wrapCoupons(couponsMinted);
+        _flush(asset, msg.sender);
+        _bondManager.transferFrom(address(this), msg.sender, positionId);
     }
 
     function withdraw(
         uint256 positionId,
         uint256 withdrawAmount,
-        uint256 maxInterestPaid,
+        uint256 maxPayInterest,
         PermitParams calldata positionPermitParams
-    ) external nonReentrant {
+    ) external nonReentrant onlyPositionOwner(positionId) {
         _permitERC721(IERC721Permit(_bondManager), positionId, positionPermitParams);
-        BondPosition memory oldPosition = _bondManager.getPosition(positionId);
-        uint256 amount = oldPosition.amount - withdrawAmount;
-        BondPosition memory newPosition = BondPosition({
-            asset: oldPosition.asset,
-            nonce: oldPosition.nonce,
-            expiredWith: amount == 0 ? EpochLibrary.current().sub(1) : oldPosition.expiredWith,
-            amount: amount
-        });
-        (, Coupon[] memory burnCoupons) = oldPosition.calculateCouponRequirement(newPosition);
+        BondPosition memory position = _bondManager.getPosition(positionId);
 
-        _bondManagerData = abi.encode(
-            CallType.WITHDRAW, abi.encode(newPosition.expiredWith, msg.sender, amount, positionId, maxInterestPaid)
+        _bondManager.lock(
+            abi.encode(
+                positionId,
+                msg.sender,
+                abi.encode(position.amount - withdrawAmount, position.expiredWith, maxPayInterest, 0)
+            )
         );
-        _execute(oldPosition.asset, burnCoupons, new Coupon[](0), 0, 0);
-        _bondManagerData = _EMPTY_BYTES;
 
-        _flush(oldPosition.asset, msg.sender);
+        _flush(position.asset, msg.sender);
     }
 
-    function collect(uint256 positionId, PermitParams calldata positionPermitParams) external nonReentrant {
+    function collect(uint256 positionId, PermitParams calldata positionPermitParams)
+        external
+        nonReentrant
+        onlyPositionOwner(positionId)
+    {
         _permitERC721(IERC721Permit(_bondManager), positionId, positionPermitParams);
-        _bondManager.burnExpiredPosition(positionId);
-        _flush(_bondManager.getPosition(positionId).asset, msg.sender);
+        BondPosition memory position = _bondManager.getPosition(positionId);
+        _bondManager.lock(abi.encode(positionId, msg.sender, abi.encode(0, position.expiredWith, 0, 0)));
+        _flush(position.asset, msg.sender);
     }
 
     function setCouponMarket(CouponKey memory couponKey, address cloberMarket) public override onlyOwner {
