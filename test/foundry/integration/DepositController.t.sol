@@ -81,7 +81,8 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
             Utils.toArr(Create1.computeAddress(address(this), thisNonce + 2))
         );
 
-        couponManager = new CouponManager(Create1.computeAddress(address(this), thisNonce + 2), "URI/");
+        couponManager =
+            new CouponManager(Utils.toArr(Create1.computeAddress(address(this), thisNonce + 2), address(this)), "URI/");
         bondPositionManager = new BondPositionManager(
             address(couponManager),
             address(assetPool),
@@ -155,7 +156,6 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
     }
 
     function _marketMake() internal {
-        address minter = couponManager.minter();
         for (uint256 i = 0; i < wrappedCoupons.length; ++i) {
             CouponKey memory key = couponKeys[i];
             CloberOrderBook market = CloberOrderBook(depositController.getCouponMarket(key));
@@ -166,7 +166,6 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
             );
             uint256 amount = IERC20(wrappedCoupons[i]).amount(100);
             Coupon[] memory coupons = Utils.toArr(Coupon(key, amount));
-            vm.prank(minter);
             couponManager.mintBatch(address(this), coupons, "");
             couponManager.safeBatchTransferFrom(
                 address(this),
@@ -284,7 +283,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         console.log("diff", beforeBalance + beforePosition.amount - usdc.balanceOf(user));
         assertEq(afterPosition.asset, address(usdc), "POSITION_ASSET_1");
         assertEq(afterPosition.amount, 0, "POSITION_AMOUNT_1");
-        assertEq(afterPosition.expiredWith, EpochLibrary.current().sub(1), "POSITION_EXPIRED_WITH_1");
+        assertEq(afterPosition.expiredWith, EpochLibrary.lastExpiredEpoch(), "POSITION_EXPIRED_WITH_1");
         assertEq(afterPosition.nonce, beforePosition.nonce, "POSITION_NONCE_1");
         _checkWrappedTokenAlmost0Balance(address(depositController));
 
@@ -330,7 +329,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         console.log("diff", beforeBalance + beforePosition.amount - user.balance);
         assertEq(afterPosition.asset, Constants.WETH, "POSITION_ASSET_1");
         assertEq(afterPosition.amount, 0, "POSITION_AMOUNT_1");
-        assertEq(afterPosition.expiredWith, EpochLibrary.current().sub(1), "POSITION_EXPIRED_WITH_1");
+        assertEq(afterPosition.expiredWith, EpochLibrary.lastExpiredEpoch(), "POSITION_EXPIRED_WITH_1");
         assertEq(afterPosition.nonce, beforePosition.nonce, "POSITION_NONCE_1");
         _checkWrappedTokenAlmost0Balance(address(depositController));
 
@@ -365,7 +364,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         assertEq(usdc.balanceOf(user), beforeBalance + beforePosition.amount, "USDC_BALANCE");
         assertEq(afterPosition.asset, address(usdc), "POSITION_ASSET");
         assertEq(afterPosition.amount, 0, "POSITION_AMOUNT");
-        assertEq(afterPosition.expiredWith, EpochLibrary.current().sub(1), "POSITION_EXPIRED_WITH");
+        assertEq(afterPosition.expiredWith, EpochLibrary.lastExpiredEpoch(), "POSITION_EXPIRED_WITH");
         assertEq(afterPosition.nonce, beforePosition.nonce + 1, "POSITION_NONCE");
 
         vm.stopPrank();
@@ -393,7 +392,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         assertEq(user.balance, beforeBalance + beforePosition.amount, "NATIVE_BALANCE");
         assertEq(afterPosition.asset, Constants.WETH, "POSITION_ASSET");
         assertEq(afterPosition.amount, 0, "POSITION_AMOUNT");
-        assertEq(afterPosition.expiredWith, EpochLibrary.current().sub(1), "POSITION_EXPIRED_WITH");
+        assertEq(afterPosition.expiredWith, EpochLibrary.lastExpiredEpoch(), "POSITION_EXPIRED_WITH");
         assertEq(afterPosition.nonce, beforePosition.nonce + 1, "POSITION_NONCE");
 
         vm.stopPrank();

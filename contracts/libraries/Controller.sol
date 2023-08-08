@@ -62,23 +62,40 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
         _;
     }
 
-    function _callManager(address token, uint256 amountToPay, uint256 earnedAmount) internal virtual;
-
-    function _execute(
+    function _executeCouponTrade(
+        address user,
         address token,
         Coupon[] memory couponsToBuy,
         Coupon[] memory couponsToSell,
         uint256 amountToPay,
-        uint256 earnedAmount
+        uint256 maxPayInterest,
+        uint256 minEarnInterest
+    ) internal {
+        _tradeCouponsOnClober(user, token, couponsToBuy, couponsToSell, amountToPay, maxPayInterest, minEarnInterest);
+    }
+
+    // todo merge with above
+    function _tradeCouponsOnClober(
+        address user,
+        address token,
+        Coupon[] memory couponsToBuy,
+        Coupon[] memory couponsToSell,
+        uint256 amountToPay,
+        uint256 maxPayInterest,
+        uint256 leftRequiredInterest
     ) internal {
         if (couponsToBuy.length > 0) {
             Coupon memory lastCoupon = couponsToBuy[couponsToBuy.length - 1];
             assembly {
                 mstore(couponsToBuy, sub(mload(couponsToBuy), 1))
             }
+            bytes memory data =
+                abi.encode(user, couponsToBuy, new Coupon[](0), amountToPay, maxPayInterest, leftRequiredInterest);
+            assembly {
+                mstore(couponsToBuy, add(mload(couponsToBuy), 1))
+            }
 
             CloberOrderBook market = CloberOrderBook(_couponMarkets[lastCoupon.id()]);
-            bytes memory data = abi.encode(couponsToBuy, new Coupon[](0), amountToPay, 0);
             uint256 dy = lastCoupon.amount - IERC20(market.baseToken()).balanceOf(address(this));
             market.marketOrder(address(this), type(uint16).max, type(uint64).max, dy, 1, data);
         } else if (couponsToSell.length > 0) {
@@ -86,12 +103,17 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
             assembly {
                 mstore(couponsToSell, sub(mload(couponsToSell), 1))
             }
+            bytes memory data =
+                abi.encode(user, new Coupon[](0), couponsToSell, amountToPay, maxPayInterest, leftRequiredInterest);
+            assembly {
+                mstore(couponsToSell, add(mload(couponsToSell), 1))
+            }
 
             CloberOrderBook market = CloberOrderBook(_couponMarkets[lastCoupon.id()]);
-            bytes memory data = abi.encode(new Coupon[](0), couponsToSell, 0, earnedAmount);
             market.marketOrder(address(this), 0, 0, lastCoupon.amount, 2, data);
         } else {
-            _callManager(token, amountToPay, earnedAmount);
+            if (leftRequiredInterest > 0) revert ControllerSlippage();
+            _ensureBalance(token, user, amountToPay);
         }
     }
 
@@ -105,17 +127,29 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
         // check if caller is registered market
         if (_cloberMarketFactory.getMarketHost(msg.sender) == address(0)) revert InvalidAccess();
 
-        (Coupon[] memory buyCoupons, Coupon[] memory sellCoupons, uint256 amountToPay, uint256 earnedAmount) =
-            abi.decode(data, (Coupon[], Coupon[], uint256, uint256));
+        (
+            address user,
+            Coupon[] memory buyCoupons,
+            Coupon[] memory sellCoupons,
+            uint256 amountToPay,
+            uint256 maxPayInterest,
+            uint256 leftRequiredInterest
+        ) = abi.decode(data, (address, Coupon[], Coupon[], uint256, uint256, uint256));
 
         address asset = CloberOrderBook(msg.sender).quoteToken();
         if (asset == inputToken) {
+            if (maxPayInterest < inputAmount) revert ControllerSlippage();
+            maxPayInterest -= inputAmount;
             amountToPay += inputAmount;
         } else {
-            earnedAmount += outputAmount;
+            if (leftRequiredInterest > outputAmount) {
+                leftRequiredInterest -= outputAmount;
+            } else {
+                leftRequiredInterest = 0;
+            }
         }
 
-        _execute(asset, buyCoupons, sellCoupons, amountToPay, earnedAmount);
+        _tradeCouponsOnClober(user, asset, buyCoupons, sellCoupons, amountToPay, maxPayInterest, leftRequiredInterest);
 
         // transfer input tokens
         if (inputAmount > 0) {

@@ -28,6 +28,8 @@ function eq(Epoch a, Epoch b) pure returns (bool) {
 }
 
 library EpochLibrary {
+    using EpochLibrary for Epoch;
+
     error EpochOverflow();
 
     uint256 internal constant MONTHS_PER_EPOCH = 6;
@@ -56,6 +58,10 @@ library EpochLibrary {
 
     function isExpired(Epoch epoch) internal view returns (bool) {
         return endTime(epoch) <= block.timestamp;
+    }
+
+    function lastExpiredEpoch() internal view returns (Epoch) {
+        return current().sub(1);
     }
 
     function current() internal view returns (Epoch) {

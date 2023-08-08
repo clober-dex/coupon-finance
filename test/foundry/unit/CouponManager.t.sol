@@ -12,6 +12,7 @@ import {CouponKey, CouponKeyLibrary} from "../../../contracts/libraries/CouponKe
 import {Coupon, CouponLibrary} from "../../../contracts/libraries/Coupon.sol";
 import {Epoch, EpochLibrary} from "../../../contracts/libraries/Epoch.sol";
 import {Constants} from "../Constants.sol";
+import {Utils} from "../Utils.sol";
 
 contract CouponManagerUnitTest is Test, ERC1155Holder {
     using CouponKeyLibrary for CouponKey;
@@ -23,7 +24,7 @@ contract CouponManagerUnitTest is Test, ERC1155Holder {
     Epoch public startEpoch;
 
     function setUp() public {
-        couponManager = new CouponManager(address(this), "URI/");
+        couponManager = new CouponManager(Utils.toArr(address(this)), "URI/");
         startEpoch = EpochLibrary.current();
     }
 

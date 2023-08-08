@@ -12,7 +12,7 @@ interface ICouponManager is IERC1155MetadataURI {
     error InvalidAccess();
 
     // View Functions //
-    function minter() external view returns (address);
+    function isMinter(address account) external view returns (bool);
 
     function currentEpoch() external view returns (Epoch);
 

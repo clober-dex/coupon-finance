@@ -2,18 +2,15 @@
 
 pragma solidity ^0.8.0;
 
-import {ILoanPositionCallbackReceiver} from "./ILoanPositionCallbackReceiver.sol";
 import {PermitParams} from "../libraries/PermitParams.sol";
-import {CouponKey} from "../libraries/CouponKey.sol";
-import {Epoch} from "../libraries/Epoch.sol";
 
-interface IBorrowController is ILoanPositionCallbackReceiver {
+interface IBorrowController {
     function borrow(
         address collateralToken,
         address debtToken,
         uint256 collateralAmount,
         uint256 borrowAmount,
-        uint256 maxPayAmount,
+        uint256 maxPayInterest,
         uint8 loanEpochs,
         PermitParams calldata collateralPermitParams
     ) external payable;
@@ -21,7 +18,7 @@ interface IBorrowController is ILoanPositionCallbackReceiver {
     function borrowMore(
         uint256 positionId,
         uint256 amount,
-        uint256 maxPayAmount,
+        uint256 maxPayInterest,
         PermitParams calldata positionPermitParams
     ) external;
 
@@ -37,32 +34,38 @@ interface IBorrowController is ILoanPositionCallbackReceiver {
 
     function extendLoanDuration(
         uint256 positionId,
-        Epoch newEpoch,
-        uint256 maxDebtAmount,
+        uint8 epochs,
+        uint256 maxPayInterest,
         PermitParams calldata positionPermitParams,
         PermitParams calldata debtPermitParams
-    ) external;
+    ) external payable;
 
     function shortenLoanDuration(
         uint256 positionId,
-        Epoch newEpoch,
-        uint256 maxDebtAmount,
+        uint8 epochs,
+        uint256 minEarnInterest,
         PermitParams calldata positionPermitParams
     ) external;
 
     function repay(
         uint256 positionId,
         uint256 amount,
-        uint256 minEarnedInterest,
+        uint256 minEarnInterest,
         PermitParams calldata positionPermitParams,
         PermitParams calldata debtPermitParams
     ) external payable;
 
+    struct SwapData {
+        address swap;
+        uint256 inAmount;
+        uint256 minOutAmount;
+        bytes data;
+    }
+
     function repayWithCollateral(
         uint256 positionId,
-        uint256 collateralAmount,
-        uint256 minEarnedInterest,
-        bytes calldata swapData,
+        uint256 maxDebtAmount,
+        SwapData calldata swapData,
         PermitParams calldata positionPermitParams
     ) external;
 }

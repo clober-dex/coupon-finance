@@ -2,32 +2,23 @@
 
 pragma solidity ^0.8.0;
 
-import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
-
-import {IERC721Permit} from "./IERC721Permit.sol";
+import {IPositionManagerTypes, IPositionManager} from "./IPositionManager.sol";
 import {Epoch} from "../libraries/Epoch.sol";
+import {Coupon} from "../libraries/Coupon.sol";
 import {BondPosition} from "../libraries/BondPosition.sol";
 
-interface IBondPositionManagerTypes {
+interface IBondPositionManagerTypes is IPositionManagerTypes {
     event AssetRegistered(address indexed asset);
     event PositionUpdated(uint256 indexed tokenId, uint256 amount, Epoch expiredWith);
 
     error InvalidAccess();
     error UnregisteredAsset();
-    error EmptyInput();
     error InvalidEpoch();
+    error AlreadyExpired();
 }
 
-interface IBondPositionManager is IERC721Metadata, IERC721Permit, IBondPositionManagerTypes {
+interface IBondPositionManager is IBondPositionManagerTypes, IPositionManager {
     // View Functions //
-    function baseURI() external view returns (string memory);
-
-    function nextId() external view returns (uint256);
-
-    function couponManager() external view returns (address);
-
-    function assetPool() external view returns (address);
-
     function getMaxEpoch() external view returns (Epoch maxEpoch);
 
     function getPosition(uint256 tokenId) external view returns (BondPosition memory);
@@ -35,13 +26,11 @@ interface IBondPositionManager is IERC721Metadata, IERC721Permit, IBondPositionM
     function isAssetRegistered(address asset) external view returns (bool);
 
     // User Functions //
-    function mint(address asset, uint256 amount, uint8 lockEpochs, address recipient, bytes calldata data)
+    function mint(address asset) external returns (uint256 positionId);
+
+    function adjustPosition(uint256 tokenId, uint256 amount, Epoch expiredWith)
         external
-        returns (uint256);
-
-    function adjustPosition(uint256 tokenId, uint256 amount, Epoch expiredWith, bytes calldata data) external;
-
-    function burnExpiredPosition(uint256 tokenId) external;
+        returns (Coupon[] memory couponsToMint, Coupon[] memory couponsToBurn, int256 amountDelta);
 
     // Admin Functions //
     function registerAsset(address asset) external;
