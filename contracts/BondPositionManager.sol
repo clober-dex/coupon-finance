@@ -54,7 +54,9 @@ contract BondPositionManager is IBondPositionManager, PositionManager, Ownable {
             revert UnregisteredAsset();
         }
 
-        positionId = _getAndIncreaseId();
+        unchecked {
+            positionId = nextId++;
+        }
         _positionMap[positionId].asset = asset;
         _mint(msg.sender, positionId);
     }

@@ -26,7 +26,7 @@ abstract contract PositionManager is ERC721Permit, ERC1155Holder, IPositionManag
     address public immutable override assetPool;
 
     string public override baseURI;
-    uint256 private _nextId = 1;
+    uint256 public override nextId = 1;
 
     LockData private _lockData;
 
@@ -141,10 +141,6 @@ abstract contract PositionManager is ERC721Permit, ERC1155Holder, IPositionManag
         return baseURI;
     }
 
-    function nextId() external view override returns (uint256) {
-        return _nextId;
-    }
-
     function lockData() external view override returns (uint128, uint128) {
         return (_lockData.length, _lockData.nonzeroDeltaCount);
     }
@@ -155,11 +151,6 @@ abstract contract PositionManager is ERC721Permit, ERC1155Holder, IPositionManag
         unchecked {
             _lockData.nonzeroDeltaCount++;
         }
-    }
-
-    function _getAndIncreaseId() internal returns (uint256 id) {
-        id = _nextId;
-        _nextId++;
     }
 
     function supportsInterface(bytes4 interfaceId)

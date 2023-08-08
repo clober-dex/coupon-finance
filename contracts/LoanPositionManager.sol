@@ -73,7 +73,9 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
             revert InvalidPair();
         }
 
-        positionId = _getAndIncreaseId();
+        unchecked {
+            positionId = nextId++;
+        }
         _positionMap[positionId].collateralToken = collateralToken;
         _positionMap[positionId].debtToken = debtToken;
 
