@@ -19,12 +19,12 @@ import {IAssetPool} from "../../../contracts/interfaces/IAssetPool.sol";
 import {IAaveOracle} from "../../../contracts/external/aave-v3/IAaveOracle.sol";
 import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
 import {IERC721Permit} from "../../../contracts/interfaces/IERC721Permit.sol";
-import {IBondPositionManager} from "../../../contracts/interfaces/IBondPositionManager.sol";
+import {ILoanPositionManager} from "../../../contracts/interfaces/ILoanPositionManager.sol";
 import {PermitParams} from "../../../contracts/libraries/PermitParams.sol";
 import {Coupon, CouponLibrary} from "../../../contracts/libraries/Coupon.sol";
 import {CouponKey, CouponKeyLibrary} from "../../../contracts/libraries/CouponKey.sol";
 import {Epoch, EpochLibrary} from "../../../contracts/libraries/Epoch.sol";
-import {BondPosition} from "../../../contracts/libraries/BondPosition.sol";
+import {LoanPosition} from "../../../contracts/libraries/LoanPosition.sol";
 import {Wrapped1155MetadataBuilder} from "../../../contracts/libraries/Wrapped1155MetadataBuilder.sol";
 import {IWrapped1155Factory} from "../../../contracts/external/wrapped1155/IWrapped1155Factory.sol";
 import {CloberMarketFactory} from "../../../contracts/external/clober/CloberMarketFactory.sol";
@@ -33,10 +33,9 @@ import {CloberOrderBook} from "../../../contracts/external/clober/CloberOrderBoo
 import {BorrowController} from "../../../contracts/BorrowController.sol";
 import {IBorrowController} from "../../../contracts/interfaces/IBorrowController.sol";
 import {CouponManager} from "../../../contracts/CouponManager.sol";
-import {BondPositionManager} from "../../../contracts/BondPositionManager.sol";
-import {AssetPoolAaveV3} from "../../../contracts/AssetPoolAaveV3.sol";
-import "../../../contracts/LoanPositionManager.sol";
-import "../mocks/MockOracle.sol";
+import {LoanPositionManager} from "../../../contracts/LoanPositionManager.sol";
+import {MockOracle} from "../mocks/MockOracle.sol";
+import {AssetPool} from "../../../contracts/AssetPool.sol";
 
 contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiver, ERC1155Holder {
     using Strings for *;
@@ -88,15 +87,14 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         wrapped1155Factory = IWrapped1155Factory(Constants.WRAPPED1155_FACTORY);
         cloberMarketFactory = CloberMarketFactory(Constants.CLOBER_FACTORY);
 
+        oracle = IAaveOracle(Constants.AAVE_ORACLE);
         uint64 thisNonce = vm.getNonce(address(this));
-        assetPool = new AssetPoolAaveV3(
-            Constants.AAVE_V3_POOL,
-            Constants.TREASURY,
+        assetPool = new AssetPool(
             Utils.toArr(Create1.computeAddress(address(this), thisNonce + 2))
         );
 
-        couponManager = new CouponManager(Create1.computeAddress(address(this), thisNonce + 1), "URI/");
-        oracle = IAaveOracle(Constants.AAVE_ORACLE);
+        couponManager =
+            new CouponManager(Utils.toArr(Create1.computeAddress(address(this), thisNonce + 2), address(this)), "URI/");
         loanPositionManager = new LoanPositionManager(
             address(couponManager),
             address(assetPool),
@@ -109,7 +107,6 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         loanPositionManager.setLoanConfiguration(Constants.WETH, Constants.USDC, 800000, 25000, 5000, 700000);
 
         borrowController = new BorrowController(
-            address (assetPool),
             Constants.WRAPPED1155_FACTORY,
             Constants.CLOBER_FACTORY,
             address(couponManager),
@@ -119,32 +116,25 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         borrowController.setCollateralAllowance(Constants.USDC);
         borrowController.setCollateralAllowance(Constants.WETH);
 
-        // set assetPool
-        assetPool.registerAsset(Constants.USDC);
-        assetPool.registerAsset(Constants.WETH);
         usdc.transfer(address(assetPool), usdc.amount(1_000));
         weth.transfer(address(assetPool), 1_000 ether);
-        vm.startPrank(address(loanPositionManager));
-        assetPool.deposit(Constants.USDC, usdc.amount(1_000));
-        assetPool.deposit(Constants.WETH, 1_000 ether);
-        vm.stopPrank();
 
         // create wrapped1155
-        for (uint8 i = 0; i < 4; i++) {
+        for (uint8 i = 0; i < 5; i++) {
             couponKeys.push(CouponKey({asset: Constants.USDC, epoch: EpochLibrary.current().add(i)}));
         }
         if (!cloberMarketFactory.registeredQuoteTokens(Constants.USDC)) {
             vm.prank(cloberMarketFactory.owner());
             cloberMarketFactory.registerQuoteToken(Constants.USDC);
         }
-        for (uint8 i = 4; i < 8; i++) {
-            couponKeys.push(CouponKey({asset: Constants.WETH, epoch: EpochLibrary.current().add(i - 4)}));
+        for (uint8 i = 5; i < 10; i++) {
+            couponKeys.push(CouponKey({asset: Constants.WETH, epoch: EpochLibrary.current().add(i - 5)}));
         }
         if (!cloberMarketFactory.registeredQuoteTokens(Constants.WETH)) {
             vm.prank(cloberMarketFactory.owner());
             cloberMarketFactory.registerQuoteToken(Constants.WETH);
         }
-        for (uint256 i = 0; i < 8; i++) {
+        for (uint256 i = 0; i < 10; i++) {
             address wrappedToken = wrapped1155Factory.requireWrapped1155(
                 address(couponManager),
                 couponKeys[i].toId(),
@@ -155,7 +145,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
                 address(Constants.TREASURY),
                 couponKeys[i].asset,
                 wrappedToken,
-                i < 4 ? 1 : 1e9,
+                i < 5 ? 1 : 1e9,
                 0,
                 400,
                 1e10,
@@ -167,21 +157,10 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
 
         vm.prank(Constants.USDC_WHALE);
         usdc.transfer(user, usdc.amount(10_000));
-        vm.deal(address(assetPool), 100 ether);
-    }
-
-    function _mintCoupons(address to, uint256 amount) internal {
-        address minter = couponManager.minter();
-        for (uint256 i = 0; i < wrappedCoupons.length; ++i) {
-            CouponKey memory key = couponKeys[i];
-            Coupon[] memory coupons = Utils.toArr(Coupon(key, amount));
-            vm.prank(minter);
-            couponManager.mintBatch(to, coupons, "");
-        }
+        vm.deal(address(user), 100 ether);
     }
 
     function _marketMake() internal {
-        address minter = couponManager.minter();
         for (uint256 i = 0; i < wrappedCoupons.length; ++i) {
             CouponKey memory key = couponKeys[i];
             CloberOrderBook market = CloberOrderBook(borrowController.getCouponMarket(key));
@@ -192,7 +171,6 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
             );
             uint256 amount = IERC20(wrappedCoupons[i]).amount(100);
             Coupon[] memory coupons = Utils.toArr(Coupon(key, amount));
-            vm.prank(minter);
             couponManager.mintBatch(address(this), coupons, "");
             couponManager.safeBatchTransferFrom(
                 address(this),
@@ -244,8 +222,8 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
 
         assertEq(loanPositionManager.ownerOf(positionId), user, "POSITION_OWNER");
         assertEq(usdc.balanceOf(user), beforeUSDCBalance - collateralAmount, "USDC_BALANCE");
-        assertGe(user.balance, beforeETHBalance + borrowAmount - couponAmount, "WETH_BALANCE");
-        assertLe(user.balance, beforeETHBalance + borrowAmount - couponAmount + 0.001 ether, "WETH_BALANCE");
+        assertGe(user.balance, beforeETHBalance + borrowAmount - couponAmount, "NATIVE_BALANCE_GE");
+        assertLe(user.balance, beforeETHBalance + borrowAmount - couponAmount + 0.001 ether, "NATIVE_BALANCE_LE");
         assertEq(loanPosition.expiredWith, EpochLibrary.current().add(1), "POSITION_EXPIRE_EPOCH");
         assertEq(loanPosition.collateralAmount, collateralAmount, "POSITION_COLLATERAL_AMOUNT");
         assertEq(loanPosition.debtAmount, borrowAmount, "POSITION_DEBT_AMOUNT");
@@ -269,8 +247,8 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         uint256 couponAmount = 0.04 ether;
 
         assertEq(usdc.balanceOf(user), beforeUSDCBalance, "USDC_BALANCE");
-        assertGe(user.balance, beforeETHBalance + borrowMoreAmount - couponAmount, "WETH_BALANCE");
-        assertLe(user.balance, beforeETHBalance + borrowMoreAmount - couponAmount + 0.001 ether, "WETH_BALANCE");
+        assertGe(user.balance, beforeETHBalance + borrowMoreAmount - couponAmount, "NATIVE_BALANCE_GE");
+        assertLe(user.balance, beforeETHBalance + borrowMoreAmount - couponAmount + 0.001 ether, "NATIVE_BALANCE_LE");
         assertEq(beforeLoanPosition.expiredWith, afterLoanPosition.expiredWith, "POSITION_EXPIRE_EPOCH");
         assertEq(beforeLoanPosition.collateralAmount, afterLoanPosition.collateralAmount, "POSITION_COLLATERAL_AMOUNT");
         assertEq(beforeLoanPosition.debtAmount + borrowMoreAmount, afterLoanPosition.debtAmount, "POSITION_DEBT_AMOUNT");
@@ -294,7 +272,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         LoanPosition memory afterLoanPosition = loanPositionManager.getPosition(positionId);
 
         assertEq(usdc.balanceOf(user), beforeUSDCBalance - collateralAmount, "USDC_BALANCE");
-        assertEq(user.balance, beforeETHBalance, "WETH_BALANCE");
+        assertEq(user.balance, beforeETHBalance, "NATIVE_BALANCE");
         assertEq(beforeLoanPosition.expiredWith, afterLoanPosition.expiredWith, "POSITION_EXPIRE_EPOCH");
         assertEq(
             beforeLoanPosition.collateralAmount + collateralAmount,
@@ -320,7 +298,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         LoanPosition memory afterLoanPosition = loanPositionManager.getPosition(positionId);
 
         assertEq(usdc.balanceOf(user), beforeUSDCBalance + collateralAmount, "USDC_BALANCE");
-        assertEq(user.balance, beforeETHBalance, "WETH_BALANCE");
+        assertEq(user.balance, beforeETHBalance, "NATIVE_BALANCE");
         assertEq(beforeLoanPosition.expiredWith, afterLoanPosition.expiredWith, "POSITION_EXPIRE_EPOCH");
         assertEq(
             beforeLoanPosition.collateralAmount - collateralAmount,
@@ -339,18 +317,20 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         uint256 beforeETHBalance = user.balance;
         LoanPosition memory beforeLoanPosition = loanPositionManager.getPosition(positionId);
         uint8 epochs = 3;
-        uint256 maxPayInterest = 0.04 ether * epochs;
+        uint256 maxPayInterest = 0.04 ether * uint256(epochs);
         PermitParams memory permit721Params =
             _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(borrowController), positionId);
-        PermitParams memory permit20Params =
-            _buildERC20PermitParams(1, IERC20Permit(Constants.WETH), address(borrowController), maxPayInterest);
-        vm.prank(user);
-        borrowController.extendLoanDuration(positionId, epochs, maxPayInterest, permit721Params, permit20Params);
+        vm.startPrank(user);
+        weth.approve(address(borrowController), maxPayInterest);
+        borrowController.extendLoanDuration{value: maxPayInterest}(
+            positionId, epochs, maxPayInterest, permit721Params, emptyPermitParams
+        );
+        vm.stopPrank();
         LoanPosition memory afterLoanPosition = loanPositionManager.getPosition(positionId);
 
         assertEq(usdc.balanceOf(user), beforeUSDCBalance, "USDC_BALANCE");
-        assertGe(user.balance, beforeETHBalance - maxPayInterest, "WETH_BALANCE");
-        assertLe(user.balance, beforeETHBalance - maxPayInterest + 0.01 ether, "WETH_BALANCE");
+        assertGe(user.balance, beforeETHBalance - maxPayInterest, "NATIVE_BALANCE_GE");
+        assertLe(user.balance, beforeETHBalance + 0.01 ether - maxPayInterest, "NATIVE_BALANCE_LE");
         assertEq(beforeLoanPosition.expiredWith.add(epochs), afterLoanPosition.expiredWith, "POSITION_EXPIRE_EPOCH");
         assertEq(beforeLoanPosition.collateralAmount, afterLoanPosition.collateralAmount, "POSITION_COLLATERAL_AMOUNT");
         assertEq(beforeLoanPosition.debtAmount, afterLoanPosition.debtAmount, "POSITION_DEBT_AMOUNT");
@@ -373,8 +353,8 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         LoanPosition memory afterLoanPosition = loanPositionManager.getPosition(positionId);
 
         assertEq(usdc.balanceOf(user), beforeUSDCBalance, "USDC_BALANCE");
-        assertGe(user.balance, beforeETHBalance + minEarnInterest, "WETH_BALANCE");
-        assertLe(user.balance, beforeETHBalance + minEarnInterest + 0.01 ether, "WETH_BALANCE");
+        assertGe(user.balance, beforeETHBalance + minEarnInterest, "NATIVE_BALANCE_GE");
+        assertLe(user.balance, beforeETHBalance + minEarnInterest + 0.01 ether, "NATIVE_BALANCE_LE");
         assertEq(beforeLoanPosition.expiredWith, afterLoanPosition.expiredWith.add(epochs), "POSITION_EXPIRE_EPOCH");
         assertEq(beforeLoanPosition.collateralAmount, afterLoanPosition.collateralAmount, "POSITION_COLLATERAL_AMOUNT");
         assertEq(beforeLoanPosition.debtAmount, afterLoanPosition.debtAmount, "POSITION_DEBT_AMOUNT");
@@ -400,8 +380,8 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         uint256 couponAmount = 0.012 ether;
 
         assertEq(usdc.balanceOf(user), beforeUSDCBalance, "USDC_BALANCE");
-        assertLe(user.balance, beforeETHBalance - repayAmount + couponAmount, "WETH_BALANCE");
-        assertGe(user.balance, beforeETHBalance - repayAmount + couponAmount - 0.0001 ether, "WETH_BALANCE");
+        assertLe(user.balance, beforeETHBalance - repayAmount + couponAmount, "NATIVE_BALANCE_GE");
+        assertGe(user.balance, beforeETHBalance - repayAmount + couponAmount - 0.0001 ether, "NATIVE_BALANCE_LE");
         assertEq(beforeLoanPosition.expiredWith, afterLoanPosition.expiredWith, "POSITION_EXPIRE_EPOCH");
         assertEq(beforeLoanPosition.collateralAmount, afterLoanPosition.collateralAmount, "POSITION_COLLATERAL_AMOUNT");
         assertEq(beforeLoanPosition.debtAmount, afterLoanPosition.debtAmount + repayAmount, "POSITION_DEBT_AMOUNT");
@@ -444,8 +424,8 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
 
         LoanPosition memory afterLoanPosition = loanPositionManager.getPosition(positionId);
 
-        assertEq(usdc.balanceOf(user), beforeUSDCBalance - collateralAmount, "USDC_BALANCE");
-        assertLe(user.balance, beforeETHBalance, "WETH_BALANCE");
+        assertEq(usdc.balanceOf(user), beforeUSDCBalance, "USDC_BALANCE");
+        assertLe(user.balance, beforeETHBalance, "NATIVE_BALANCE");
         assertEq(beforeLoanPosition.expiredWith, afterLoanPosition.expiredWith, "POSITION_EXPIRE_EPOCH");
         assertEq(
             beforeLoanPosition.collateralAmount - collateralAmount,

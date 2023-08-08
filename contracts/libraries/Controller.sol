@@ -60,19 +60,6 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
         Coupon[] memory couponsToSell,
         uint256 amountToPay,
         uint256 maxPayInterest,
-        uint256 minEarnInterest
-    ) internal {
-        _tradeCouponsOnClober(user, token, couponsToBuy, couponsToSell, amountToPay, maxPayInterest, minEarnInterest);
-    }
-
-    // todo merge with above
-    function _tradeCouponsOnClober(
-        address user,
-        address token,
-        Coupon[] memory couponsToBuy,
-        Coupon[] memory couponsToSell,
-        uint256 amountToPay,
-        uint256 maxPayInterest,
         uint256 leftRequiredInterest
     ) internal {
         if (couponsToBuy.length > 0) {
@@ -140,7 +127,7 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
             }
         }
 
-        _tradeCouponsOnClober(user, asset, buyCoupons, sellCoupons, amountToPay, maxPayInterest, leftRequiredInterest);
+        _executeCouponTrade(user, asset, buyCoupons, sellCoupons, amountToPay, maxPayInterest, leftRequiredInterest);
 
         // transfer input tokens
         if (inputAmount > 0) {
