@@ -15,7 +15,6 @@ import {Coupon, CouponLibrary} from "../../../../contracts/libraries/Coupon.sol"
 import {Epoch, EpochLibrary} from "../../../../contracts/libraries/Epoch.sol";
 import {BondPosition} from "../../../../contracts/libraries/BondPosition.sol";
 import {MockERC20} from "../../mocks/MockERC20.sol";
-import {MockAssetPool} from "../../mocks/MockAssetPool.sol";
 import {TestInitializer} from "./helpers/TestInitializer.sol";
 import {BondPositionMintHelper} from "./helpers/MintHelper.sol";
 import {BondPositionAdjustPositionHelper} from "./helpers/AdjustPositionHelper.sol";
@@ -25,7 +24,7 @@ contract BondPositionManagerAdjustPositionUnitTest is Test, IBondPositionManager
 
     MockERC20 public usdc;
 
-    MockAssetPool public assetPool;
+    IAssetPool public assetPool;
     ICouponManager public couponManager;
     IBondPositionManager public bondPositionManager;
 

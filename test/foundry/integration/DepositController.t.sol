@@ -32,7 +32,7 @@ import {CloberOrderBook} from "../../../contracts/external/clober/CloberOrderBoo
 import {DepositController} from "../../../contracts/DepositController.sol";
 import {CouponManager} from "../../../contracts/CouponManager.sol";
 import {BondPositionManager} from "../../../contracts/BondPositionManager.sol";
-import {AssetPoolAaveV3} from "../../../contracts/AssetPoolAaveV3.sol";
+import {AssetPool} from "../../../contracts/AssetPool.sol";
 
 contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiver, ERC1155Holder {
     using Strings for *;
@@ -75,9 +75,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         cloberMarketFactory = CloberMarketFactory(Constants.CLOBER_FACTORY);
 
         uint64 thisNonce = vm.getNonce(address(this));
-        assetPool = new AssetPoolAaveV3(
-            Constants.AAVE_V3_POOL,
-            Constants.TREASURY,
+        assetPool = new AssetPool(
             Utils.toArr(Create1.computeAddress(address(this), thisNonce + 2))
         );
 
@@ -90,23 +88,12 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
             Utils.toArr(Constants.USDC, Constants.WETH)
         );
         depositController = new DepositController(
-            address(assetPool),
             Constants.WRAPPED1155_FACTORY,
             Constants.CLOBER_FACTORY,
             address(couponManager),
             Constants.WETH,
             address(bondPositionManager)
         );
-
-        // set assetPool
-        assetPool.registerAsset(Constants.USDC);
-        assetPool.registerAsset(Constants.WETH);
-        usdc.transfer(address(assetPool), usdc.amount(1_000));
-        IERC20(Constants.WETH).transfer(address(assetPool), 1_000 ether);
-        vm.startPrank(address(bondPositionManager));
-        assetPool.deposit(address(usdc), usdc.amount(1_000));
-        assetPool.deposit(Constants.WETH, 1_000 ether);
-        vm.stopPrank();
 
         // create wrapped1155
         for (uint8 i = 0; i < 4; i++) {

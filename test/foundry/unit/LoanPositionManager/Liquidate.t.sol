@@ -7,6 +7,7 @@ import "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {ICouponManager} from "../../../../contracts/interfaces/ICouponManager.sol";
+import {IAssetPool} from "../../../../contracts/interfaces/IAssetPool.sol";
 import {
     ILoanPositionManager, ILoanPositionManagerTypes
 } from "../../../../contracts/interfaces/ILoanPositionManager.sol";
@@ -16,7 +17,6 @@ import {LoanPosition} from "../../../../contracts/libraries/LoanPosition.sol";
 
 import {MockERC20} from "../../mocks/MockERC20.sol";
 import {MockOracle} from "../../mocks/MockOracle.sol";
-import {MockAssetPool} from "../../mocks/MockAssetPool.sol";
 import {Constants} from "../../Constants.sol";
 import {LoanPositionLiquidateHelper} from "./helpers/LiquidateHelper.sol";
 import {LoanPositionMintHelper} from "./helpers/MintHelper.sol";
@@ -30,13 +30,10 @@ contract LoanPositionManagerLiquidateUnitTest is Test, ILoanPositionManagerTypes
     MockERC20 public usdc;
 
     MockOracle public oracle;
-    MockAssetPool public assetPool;
     ICouponManager public couponManager;
     ILoanPositionManager public loanPositionManager;
 
     Epoch public startEpoch;
-    uint256 public initialCollateralAmount;
-    uint256 public initialDebtAmount;
 
     LoanPositionLiquidateHelper public helper;
 
@@ -47,12 +44,9 @@ contract LoanPositionManagerLiquidateUnitTest is Test, ILoanPositionManagerTypes
         weth = p.weth;
         usdc = p.usdc;
         oracle = p.oracle;
-        assetPool = p.assetPool;
         couponManager = p.couponManager;
         loanPositionManager = p.loanPositionManager;
         startEpoch = p.startEpoch;
-        initialCollateralAmount = p.initialCollateralAmount;
-        initialDebtAmount = p.initialDebtAmount;
 
         helper = new LoanPositionLiquidateHelper(address(loanPositionManager));
         vm.startPrank(address(helper));

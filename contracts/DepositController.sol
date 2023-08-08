@@ -36,13 +36,12 @@ contract DepositController is IDepositController, Controller, IPositionLocker {
     }
 
     constructor(
-        address assetPool,
         address wrapped1155Factory,
         address cloberMarketFactory,
         address couponManager,
         address weth,
         address bondManager
-    ) Controller(assetPool, wrapped1155Factory, cloberMarketFactory, couponManager, weth) {
+    ) Controller(wrapped1155Factory, cloberMarketFactory, couponManager, weth) {
         _bondManager = IBondPositionManager(bondManager);
     }
 

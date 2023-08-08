@@ -12,7 +12,6 @@ import {BondPosition} from "../../../../contracts/libraries/BondPosition.sol";
 import {Coupon, CouponLibrary} from "../../../../contracts/libraries/Coupon.sol";
 import {Epoch, EpochLibrary} from "../../../../contracts/libraries/Epoch.sol";
 import {MockERC20} from "../../mocks/MockERC20.sol";
-import {MockAssetPool} from "../../mocks/MockAssetPool.sol";
 import {TestInitializer} from "./helpers/TestInitializer.sol";
 import {BondPositionMintHelper} from "./helpers/MintHelper.sol";
 import {Constants} from "../../Constants.sol";
@@ -22,7 +21,6 @@ contract BondPositionManagerMintUnitTest is Test, IBondPositionManagerTypes {
 
     MockERC20 public usdc;
 
-    MockAssetPool public assetPool;
     ICouponManager public couponManager;
     IBondPositionManager public bondPositionManager;
 
@@ -34,7 +32,6 @@ contract BondPositionManagerMintUnitTest is Test, IBondPositionManagerTypes {
     function setUp() public {
         TestInitializer.Params memory p = TestInitializer.init(vm);
         usdc = p.usdc;
-        assetPool = p.assetPool;
         couponManager = p.couponManager;
         bondPositionManager = p.bondPositionManager;
         startEpoch = p.startEpoch;

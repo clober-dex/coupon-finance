@@ -9,12 +9,13 @@ import {Create1} from "@clober/library/contracts/Create1.sol";
 import {Epoch, EpochLibrary} from "../../../../../contracts/libraries/Epoch.sol";
 import {ILoanPositionManager} from "../../../../../contracts/interfaces/ILoanPositionManager.sol";
 import {ICouponManager} from "../../../../../contracts/interfaces/ICouponManager.sol";
-import {MockAssetPool} from "../../../mocks/MockAssetPool.sol";
+import {IAssetPool} from "../../../../../contracts/interfaces/IAssetPool.sol";
 import {MockOracle} from "../../../mocks/MockOracle.sol";
 import {MockERC20} from "../../../mocks/MockERC20.sol";
 import {Constants} from "../../../Constants.sol";
 import {CouponManager} from "../../../../../contracts/CouponManager.sol";
 import {LoanPositionManager} from "../../../../../contracts/LoanPositionManager.sol";
+import {AssetPool} from "../../../../../contracts/AssetPool.sol";
 import {Utils} from "../../../Utils.sol";
 
 library TestInitializer {
@@ -24,7 +25,7 @@ library TestInitializer {
         MockERC20 weth;
         MockERC20 usdc;
         MockOracle oracle;
-        MockAssetPool assetPool;
+        IAssetPool assetPool;
         ICouponManager couponManager;
         ILoanPositionManager loanPositionManager;
         Epoch startEpoch;
@@ -40,11 +41,11 @@ library TestInitializer {
         p.weth.mint(address(this), p.weth.amount(2_000_000_000));
         p.usdc.mint(address(this), p.usdc.amount(2_000_000_000));
 
-        p.assetPool = new MockAssetPool();
         p.oracle = new MockOracle(address(p.weth));
         uint64 thisNonce = vm.getNonce(address(this));
+        p.assetPool = new AssetPool(Utils.toArr(address(this), Create1.computeAddress(address(this), thisNonce + 2)));
         p.couponManager =
-            new CouponManager(Utils.toArr(address(this), Create1.computeAddress(address(this), thisNonce + 1)), "URI/");
+            new CouponManager(Utils.toArr(address(this), Create1.computeAddress(address(this), thisNonce + 2)), "URI/");
         p.loanPositionManager = new LoanPositionManager(
             address(p.couponManager),
             address(p.assetPool),
@@ -60,8 +61,6 @@ library TestInitializer {
         p.usdc.approve(address(p.loanPositionManager), type(uint256).max);
         p.weth.transfer(address(p.assetPool), p.weth.amount(1_000_000_000));
         p.usdc.transfer(address(p.assetPool), p.usdc.amount(1_000_000_000));
-        p.assetPool.deposit(address(p.weth), p.weth.amount(1_000_000_000));
-        p.assetPool.deposit(address(p.usdc), p.usdc.amount(1_000_000_000));
 
         p.oracle.setAssetPrice(address(p.weth), 1800 * 10 ** 8);
         p.oracle.setAssetPrice(address(p.usdc), 10 ** 8);

@@ -139,7 +139,6 @@ contract BondPositionManager is IBondPositionManager, PositionManager, Ownable {
     }
 
     function _registerAsset(address asset) internal {
-        IERC20(asset).approve(address(assetPool), type(uint256).max);
         isAssetRegistered[asset] = true;
         emit AssetRegistered(asset);
     }

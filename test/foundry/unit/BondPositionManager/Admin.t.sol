@@ -8,16 +8,13 @@ import {
     IBondPositionManager, IBondPositionManagerTypes
 } from "../../../../contracts/interfaces/IBondPositionManager.sol";
 import {MockERC20} from "../../mocks/MockERC20.sol";
-import {MockAssetPool} from "../../mocks/MockAssetPool.sol";
 import {TestInitializer} from "./helpers/TestInitializer.sol";
 
 contract BondPositionManagerAdminUnitTest is Test, IBondPositionManagerTypes {
-    MockAssetPool public assetPool;
     IBondPositionManager public bondPositionManager;
 
     function setUp() public {
         TestInitializer.Params memory p = TestInitializer.init(vm);
-        assetPool = p.assetPool;
         bondPositionManager = p.bondPositionManager;
     }
 
@@ -28,7 +25,6 @@ contract BondPositionManagerAdminUnitTest is Test, IBondPositionManagerTypes {
         emit AssetRegistered(address(newToken));
         bondPositionManager.registerAsset(address(newToken));
         assertTrue(bondPositionManager.isAssetRegistered(address(newToken)), "NEW_TOKEN_IS_NOT_REGISTERED");
-        assertEq(newToken.allowance(address(bondPositionManager), address(assetPool)), type(uint256).max, "ALLOWANCE");
     }
 
     function testRegisterAssetOwnership() public {
