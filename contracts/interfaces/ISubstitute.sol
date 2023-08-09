@@ -13,4 +13,6 @@ interface ISubstitute {
     function mintableAmount() external view returns (uint256);
 
     function burnableAmount() external view returns (uint256);
+
+    function setTreasury(address newTreasury) external;
 }
