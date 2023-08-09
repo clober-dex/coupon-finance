@@ -3,8 +3,8 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IAToken} from "./external/aave-v3/IAToken.sol";
 import {IAaveTokenSubstitute} from "./interfaces/IAaveTokenSubstitute.sol";
 import {IPool} from "./external/aave-v3/IPool.sol";
