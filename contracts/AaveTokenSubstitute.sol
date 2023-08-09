@@ -6,11 +6,16 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IAToken} from "./external/aave-v3/IAToken.sol";
 import {IAaveTokenSubstitute} from "./interfaces/IAaveTokenSubstitute.sol";
 import {IPool} from "./external/aave-v3/IPool.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {DataTypes} from "./external/aave-v3/DataTypes.sol";
+import {ReserveConfiguration} from "./external/aave-v3/ReserveConfiguration.sol";
 
-contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit {
+contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
     using SafeERC20 for IERC20;
+    using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
 
     address public immutable aToken;
+
     address private immutable _underlyingToken;
     IPool private immutable _aaveV3Pool;
 
@@ -26,25 +31,35 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit {
         _underlyingToken = asset_;
     }
 
-    function mint(uint256 amount, address to) external {
+    function mintByAToken(uint256 amount, address to) external {
         IERC20(aToken).safeTransferFrom(msg.sender, address(this), amount);
         _mint(to, amount);
     }
 
-    function mintByUnderlying(uint256 amount, address to) external {
+    function mint(uint256 amount, address to) external {
         IERC20(_underlyingToken).safeTransferFrom(msg.sender, address(this), amount);
         IERC20(_underlyingToken).approve(address(_aaveV3Pool), amount);
         _aaveV3Pool.supply(_underlyingToken, amount, address(this), 0);
         _mint(to, amount);
     }
 
-    function burn(uint256 amount, address to) external {
+    function mintableAmount() external view returns (uint256) {
+        DataTypes.ReserveConfigurationMap memory configuration =
+            _aaveV3Pool.getReserveData(_underlyingToken).configuration;
+        return configuration.getSupplyCap() * 10 ** (configuration.getDecimals());
+    }
+
+    function burnToAToken(uint256 amount, address to) external {
         _burn(msg.sender, amount);
         IERC20(aToken).safeTransfer(address(to), amount);
     }
 
-    function burnToUnderlying(uint256 amount, address to) external {
+    function burn(uint256 amount, address to) external {
         _burn(msg.sender, amount);
         _aaveV3Pool.withdraw(_underlyingToken, amount, to);
+    }
+
+    function burnableAmount() external view returns (uint256) {
+        return IERC20(_underlyingToken).balanceOf(address(aToken));
     }
 }

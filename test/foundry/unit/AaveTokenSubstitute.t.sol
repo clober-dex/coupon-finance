@@ -45,61 +45,70 @@ contract AaveTokenSubstituteUnitTest is Test, ERC1155Holder {
     function testMint() public {
         uint256 amount = usdc.amount(1_000);
 
-        uint256 beforeUsdcBalance = usdc.balanceOf(address(this));
-        uint256 beforeAusdcBalance = aUsdc.balanceOf(address(this));
-        uint256 beforeWausdcBalance = aaveTokenSubstitute.balanceOf(address(this));
-
-        IERC20(aUsdc).approve(address(aaveTokenSubstitute), amount);
-        aaveTokenSubstitute.mint(amount, address(this));
-
-        assertEq(beforeUsdcBalance, usdc.balanceOf(address(this)), "USDC_BALANCE");
-        assertEq(beforeAusdcBalance, aUsdc.balanceOf(address(this)) + amount, "AUSDC_BALANCE");
-        assertEq(beforeWausdcBalance + amount, aaveTokenSubstitute.balanceOf(address(this)), "WAUSDC_BALANCE");
-    }
-
-    function testMintWithUnderlying() public {
-        uint256 amount = usdc.amount(1_000);
-
-        uint256 beforeUsdcBalance = usdc.balanceOf(address(this));
-        uint256 beforeAusdcBalance = aUsdc.balanceOf(address(this));
-        uint256 beforeWausdcBalance = aaveTokenSubstitute.balanceOf(address(this));
+        uint256 beforeTokenBalance = usdc.balanceOf(address(this));
+        uint256 beforeATokenBalance = aUsdc.balanceOf(address(this));
+        uint256 beforeSubstituteBalance = aaveTokenSubstitute.balanceOf(address(this));
 
         IERC20(usdc).approve(address(aaveTokenSubstitute), amount);
-        aaveTokenSubstitute.mintByUnderlying(amount, address(this));
+        aaveTokenSubstitute.mint(amount, address(this));
 
-        assertEq(beforeUsdcBalance, usdc.balanceOf(address(this)) + amount, "USDC_BALANCE");
-        assertEq(beforeAusdcBalance, aUsdc.balanceOf(address(this)), "AUSDC_BALANCE");
-        assertEq(beforeWausdcBalance + amount, aaveTokenSubstitute.balanceOf(address(this)), "WAUSDC_BALANCE");
+        assertEq(beforeTokenBalance, usdc.balanceOf(address(this)) + amount, "USDC_BALANCE");
+        assertEq(beforeATokenBalance, aUsdc.balanceOf(address(this)), "AUSDC_BALANCE");
+        assertEq(beforeSubstituteBalance + amount, aaveTokenSubstitute.balanceOf(address(this)), "WAUSDC_BALANCE");
+    }
+
+    function testMintByAToken() public {
+        uint256 amount = usdc.amount(1_000);
+
+        uint256 beforeTokenBalance = usdc.balanceOf(address(this));
+        uint256 beforeATokenBalance = aUsdc.balanceOf(address(this));
+        uint256 beforeSubstituteBalance = aaveTokenSubstitute.balanceOf(address(this));
+
+        IERC20(aUsdc).approve(address(aaveTokenSubstitute), amount);
+        aaveTokenSubstitute.mintByAToken(amount, address(this));
+
+        assertEq(beforeTokenBalance, usdc.balanceOf(address(this)), "USDC_BALANCE");
+        assertEq(beforeATokenBalance, aUsdc.balanceOf(address(this)) + amount, "AUSDC_BALANCE");
+        assertEq(beforeSubstituteBalance + amount, aaveTokenSubstitute.balanceOf(address(this)), "WAUSDC_BALANCE");
+    }
+
+    function testMintableAmount() public {
+        assertEq(aaveTokenSubstitute.mintableAmount(), 41000000000000, "MINTABLE_AMOUNT");
+    }
+
+    function testBurnableAmount() public {
+        assertEq(aaveTokenSubstitute.burnableAmount(), 1320271880938, "BURNABLE_AMOUNT");
     }
 
     function testBurn() public {
         uint256 amount = usdc.amount(1_000);
-        IERC20(aUsdc).approve(address(aaveTokenSubstitute), amount);
+        IERC20(usdc).approve(address(aaveTokenSubstitute), amount);
         aaveTokenSubstitute.mint(amount, address(this));
 
-        uint256 beforeUsdcBalance = usdc.balanceOf(address(this));
-        uint256 beforeAusdcBalance = aUsdc.balanceOf(address(this));
-        uint256 beforeWausdcBalance = aaveTokenSubstitute.balanceOf(address(this));
+        uint256 beforeTokenBalance = usdc.balanceOf(address(this));
+        uint256 beforeATokenBalance = aUsdc.balanceOf(address(this));
+        uint256 beforeSubstituteBalance = aaveTokenSubstitute.balanceOf(address(this));
 
         aaveTokenSubstitute.burn(amount, address(this));
-        assertEq(beforeUsdcBalance, usdc.balanceOf(address(this)), "USDC_BALANCE");
-        assertEq(beforeAusdcBalance + amount, aUsdc.balanceOf(address(this)), "AUSDC_BALANCE");
-        assertEq(beforeWausdcBalance, aaveTokenSubstitute.balanceOf(address(this)) + amount, "WAUSDC_BALANCE");
+
+        assertEq(beforeTokenBalance + amount, usdc.balanceOf(address(this)), "USDC_BALANCE");
+        assertEq(beforeATokenBalance, aUsdc.balanceOf(address(this)), "AUSDC_BALANCE");
+        assertEq(beforeSubstituteBalance, aaveTokenSubstitute.balanceOf(address(this)) + amount, "WAUSDC_BALANCE");
     }
 
-    function testBurnWithUnderlying() public {
-        uint256 amount = usdc.amount(1_000);
-        IERC20(aUsdc).approve(address(aaveTokenSubstitute), amount);
+    function testBurnByAToken() public {
+        uint256 amount = usdc.amount(100);
+        IERC20(usdc).approve(address(aaveTokenSubstitute), amount);
         aaveTokenSubstitute.mint(amount, address(this));
 
-        uint256 beforeUsdcBalance = usdc.balanceOf(address(this));
-        uint256 beforeAusdcBalance = aUsdc.balanceOf(address(this));
-        uint256 beforeWausdcBalance = aaveTokenSubstitute.balanceOf(address(this));
+        uint256 beforeTokenBalance = usdc.balanceOf(address(this));
+        uint256 beforeATokenBalance = aUsdc.balanceOf(address(this));
+        uint256 beforeSubstituteBalance = aaveTokenSubstitute.balanceOf(address(this));
 
-        aaveTokenSubstitute.burnToUnderlying(amount, address(this));
+        aaveTokenSubstitute.burnToAToken(amount, address(this));
 
-        assertEq(beforeUsdcBalance + amount, usdc.balanceOf(address(this)), "USDC_BALANCE");
-        assertEq(beforeAusdcBalance, aUsdc.balanceOf(address(this)), "AUSDC_BALANCE");
-        assertEq(beforeWausdcBalance, aaveTokenSubstitute.balanceOf(address(this)) + amount, "WAUSDC_BALANCE");
+        assertEq(beforeTokenBalance, usdc.balanceOf(address(this)), "USDC_BALANCE");
+        assertEq(beforeATokenBalance + amount, aUsdc.balanceOf(address(this)), "AUSDC_BALANCE");
+        assertEq(beforeSubstituteBalance, aaveTokenSubstitute.balanceOf(address(this)) + amount, "WAUSDC_BALANCE");
     }
 }
