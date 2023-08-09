@@ -14,6 +14,7 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
     using SafeERC20 for IERC20;
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
 
+    address public override treasury;
     address public immutable aToken;
 
     address private immutable _underlyingToken;
@@ -61,5 +62,14 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
 
     function burnableAmount() external view returns (uint256) {
         return IERC20(_underlyingToken).balanceOf(address(aToken));
+    }
+
+    function setTreasury(address newTreasury) external onlyOwner {
+        treasury = newTreasury;
+    }
+
+    function claim(address asset) external {
+        uint256 adminYield = IERC20(aToken).balanceOf(address(this)) - totalSupply();
+        _aaveV3Pool.withdraw(asset, adminYield, treasury);
     }
 }
