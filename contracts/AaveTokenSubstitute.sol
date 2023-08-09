@@ -69,7 +69,9 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
     }
 
     function claim() external {
-        uint256 adminYield = IERC20(aToken).balanceOf(address(this)) - totalSupply();
-        _aaveV3Pool.withdraw(_underlyingToken, adminYield, treasury);
+        uint256 adminYield = IERC20(aToken).balanceOf(address(this)) - totalSupply() - 1;
+        if (adminYield > 0) {
+            IERC20(aToken).transfer(treasury, adminYield);
+        }
     }
 }

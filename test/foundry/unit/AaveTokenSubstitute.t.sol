@@ -36,6 +36,8 @@ contract AaveTokenSubstituteUnitTest is Test, ERC1155Holder {
             Constants.AAVE_V3_POOL
         );
 
+        aaveTokenSubstitute.setTreasury(Constants.TREASURY);
+
         aUsdc = IERC20(aaveTokenSubstitute.aToken());
 
         usdc.approve(Constants.AAVE_V3_POOL, usdc.amount(500_000));
@@ -110,5 +112,21 @@ contract AaveTokenSubstituteUnitTest is Test, ERC1155Holder {
         assertEq(beforeTokenBalance, usdc.balanceOf(address(this)), "USDC_BALANCE");
         assertEq(beforeATokenBalance + amount, aUsdc.balanceOf(address(this)), "AUSDC_BALANCE");
         assertEq(beforeSubstituteBalance, aaveTokenSubstitute.balanceOf(address(this)) + amount, "WAUSDC_BALANCE");
+    }
+
+    function testClaim() public {
+        uint256 amount = usdc.amount(100);
+        IERC20(usdc).approve(address(aaveTokenSubstitute), amount);
+        aaveTokenSubstitute.mint(amount, address(this));
+
+        uint256 timestamp = block.timestamp;
+        vm.warp(timestamp + 365 days);
+
+        uint256 beforeTokenBalance = aUsdc.balanceOf(aaveTokenSubstitute.treasury());
+        aaveTokenSubstitute.claim();
+        assertLt(
+            beforeTokenBalance + aUsdc.amount(2), aUsdc.balanceOf(aaveTokenSubstitute.treasury()), "TREASURY_BALANCE"
+        );
+        assertEq(aUsdc.balanceOf(address(aaveTokenSubstitute)), aaveTokenSubstitute.totalSupply());
     }
 }
