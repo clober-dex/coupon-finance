@@ -16,11 +16,11 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
     using SafeERC20 for IERC20;
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
 
-    address public override treasury;
-    address public immutable aToken;
-
+    address public immutable override aToken;
     address private immutable _underlyingToken;
     IPool private immutable _aaveV3Pool;
+
+    address public override treasury;
 
     constructor(address asset_, address aaveV3Pool_)
         ERC20Permit(string.concat("Wrapped Aave ", IERC20Metadata(asset_).name()))
