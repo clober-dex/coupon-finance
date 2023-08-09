@@ -9,10 +9,11 @@ import {Create1} from "@clober/library/contracts/Create1.sol";
 import {CouponManager} from "../../../../../contracts/CouponManager.sol";
 import {BondPositionManager} from "../../../../../contracts/BondPositionManager.sol";
 import {IBondPositionManager} from "../../../../../contracts/interfaces/IBondPositionManager.sol";
+import {IAssetPool} from "../../../../../contracts/interfaces/IAssetPool.sol";
 import {ICouponManager} from "../../../../../contracts/interfaces/ICouponManager.sol";
 import {Epoch, EpochLibrary} from "../../../../../contracts/libraries/Epoch.sol";
+import {AssetPool} from "../../../../../contracts/AssetPool.sol";
 import {MockERC20} from "../../../mocks/MockERC20.sol";
-import {MockAssetPool} from "../../../mocks/MockAssetPool.sol";
 import {Utils} from "../../../Utils.sol";
 
 library TestInitializer {
@@ -20,7 +21,7 @@ library TestInitializer {
 
     struct Params {
         MockERC20 usdc;
-        MockAssetPool assetPool;
+        IAssetPool assetPool;
         ICouponManager couponManager;
         IBondPositionManager bondPositionManager;
         Epoch startEpoch;
@@ -37,9 +38,9 @@ library TestInitializer {
         p.startEpoch = EpochLibrary.current();
 
         p.initialAmount = p.usdc.amount(100);
-        p.assetPool = new MockAssetPool();
         uint64 thisNonce = vm.getNonce(address(this));
-        p.couponManager = new CouponManager(Utils.toArr(Create1.computeAddress(address(this), thisNonce + 1)), "URI/");
+        p.assetPool = new AssetPool(Utils.toArr(Create1.computeAddress(address(this), thisNonce + 2)));
+        p.couponManager = new CouponManager(Utils.toArr(Create1.computeAddress(address(this), thisNonce + 2)), "URI/");
         p.bondPositionManager = new BondPositionManager(
             address(p.couponManager),
             address(p.assetPool),

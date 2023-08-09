@@ -15,7 +15,6 @@ import {LoanPosition} from "../../../../contracts/libraries/LoanPosition.sol";
 
 import {MockERC20} from "../../mocks/MockERC20.sol";
 import {MockOracle} from "../../mocks/MockOracle.sol";
-import {MockAssetPool} from "../../mocks/MockAssetPool.sol";
 
 import {LoanPositionAdjustPositionHelper} from "./helpers/AdjustPositionHelper.sol";
 import {LoanPositionMintHelper} from "./helpers/MintHelper.sol";
@@ -29,7 +28,7 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
     MockERC20 public usdc;
 
     MockOracle public oracle;
-    MockAssetPool public assetPool;
+    IAssetPool public assetPool;
     ICouponManager public couponManager;
     ILoanPositionManager public loanPositionManager;
 
@@ -150,6 +149,7 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
         Epoch epoch = startEpoch.add(4);
 
         uint256 beforeDebtBalance = usdc.balanceOf(address(helper));
+        uint256 beforePoolDebtBalance = usdc.balanceOf(address(assetPool));
 
         Coupon[] memory couponsToPay = new Coupon[](2);
         couponsToPay[0] = CouponLibrary.from(address(usdc), startEpoch.add(3), debtAmount);
@@ -167,12 +167,12 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
             abi.encodeCall(ICouponManager.mintBatch, (address(helper), couponsToRefund, new bytes(0))),
             1
         );
-        vm.expectCall(address(assetPool), abi.encodeCall(IAssetPool.deposit, (address(usdc), decreaseAmount)), 1);
         helper.adjustPosition(tokenId, initialCollateralAmount, debtAmount, epoch);
 
         LoanPosition memory position = loanPositionManager.getPosition(tokenId);
 
         assertEq(usdc.balanceOf(address(helper)), beforeDebtBalance - decreaseAmount, "DEBT_BALANCE");
+        assertEq(usdc.balanceOf(address(assetPool)), beforePoolDebtBalance + decreaseAmount, "POOL_DEBT_BALANCE");
         assertEq(position.debtAmount, debtAmount, "DEBT_AMOUNT");
         assertEq(position.expiredWith, epoch, "EXPIRED_WITH");
     }
@@ -183,6 +183,7 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
         Epoch epoch = startEpoch.add(1);
 
         uint256 beforeDebtBalance = usdc.balanceOf(address(helper));
+        uint256 beforePoolDebtBalance = usdc.balanceOf(address(assetPool));
 
         Coupon[] memory couponsToRefund = new Coupon[](2);
         couponsToRefund[0] = CouponLibrary.from(address(usdc), startEpoch.add(1), decreaseAmount);
@@ -194,12 +195,12 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
             abi.encodeCall(ICouponManager.mintBatch, (address(helper), couponsToRefund, new bytes(0))),
             1
         );
-        vm.expectCall(address(assetPool), abi.encodeCall(IAssetPool.deposit, (address(usdc), decreaseAmount)), 1);
         helper.adjustPosition(tokenId, initialCollateralAmount, debtAmount, epoch);
 
         LoanPosition memory position = loanPositionManager.getPosition(tokenId);
 
         assertEq(usdc.balanceOf(address(helper)), beforeDebtBalance - decreaseAmount, "DEBT_BALANCE");
+        assertEq(usdc.balanceOf(address(assetPool)), beforePoolDebtBalance + decreaseAmount, "POOL_DEBT_BALANCE");
         assertEq(position.debtAmount, debtAmount, "DEBT_AMOUNT");
         assertEq(position.expiredWith, epoch, "EXPIRED_WITH");
     }
@@ -210,6 +211,7 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
         Epoch epoch = startEpoch;
 
         uint256 beforeDebtBalance = usdc.balanceOf(address(helper));
+        uint256 beforePoolDebtBalance = usdc.balanceOf(address(assetPool));
         uint256 beforeLoanPositionBalance = loanPositionManager.balanceOf(address(helper));
 
         Coupon[] memory couponsToRefund = new Coupon[](2);
@@ -222,12 +224,12 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
             abi.encodeCall(ICouponManager.mintBatch, (address(helper), couponsToRefund, new bytes(0))),
             1
         );
-        vm.expectCall(address(assetPool), abi.encodeCall(IAssetPool.deposit, (address(usdc), decreaseAmount)), 1);
         helper.adjustPosition(tokenId, initialCollateralAmount, debtAmount, epoch);
 
         LoanPosition memory position = loanPositionManager.getPosition(tokenId);
 
         assertEq(usdc.balanceOf(address(helper)), beforeDebtBalance - decreaseAmount, "DEBT_BALANCE");
+        assertEq(usdc.balanceOf(address(assetPool)), beforePoolDebtBalance + decreaseAmount, "POOL_DEBT_BALANCE");
         assertEq(loanPositionManager.balanceOf(address(helper)), beforeLoanPositionBalance, "LOAN_POSITION_BALANCE");
         assertEq(position.collateralAmount, initialCollateralAmount, "COLLATERAL_AMOUNT");
         assertEq(position.debtAmount, debtAmount, "DEBT_AMOUNT");
@@ -240,15 +242,18 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
         Epoch epoch = startEpoch.add(1);
 
         uint256 beforeCollateralBalance = weth.balanceOf(address(helper));
+        uint256 beforePoolCollateralBalance = weth.balanceOf(address(assetPool));
 
         vm.expectEmit(true, true, true, true);
         emit PositionUpdated(tokenId, collateralAmount, initialDebtAmount, epoch);
-        vm.expectCall(address(assetPool), abi.encodeCall(IAssetPool.deposit, (address(weth), increaseAmount)), 1);
         helper.adjustPosition(tokenId, collateralAmount, initialDebtAmount, epoch);
 
         LoanPosition memory position = loanPositionManager.getPosition(tokenId);
 
         assertEq(weth.balanceOf(address(helper)), beforeCollateralBalance - increaseAmount, "COLLATERAL_BALANCE");
+        assertEq(
+            weth.balanceOf(address(assetPool)), beforePoolCollateralBalance + increaseAmount, "POOL_COLLATERAL_BALANCE"
+        );
         assertEq(position.collateralAmount, collateralAmount, "COLLATERAL_AMOUNT");
     }
 

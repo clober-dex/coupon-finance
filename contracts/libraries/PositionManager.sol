@@ -116,7 +116,6 @@ abstract contract PositionManager is ERC721Permit, ERC1155Holder, IPositionManag
     function depositToken(address token, uint256 amount) external onlyByLocker {
         if (amount == 0) return;
         IERC20(token).safeTransferFrom(msg.sender, assetPool, amount);
-        IAssetPool(assetPool).deposit(token, amount);
         _accountDelta(uint256(uint160(token)), -amount.toInt256());
     }
 

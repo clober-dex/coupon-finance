@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 import "forge-std/Test.sol";
 
 import {ICouponManager} from "../../../../contracts/interfaces/ICouponManager.sol";
+import {IAssetPool} from "../../../../contracts/interfaces/IAssetPool.sol";
 import {
     ILoanPositionManager, ILoanPositionManagerTypes
 } from "../../../../contracts/interfaces/ILoanPositionManager.sol";
@@ -14,7 +15,6 @@ import {LoanPosition} from "../../../../contracts/libraries/LoanPosition.sol";
 
 import {MockERC20} from "../../mocks/MockERC20.sol";
 import {MockOracle} from "../../mocks/MockOracle.sol";
-import {MockAssetPool} from "../../mocks/MockAssetPool.sol";
 import {Constants} from "../../Constants.sol";
 import {LoanPositionMintHelper} from "./helpers/MintHelper.sol";
 import {TestInitializer} from "./helpers/TestInitializer.sol";
@@ -26,8 +26,6 @@ contract LoanPositionManagerMintUnitTest is Test, ILoanPositionManagerTypes {
     MockERC20 public weth;
     MockERC20 public usdc;
 
-    MockOracle public oracle;
-    MockAssetPool public assetPool;
     ICouponManager public couponManager;
     ILoanPositionManager public loanPositionManager;
 
@@ -43,8 +41,6 @@ contract LoanPositionManagerMintUnitTest is Test, ILoanPositionManagerTypes {
         TestInitializer.Params memory p = TestInitializer.init(vm);
         weth = p.weth;
         usdc = p.usdc;
-        oracle = p.oracle;
-        assetPool = p.assetPool;
         couponManager = p.couponManager;
         loanPositionManager = p.loanPositionManager;
         startEpoch = p.startEpoch;

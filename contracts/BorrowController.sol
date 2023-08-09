@@ -34,13 +34,12 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
     }
 
     constructor(
-        address assetPool,
         address wrapped1155Factory,
         address cloberMarketFactory,
         address couponManager,
         address weth,
         address loanManager
-    ) Controller(assetPool, wrapped1155Factory, cloberMarketFactory, couponManager, weth) {
+    ) Controller(wrapped1155Factory, cloberMarketFactory, couponManager, weth) {
         _loanManager = ILoanPositionManager(loanManager);
     }
 
