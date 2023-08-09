@@ -5,6 +5,9 @@ pragma solidity ^0.8.0;
 
 import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {IAToken} from "./external/aave-v3/IAToken.sol";
 import {IAaveTokenSubstitute} from "./interfaces/IAaveTokenSubstitute.sol";
 import {IPool} from "./external/aave-v3/IPool.sol";
@@ -16,7 +19,7 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
     using SafeERC20 for IERC20;
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
 
-    address public immutable override aToken;
+    address public immutable aToken;
     address private immutable _underlyingToken;
     IPool private immutable _aaveV3Pool;
 
