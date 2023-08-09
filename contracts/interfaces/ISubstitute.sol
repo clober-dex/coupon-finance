@@ -8,6 +8,8 @@ interface ISubstitute {
 
     function burn(uint256 amount, address to) external;
 
+    function claim() external;
+
     function mintableAmount() external view returns (uint256);
 
     function burnableAmount() external view returns (uint256);
