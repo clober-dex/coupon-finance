@@ -31,13 +31,9 @@ contract BondPositionManager is IBondPositionManager, PositionManager, Ownable {
     mapping(address asset => bool) public override isAssetRegistered;
     mapping(uint256 id => BondPosition) private _positionMap;
 
-    constructor(address coupon_, address assetPool_, string memory baseURI_, address[] memory initialAssets)
+    constructor(address coupon_, address assetPool_, string memory baseURI_)
         PositionManager(coupon_, assetPool_, baseURI_, "Bond Position", "BP")
-    {
-        for (uint256 i = 0; i < initialAssets.length; ++i) {
-            _registerAsset(initialAssets[i]);
-        }
-    }
+    {}
 
     function getMaxEpoch() external pure returns (Epoch maxEpoch) {
         return _MAX_EPOCH;

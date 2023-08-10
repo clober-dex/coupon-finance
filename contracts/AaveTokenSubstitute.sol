@@ -3,29 +3,30 @@
 
 pragma solidity ^0.8.0;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import {IAToken} from "./external/aave-v3/IAToken.sol";
-import {IAaveTokenSubstitute} from "./interfaces/IAaveTokenSubstitute.sol";
-import {IPool} from "./external/aave-v3/IPool.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+
+import {IAToken} from "./external/aave-v3/IAToken.sol";
+import {IPool} from "./external/aave-v3/IPool.sol";
 import {DataTypes} from "./external/aave-v3/DataTypes.sol";
 import {ReserveConfiguration} from "./external/aave-v3/ReserveConfiguration.sol";
+import {IAaveTokenSubstitute} from "./interfaces/IAaveTokenSubstitute.sol";
 
 contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
     using SafeERC20 for IERC20;
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
 
+    IPool private immutable _aaveV3Pool;
     address public immutable aToken;
     address private immutable _underlyingToken;
-    IPool private immutable _aaveV3Pool;
 
     address public override treasury;
 
-    constructor(address asset_, address aaveV3Pool_)
+    constructor(address asset_, address aaveV3Pool_, address treasury_, address owner_)
         ERC20Permit(string.concat("Wrapped Aave ", IERC20Metadata(asset_).name()))
         ERC20(
             string.concat("Wrapped Aave ", IERC20Metadata(asset_).name()),
@@ -35,6 +36,8 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
         _aaveV3Pool = IPool(aaveV3Pool_);
         aToken = _aaveV3Pool.getReserveData(asset_).aTokenAddress;
         _underlyingToken = asset_;
+        treasury = treasury_;
+        _transferOwnership(owner_);
     }
 
     function mintByAToken(uint256 amount, address to) external {
