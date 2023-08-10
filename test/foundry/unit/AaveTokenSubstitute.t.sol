@@ -5,16 +5,17 @@ pragma solidity ^0.8.0;
 import "forge-std/Test.sol";
 
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import {CouponManager} from "../../../contracts/CouponManager.sol";
+import {IPool} from "../../../contracts/external/aave-v3/IPool.sol";
 import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
 import {CouponKey, CouponKeyLibrary} from "../../../contracts/libraries/CouponKey.sol";
 import {Coupon, CouponLibrary} from "../../../contracts/libraries/Coupon.sol";
 import {Epoch, EpochLibrary} from "../../../contracts/libraries/Epoch.sol";
+import {CouponManager} from "../../../contracts/CouponManager.sol";
+import {AaveTokenSubstitute} from "../../../contracts/AaveTokenSubstitute.sol";
 import {Constants} from "../Constants.sol";
-import {Utils} from "../Utils.sol";
 import {ForkUtils, ERC20Utils, Utils} from "../Utils.sol";
-import "../../../contracts/AaveTokenSubstitute.sol";
 
 contract AaveTokenSubstituteUnitTest is Test, ERC1155Holder {
     using ERC20Utils for IERC20;
@@ -33,10 +34,10 @@ contract AaveTokenSubstituteUnitTest is Test, ERC1155Holder {
 
         aaveTokenSubstitute = new AaveTokenSubstitute(
             Constants.USDC,
-            Constants.AAVE_V3_POOL
+            Constants.AAVE_V3_POOL,
+            Constants.TREASURY,
+            address(this)
         );
-
-        aaveTokenSubstitute.setTreasury(Constants.TREASURY);
 
         aUsdc = IERC20(aaveTokenSubstitute.aToken());
 
@@ -128,5 +129,16 @@ contract AaveTokenSubstituteUnitTest is Test, ERC1155Holder {
             beforeTokenBalance + aUsdc.amount(2), aUsdc.balanceOf(aaveTokenSubstitute.treasury()), "TREASURY_BALANCE"
         );
         assertEq(aUsdc.balanceOf(address(aaveTokenSubstitute)), aaveTokenSubstitute.totalSupply());
+    }
+
+    function testSetTreasury() public {
+        aaveTokenSubstitute.setTreasury(address(0xdeadbeef));
+        assertEq(aaveTokenSubstitute.treasury(), address(0xdeadbeef), "TREASURY");
+    }
+
+    function testSetTreasuryOwnership() public {
+        vm.expectRevert("Ownable: caller is not the owner");
+        vm.prank(address(0x123));
+        aaveTokenSubstitute.setTreasury(address(0xdeadbeef));
     }
 }
