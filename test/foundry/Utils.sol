@@ -32,6 +32,13 @@ library Utils {
         arr[1] = account1;
     }
 
+    function toArr(address account0, address account1, address account2) internal pure returns (address[] memory arr) {
+        arr = new address[](3);
+        arr[0] = account0;
+        arr[1] = account1;
+        arr[2] = account2;
+    }
+
     function toArr(uint256 n0) internal pure returns (uint256[] memory arr) {
         arr = new uint256[](1);
         arr[0] = n0;

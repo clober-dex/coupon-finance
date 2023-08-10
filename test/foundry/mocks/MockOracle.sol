@@ -14,6 +14,10 @@ contract MockOracle is ICouponOracle {
         _weth = weth_;
     }
 
+    function decimals() external pure returns (uint8) {
+        return 8;
+    }
+
     function getAssetPrice(address asset) external view override returns (uint256) {
         return asset == address(0) ? _priceMap[_weth] : _priceMap[asset];
     }
@@ -31,4 +35,16 @@ contract MockOracle is ICouponOracle {
     function setAssetPrice(address asset, uint256 price) external {
         _priceMap[asset] = price;
     }
+
+    function fallbackOracle() external pure returns (address) {
+        return address(0);
+    }
+
+    function getFeed(address) external pure returns (address) {
+        return address(0);
+    }
+
+    function setFallbackOracle(address) external {}
+
+    function setFeeds(address[] memory, address[] memory) external {}
 }
