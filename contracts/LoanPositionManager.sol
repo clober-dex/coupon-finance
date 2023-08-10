@@ -6,7 +6,6 @@ pragma solidity ^0.8.0;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {ERC1155Holder, ERC1155Receiver} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 
@@ -23,7 +22,6 @@ import {LoanPosition, LoanPositionLibrary} from "./libraries/LoanPosition.sol";
 import {PositionManager} from "./libraries/PositionManager.sol";
 
 contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
-    using SafeCast for uint256;
     using LoanPositionLibrary for LoanPosition;
     using CouponKeyLibrary for CouponKey;
     using CouponLibrary for Coupon;
@@ -113,32 +111,16 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
         }
 
         unchecked {
-            if (couponsToRefund.length > 0) {
-                for (uint256 i = 0; i < couponsToRefund.length; ++i) {
-                    _accountDelta(couponsToRefund[i].id(), -couponsToRefund[i].amount.toInt256());
-                }
+            for (uint256 i = 0; i < couponsToRefund.length; ++i) {
+                _accountDelta(couponsToRefund[i].id(), 0, couponsToRefund[i].amount);
             }
-            if (debtAmount > oldPosition.debtAmount) {
-                debtDelta = (debtAmount - oldPosition.debtAmount).toInt256();
-                _accountDelta(uint256(uint160(oldPosition.debtToken)), -debtDelta);
+            for (uint256 i = 0; i < couponsToPay.length; ++i) {
+                _accountDelta(couponsToPay[i].id(), couponsToPay[i].amount, 0);
             }
-            if (collateralAmount < oldPosition.collateralAmount) {
-                collateralDelta = -(oldPosition.collateralAmount - collateralAmount).toInt256();
-                _accountDelta(uint256(uint160(oldPosition.collateralToken)), collateralDelta);
-            }
-            if (debtAmount < oldPosition.debtAmount) {
-                debtDelta = -(oldPosition.debtAmount - debtAmount).toInt256();
-                _accountDelta(uint256(uint160(oldPosition.debtToken)), -debtDelta);
-            }
-            if (collateralAmount > oldPosition.collateralAmount) {
-                collateralDelta = (collateralAmount - oldPosition.collateralAmount).toInt256();
-                _accountDelta(uint256(uint160(oldPosition.collateralToken)), collateralDelta);
-            }
-            if (couponsToPay.length > 0) {
-                for (uint256 i = 0; i < couponsToPay.length; ++i) {
-                    _accountDelta(couponsToPay[i].id(), couponsToPay[i].amount.toInt256());
-                }
-            }
+            collateralDelta = _accountDelta(
+                uint256(uint160(oldPosition.collateralToken)), collateralAmount, oldPosition.collateralAmount
+            );
+            debtDelta = -_accountDelta(uint256(uint160(oldPosition.debtToken)), oldPosition.debtAmount, debtAmount);
         }
     }
 
@@ -319,11 +301,9 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
             _positionMap[positionId].collateralAmount = position.collateralAmount;
             _positionMap[positionId].debtAmount = position.debtAmount;
 
-            _accountDelta(
-                uint256(uint160(position.collateralToken)), -(liquidationAmount - protocolFeeAmount).toInt256()
-            );
+            _accountDelta(uint256(uint160(position.collateralToken)), protocolFeeAmount, liquidationAmount);
             IAssetPool(assetPool).withdraw(position.collateralToken, protocolFeeAmount, treasury);
-            _accountDelta(uint256(uint160(position.debtToken)), repayAmount.toInt256());
+            _accountDelta(uint256(uint160(position.debtToken)), repayAmount, 0);
 
             if (validEpochLength > 0) {
                 address couponOwner = ownerOf(positionId);

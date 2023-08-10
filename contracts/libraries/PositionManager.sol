@@ -5,7 +5,6 @@ pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {ERC1155Holder, ERC1155Receiver} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 
 import {IAssetPool} from "../interfaces/IAssetPool.sol";
@@ -18,7 +17,6 @@ import {IPositionManager} from "../interfaces/IPositionManager.sol";
 
 abstract contract PositionManager is ERC721Permit, ERC1155Holder, IPositionManager {
     using SafeERC20 for IERC20;
-    using SafeCast for uint256;
     using CouponLibrary for Coupon;
     using LockDataLibrary for LockData;
 
@@ -81,11 +79,16 @@ abstract contract PositionManager is ERC721Permit, ERC1155Holder, IPositionManag
         }
     }
 
-    function _accountDelta(uint256 assetId, int256 delta) internal {
-        if (delta == 0) return;
+    function _accountDelta(uint256 assetId, uint256 oldAmount, uint256 newAmount) internal returns (int256 delta) {
+        if (oldAmount == newAmount) return 0;
 
         address locker = _lockData.getActiveLock();
         int256 current = assetDelta[locker][assetId];
+        if (oldAmount > newAmount) {
+            delta = int256(oldAmount - newAmount);
+        } else {
+            delta = -int256(newAmount - oldAmount);
+        }
         int256 next = current + delta;
 
         unchecked {
@@ -100,14 +103,14 @@ abstract contract PositionManager is ERC721Permit, ERC1155Holder, IPositionManag
     }
 
     function withdrawToken(address token, address to, uint256 amount) external onlyByLocker {
-        _accountDelta(uint256(uint160(token)), amount.toInt256());
+        _accountDelta(uint256(uint160(token)), amount, 0);
         IAssetPool(assetPool).withdraw(token, amount, to);
     }
 
     function withdrawCoupons(Coupon[] calldata coupons, address to, bytes calldata data) external onlyByLocker {
         unchecked {
             for (uint256 i = 0; i < coupons.length; ++i) {
-                _accountDelta(coupons[i].id(), coupons[i].amount.toInt256());
+                _accountDelta(coupons[i].id(), coupons[i].amount, 0);
             }
             ICouponManager(_couponManager).mintBatch(to, coupons, data);
         }
@@ -116,14 +119,14 @@ abstract contract PositionManager is ERC721Permit, ERC1155Holder, IPositionManag
     function depositToken(address token, uint256 amount) external onlyByLocker {
         if (amount == 0) return;
         IERC20(token).safeTransferFrom(msg.sender, assetPool, amount);
-        _accountDelta(uint256(uint160(token)), -amount.toInt256());
+        _accountDelta(uint256(uint160(token)), 0, amount);
     }
 
     function depositCoupons(Coupon[] calldata coupons) external onlyByLocker {
         unchecked {
             ICouponManager(_couponManager).burnBatch(msg.sender, coupons);
             for (uint256 i = 0; i < coupons.length; ++i) {
-                _accountDelta(coupons[i].id(), -coupons[i].amount.toInt256());
+                _accountDelta(coupons[i].id(), 0, coupons[i].amount);
             }
         }
     }
