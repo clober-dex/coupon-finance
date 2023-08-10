@@ -79,15 +79,18 @@ abstract contract PositionManager is ERC721Permit, ERC1155Holder, IPositionManag
         }
     }
 
-    function _accountDelta(uint256 assetId, uint256 oldAmount, uint256 newAmount) internal returns (int256 delta) {
-        if (oldAmount == newAmount) return 0;
+    function _accountDelta(uint256 assetId, uint256 amount0, uint256 amount1) internal returns (int256 delta) {
+        if (amount0 == amount1) return 0;
 
         address locker = _lockData.getActiveLock();
         int256 current = assetDelta[locker][assetId];
-        if (oldAmount > newAmount) {
-            delta = int256(oldAmount - newAmount);
-        } else {
-            delta = -int256(newAmount - oldAmount);
+        unchecked {
+            // Todo should check overflow
+            if (amount0 > amount1) {
+                delta = int256(amount0 - amount1);
+            } else {
+                delta = -int256(amount1 - amount0);
+            }
         }
         int256 next = current + delta;
 
