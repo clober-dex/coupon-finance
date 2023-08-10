@@ -88,7 +88,10 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         wrapped1155Factory = IWrapped1155Factory(Constants.WRAPPED1155_FACTORY);
         cloberMarketFactory = CloberMarketFactory(Constants.CLOBER_FACTORY);
 
-        oracle = new CouponOracle(Utils.toArr(Constants.USDC, Constants.WETH), Utils.toArr(Constants.USDC_CHAINLINK_FEED, Constants.ETH_CHAINLINK_FEED));
+        oracle = new CouponOracle(
+            Utils.toArr(Constants.USDC, Constants.WETH, address(0)),
+            Utils.toArr(Constants.USDC_CHAINLINK_FEED, Constants.ETH_CHAINLINK_FEED, Constants.ETH_CHAINLINK_FEED)
+        );
         uint64 thisNonce = vm.getNonce(address(this));
         assetPool = new AssetPool(
             Utils.toArr(Create1.computeAddress(address(this), thisNonce + 2))
