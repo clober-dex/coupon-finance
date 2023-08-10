@@ -20,7 +20,6 @@ import {Coupon, CouponLibrary} from "./Coupon.sol";
 import {CouponKey, CouponKeyLibrary} from "./CouponKey.sol";
 import {Wrapped1155MetadataBuilder} from "./Wrapped1155MetadataBuilder.sol";
 import {IERC721Permit} from "../interfaces/IERC721Permit.sol";
-import {ISubstitute} from "../interfaces/ISubstitute.sol";
 import {ReentrancyGuard} from "./ReentrancyGuard.sol";
 
 abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver, Ownable, ReentrancyGuard {
@@ -152,7 +151,13 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
         uint256 leftAmount = IERC20(token).balanceOf(address(this));
         if (leftAmount == 0) return;
 
-        ISubstitute(token).burn(leftAmount, to);
+        if (token == address(_weth)) {
+            _weth.withdraw(leftAmount);
+            (bool success,) = payable(to).call{value: leftAmount}("");
+            require(success, "Value transfer failed");
+        } else {
+            IERC20(token).safeTransfer(to, leftAmount);
+        }
     }
 
     function _ensureBalance(address token, address user, uint256 amount) internal {
