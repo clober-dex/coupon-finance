@@ -6,7 +6,6 @@ pragma solidity ^0.8.0;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 import {IBondPositionManager} from "./interfaces/IBondPositionManager.sol";
@@ -21,7 +20,6 @@ import {Epoch, EpochLibrary} from "./libraries/Epoch.sol";
 import {PositionManager} from "./libraries/PositionManager.sol";
 
 contract BondPositionManager is IBondPositionManager, PositionManager, Ownable {
-    using SafeCast for uint256;
     using SafeERC20 for IERC20;
     using Strings for uint256;
     using EpochLibrary for Epoch;
@@ -90,24 +88,13 @@ contract BondPositionManager is IBondPositionManager, PositionManager, Ownable {
             (couponsToMint, couponsToBurn) = position.calculateCouponRequirement(_positionMap[positionId]);
         }
 
-        if (couponsToMint.length > 0) {
-            for (uint256 i = 0; i < couponsToMint.length; ++i) {
-                _accountDelta(couponsToMint[i].id(), -couponsToMint[i].amount.toInt256());
-            }
+        for (uint256 i = 0; i < couponsToMint.length; ++i) {
+            _accountDelta(couponsToMint[i].id(), 0, couponsToMint[i].amount);
         }
-        if (position.amount > amount) {
-            amountDelta = -(position.amount - amount).toInt256();
-            _accountDelta(uint256(uint160(position.asset)), amountDelta);
+        for (uint256 i = 0; i < couponsToBurn.length; ++i) {
+            _accountDelta(couponsToBurn[i].id(), couponsToBurn[i].amount, 0);
         }
-        if (amount > position.amount) {
-            amountDelta = (amount - position.amount).toInt256();
-            _accountDelta(uint256(uint160(position.asset)), amountDelta);
-        }
-        if (couponsToBurn.length > 0) {
-            for (uint256 i = 0; i < couponsToBurn.length; ++i) {
-                _accountDelta(couponsToBurn[i].id(), couponsToBurn[i].amount.toInt256());
-            }
-        }
+        amountDelta = _accountDelta(uint256(uint160(position.asset)), amount, position.amount);
     }
 
     function settlePosition(uint256 positionId) public override(IPositionManager, PositionManager) onlyByLocker {
