@@ -3,6 +3,11 @@
 pragma solidity ^0.8.0;
 
 interface ICouponOracle {
+    error LengthMismatch();
+    error InvalidDecimals();
+
+    function decimals() external view returns (uint8);
+
     function fallbackOracle() external view returns (address);
 
     function getFeed(address asset) external view returns (address);

@@ -6,6 +6,11 @@ import "forge-std/Test.sol";
 
 contract InvalidPriceFeed {
     int256 public price;
+    uint8 public decimals = 8;
+
+    function setDecimals(uint8 decimals_) public {
+        decimals = decimals_;
+    }
 
     function setPrice(int256 price_) public {
         price = price_;

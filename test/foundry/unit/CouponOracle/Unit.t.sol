@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 
+import {ICouponOracle} from "../../../../contracts/interfaces/ICouponOracle.sol";
 import {CouponOracle} from "../../../../contracts/CouponOracle.sol";
 import {ForkUtils, Utils} from "../../Utils.sol";
 import {Constants} from "../../Constants.sol";
@@ -35,6 +36,19 @@ contract CouponOracleUnitTest is Test {
         vm.prank(address(0x123));
         vm.expectRevert("Ownable: caller is not the owner");
         couponOracle.setFeeds(Utils.toArr(Constants.USDC), Utils.toArr(Constants.USDC_CHAINLINK_FEED));
+    }
+
+    function testSetFeedsLengthMismatch() public {
+        vm.expectRevert(abi.encodeWithSelector(ICouponOracle.LengthMismatch.selector));
+        couponOracle.setFeeds(
+            Utils.toArr(Constants.USDC), Utils.toArr(Constants.USDC_CHAINLINK_FEED, Constants.USDC_CHAINLINK_FEED)
+        );
+    }
+
+    function testSetFeedsInvalidDecimals() public {
+        invalidPriceFeed.setDecimals(18);
+        vm.expectRevert(abi.encodeWithSelector(ICouponOracle.InvalidDecimals.selector));
+        couponOracle.setFeeds(Utils.toArr(Constants.USDC), Utils.toArr(address(invalidPriceFeed)));
     }
 
     function testSetFallbackOracle() public {

@@ -14,6 +14,10 @@ contract MockOracle is ICouponOracle {
         _weth = weth_;
     }
 
+    function decimals() external pure returns (uint8) {
+        return 8;
+    }
+
     function getAssetPrice(address asset) external view override returns (uint256) {
         return asset == address(0) ? _priceMap[_weth] : _priceMap[asset];
     }

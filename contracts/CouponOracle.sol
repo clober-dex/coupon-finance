@@ -17,6 +17,10 @@ contract CouponOracle is ICouponOracle, Ownable {
         _setFeeds(assets, feeds);
     }
 
+    function decimals() external pure returns (uint8) {
+        return 8;
+    }
+
     function getFeed(address asset) external view returns (address) {
         return _assetFeedMap[asset];
     }
@@ -58,9 +62,10 @@ contract CouponOracle is ICouponOracle, Ownable {
     }
 
     function _setFeeds(address[] memory assets, address[] memory feeds) internal {
-        require(assets.length == feeds.length, "assets and feeds length mismatch");
+        if (assets.length != feeds.length) revert LengthMismatch();
         unchecked {
             for (uint256 i = 0; i < assets.length; ++i) {
+                if (AggregatorV3Interface(feeds[i]).decimals() != 8) revert InvalidDecimals();
                 _assetFeedMap[assets[i]] = feeds[i];
             }
         }
