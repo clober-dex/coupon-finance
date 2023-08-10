@@ -28,16 +28,13 @@ contract CouponOracle is ICouponOracle, Ownable {
     function getAssetPrice(address asset) public view returns (uint256) {
         address feed = _assetFeedMap[asset];
 
-        if (feed == address(0)) {
-            return _fallback(asset);
-        } else {
+        if (feed != address(0)) {
             (, int256 price,,,) = AggregatorV3Interface(feed).latestRoundData();
             if (price > 0) {
                 return uint256(price);
-            } else {
-                return _fallback(asset);
             }
         }
+        return _fallback(asset);
     }
 
     function _fallback(address asset) internal view returns (uint256) {
