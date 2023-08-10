@@ -46,12 +46,12 @@ contract CouponManagerUnitTest is Test, ERC1155Holder {
         assertEq(couponManager.balanceOf(Constants.USER1, coupons[1].id()), 70, "BALANCE_1");
         assertEq(
             couponManager.uri(coupons[0].id()),
-            "URI/0xaf88d065e77c8cc2239327c5edb3a432268e5831000000000000000000000014",
+            "URI/0x000000000000000000000014af88d065e77c8cc2239327c5edb3a432268e5831",
             "URI_0"
         );
         assertEq(
             couponManager.uri(coupons[1].id()),
-            "URI/0xaf88d065e77c8cc2239327c5edb3a432268e5831000000000000000000000015",
+            "URI/0x000000000000000000000015af88d065e77c8cc2239327c5edb3a432268e5831",
             "URI_1"
         );
     }
