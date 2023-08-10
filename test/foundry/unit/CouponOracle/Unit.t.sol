@@ -11,10 +11,6 @@ import {MockFallbackOracle} from "./MockFallbackOracle.sol";
 import {InvalidPriceFeed} from "./InvalidPriceFeed.sol";
 
 contract CouponOracleUnitTest is Test {
-    // https://docs.chain.link/data-feeds/price-feeds/addresses?network=arbitrum
-    address public constant ETH_FEED = 0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612;
-    address public constant USDC_FEED = 0x50834F3163758fcC1Df9973b6e91f0F0F0434aD3;
-
     InvalidPriceFeed public invalidPriceFeed;
     MockFallbackOracle public mockFallbackOracle;
     CouponOracle public couponOracle;
@@ -24,21 +20,21 @@ contract CouponOracleUnitTest is Test {
 
         invalidPriceFeed = new InvalidPriceFeed();
         mockFallbackOracle = new MockFallbackOracle();
-        couponOracle = new CouponOracle(Utils.toArr(Constants.WETH), Utils.toArr(ETH_FEED));
+        couponOracle = new CouponOracle(Utils.toArr(Constants.WETH), Utils.toArr(Constants.ETH_CHAINLINK_FEED));
     }
 
     function testSetFeeds() public {
         assertEq(couponOracle.getFeed(Constants.USDC), address(0), "FEED_NOT_SET");
 
-        couponOracle.setFeeds(Utils.toArr(Constants.USDC), Utils.toArr(USDC_FEED));
+        couponOracle.setFeeds(Utils.toArr(Constants.USDC), Utils.toArr(Constants.USDC_CHAINLINK_FEED));
 
-        assertEq(couponOracle.getFeed(Constants.USDC), USDC_FEED, "FEED_SET");
+        assertEq(couponOracle.getFeed(Constants.USDC), Constants.USDC_CHAINLINK_FEED, "FEED_SET");
     }
 
     function testSetFeedsOwnership() public {
         vm.prank(address(0x123));
         vm.expectRevert("Ownable: caller is not the owner");
-        couponOracle.setFeeds(Utils.toArr(Constants.USDC), Utils.toArr(USDC_FEED));
+        couponOracle.setFeeds(Utils.toArr(Constants.USDC), Utils.toArr(Constants.USDC_CHAINLINK_FEED));
     }
 
     function testSetFallbackOracle() public {

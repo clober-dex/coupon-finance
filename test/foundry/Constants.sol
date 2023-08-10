@@ -18,4 +18,7 @@ library Constants {
     address internal constant UNISWAP_V3_SWAP_ROUTER = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
     bytes32 internal constant PERMIT_TYPEHASH =
         keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
+    // https://docs.chain.link/data-feeds/price-feeds/addresses?network=arbitrum
+    address internal constant ETH_CHAINLINK_FEED = 0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612;
+    address internal constant USDC_CHAINLINK_FEED = 0x50834F3163758fcC1Df9973b6e91f0F0F0434aD3;
 }

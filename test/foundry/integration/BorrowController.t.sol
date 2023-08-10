@@ -16,7 +16,7 @@ import {Create1} from "@clober/library/contracts/Create1.sol";
 import {Constants} from "../Constants.sol";
 import {ForkUtils, ERC20Utils, Utils} from "../Utils.sol";
 import {IAssetPool} from "../../../contracts/interfaces/IAssetPool.sol";
-import {IAaveOracle} from "../../../contracts/external/aave-v3/IAaveOracle.sol";
+import {ICouponOracle} from "../../../contracts/interfaces/ICouponOracle.sol";
 import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
 import {IERC721Permit} from "../../../contracts/interfaces/IERC721Permit.sol";
 import {ILoanPositionManager} from "../../../contracts/interfaces/ILoanPositionManager.sol";
@@ -36,6 +36,7 @@ import {CouponManager} from "../../../contracts/CouponManager.sol";
 import {LoanPositionManager} from "../../../contracts/LoanPositionManager.sol";
 import {MockOracle} from "../mocks/MockOracle.sol";
 import {AssetPool} from "../../../contracts/AssetPool.sol";
+import {CouponOracle} from "../../../contracts/CouponOracle.sol";
 
 contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiver, ERC1155Holder {
     using Strings for *;
@@ -52,7 +53,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
     ILoanPositionManager public loanPositionManager;
     IWrapped1155Factory public wrapped1155Factory;
     ICouponManager public couponManager;
-    IAaveOracle public oracle;
+    ICouponOracle public oracle;
     CloberMarketFactory public cloberMarketFactory;
     IERC20 public usdc;
     IERC20 public weth;
@@ -87,7 +88,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         wrapped1155Factory = IWrapped1155Factory(Constants.WRAPPED1155_FACTORY);
         cloberMarketFactory = CloberMarketFactory(Constants.CLOBER_FACTORY);
 
-        oracle = IAaveOracle(Constants.AAVE_ORACLE);
+        oracle = new CouponOracle(Utils.toArr(Constants.USDC, Constants.WETH), Utils.toArr(Constants.USDC_CHAINLINK_FEED, Constants.ETH_CHAINLINK_FEED));
         uint64 thisNonce = vm.getNonce(address(this));
         assetPool = new AssetPool(
             Utils.toArr(Create1.computeAddress(address(this), thisNonce + 2))
