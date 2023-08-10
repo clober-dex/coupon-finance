@@ -31,4 +31,16 @@ contract MockOracle is ICouponOracle {
     function setAssetPrice(address asset, uint256 price) external {
         _priceMap[asset] = price;
     }
+
+    function fallbackOracle() external pure returns (address) {
+        return address(0);
+    }
+
+    function getFeed(address) external pure returns (address) {
+        return address(0);
+    }
+
+    function setFallbackOracle(address) external {}
+
+    function setFeeds(address[] memory, address[] memory) external {}
 }

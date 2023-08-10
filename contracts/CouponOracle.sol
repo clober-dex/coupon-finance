@@ -1,39 +1,68 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: -
+// License: https://license.clober.io/LICENSE.pdf
+
 pragma solidity ^0.8.0;
 
-import {IAaveOracle} from "./external/aave-v3/IAaveOracle.sol";
-import "./interfaces/ICouponOracle.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-contract CouponOracle is ICouponOracle {
-    address private immutable _oracle;
-    address private immutable _weth;
+import {AggregatorV3Interface} from "./external/chainlink/AggregatorV3Interface.sol";
+import {ICouponOracle} from "./interfaces/ICouponOracle.sol";
+import {IFallbackOracle} from "./interfaces/IFallbackOracle.sol";
 
-    constructor(address oracle_, address weth_) {
-        _oracle = oracle_;
-        _weth = weth_;
+contract CouponOracle is ICouponOracle, Ownable {
+    address public override fallbackOracle;
+    mapping(address => address) private _assetFeedMap;
+
+    constructor(address[] memory assets, address[] memory feeds) {
+        _setFeeds(assets, feeds);
     }
 
-    /**
-     * @notice Returns the asset price in the base currency
-     * @param asset The address of the asset
-     * @return The price of the asset
-     */
-    function getAssetPrice(address asset) external view returns (uint256) {
-        return IAaveOracle(_oracle).getAssetPrice(asset == address(0) ? _weth : asset);
+    function getFeed(address asset) external view returns (address) {
+        return _assetFeedMap[asset];
     }
 
-    /**
-     * @notice Returns a list of prices from a list of assets addresses
-     * @param assets The list of assets addresses
-     * @return The prices of the given assets
-     */
-    function getAssetsPrices(address[] memory assets) external view returns (uint256[] memory) {
-        uint256 length = assets.length;
-        unchecked {
-            for (uint256 i = 0; i < length; ++i) {
-                if (assets[i] == address(0)) assets[i] = _weth;
+    function getAssetPrice(address asset) public view returns (uint256) {
+        address feed = _assetFeedMap[asset];
+
+        if (feed == address(0)) {
+            return _fallback(asset);
+        } else {
+            (, int256 price,,,) = AggregatorV3Interface(feed).latestRoundData();
+            if (price > 0) {
+                return uint256(price);
+            } else {
+                return _fallback(asset);
             }
         }
-        return IAaveOracle(_oracle).getAssetsPrices(assets);
+    }
+
+    function _fallback(address asset) internal view returns (uint256) {
+        return IFallbackOracle(fallbackOracle).getAssetPrice(asset);
+    }
+
+    function getAssetsPrices(address[] memory assets) external view returns (uint256[] memory prices) {
+        prices = new uint256[](assets.length);
+        unchecked {
+            for (uint256 i = 0; i < assets.length; ++i) {
+                prices[i] = getAssetPrice(assets[i]);
+            }
+        }
+    }
+
+    function setFallbackOracle(address newFallbackOracle) external onlyOwner {
+        fallbackOracle = newFallbackOracle;
+    }
+
+    function setFeeds(address[] memory assets, address[] memory feeds) external onlyOwner {
+        _setFeeds(assets, feeds);
+    }
+
+    function _setFeeds(address[] memory assets, address[] memory feeds) internal {
+        require(assets.length == feeds.length, "assets and feeds length mismatch");
+        unchecked {
+            for (uint256 i = 0; i < assets.length; ++i) {
+                _assetFeedMap[assets[i]] = feeds[i];
+            }
+        }
     }
 }
