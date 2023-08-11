@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 import {IAssetPool} from "../interfaces/IAssetPool.sol";
 import {ICouponManager} from "../interfaces/ICouponManager.sol";
@@ -84,11 +85,10 @@ abstract contract PositionManager is ERC721Permit, IPositionManager {
         address locker = _lockData.getActiveLock();
         int256 current = assetDelta[locker][assetId];
         unchecked {
-            // Todo should check overflow
             if (amount0 > amount1) {
-                delta = int256(amount0 - amount1);
+                delta = SafeCast.toInt256(amount0 - amount1);
             } else {
-                delta = -int256(amount1 - amount0);
+                delta = -SafeCast.toInt256(amount1 - amount0);
             }
         }
         int256 next = current + delta;
