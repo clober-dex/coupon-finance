@@ -11,6 +11,7 @@ import {IERC721Permit} from "./interfaces/IERC721Permit.sol";
 import {IDepositController} from "./interfaces/IDepositController.sol";
 import {IBondPositionManager} from "./interfaces/IBondPositionManager.sol";
 import {IPositionLocker} from "./interfaces/IPositionLocker.sol";
+import {ISubstitute} from "./interfaces/ISubstitute.sol";
 import {BondPosition, BondPositionLibrary} from "./libraries/BondPosition.sol";
 import {Epoch, EpochLibrary} from "./libraries/Epoch.sol";
 import {CouponKey, CouponKeyLibrary} from "./libraries/CouponKey.sol";
@@ -86,7 +87,6 @@ contract DepositController is IDepositController, Controller, IPositionLocker {
         if (amountDelta > 0) {
             _bondManager.depositToken(position.asset, uint256(amountDelta));
         }
-        for (uint256 i = 0; i < couponsToBurn.length; i++) {}
         if (couponsToBurn.length > 0) {
             _unwrapCoupons(couponsToBurn);
             _bondManager.depositCoupons(couponsToBurn);
@@ -102,7 +102,7 @@ contract DepositController is IDepositController, Controller, IPositionLocker {
         uint256 minEarnInterest,
         PermitParams calldata tokenPermitParams
     ) external payable nonReentrant wrapETH {
-        _permitERC20(asset, amount, tokenPermitParams);
+        _permitERC20(ISubstitute(asset).underlyingToken(), amount, tokenPermitParams);
 
         bytes memory lockData = abi.encode(
             0,
