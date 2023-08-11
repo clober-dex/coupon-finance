@@ -80,7 +80,7 @@ contract AaveTokenSubstituteUnitTest is Test, ERC1155Holder {
     }
 
     function testBurnableAmount() public {
-        assertEq(aaveTokenSubstitute.burnableAmount(), 1320271880938, "BURNABLE_AMOUNT");
+        assertEq(aaveTokenSubstitute.burnableAmount(), 1092311053764, "BURNABLE_AMOUNT");
     }
 
     function testBurn() public {

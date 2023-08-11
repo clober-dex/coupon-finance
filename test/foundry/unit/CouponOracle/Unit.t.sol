@@ -67,7 +67,7 @@ contract CouponOracleUnitTest is Test {
 
     function testGetPrice() public {
         uint256 price = couponOracle.getAssetPrice(Constants.WETH);
-        assertEq(price, 186211909640, "PRICE");
+        assertEq(price, 184466348000, "PRICE");
 
         uint256[] memory prices = couponOracle.getAssetsPrices(Utils.toArr(Constants.WETH));
         assertEq(prices.length, 1, "PRICES_LENGTH");

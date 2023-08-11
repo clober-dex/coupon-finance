@@ -402,17 +402,8 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         uint256 collateralAmount = usdc.amount(500);
         uint256 maxDebtAmount = 0.75 ether;
         uint24 fee = 10000;
-        bytes memory exactInputSingleParams = abi.encodeWithSignature(
-            "exactInputSingle((address,address,uint24,address,uint256,uint256,uint256,uint160))",
-            Constants.USDC,
-            Constants.WETH,
-            fee,
-            address(borrowController),
-            block.timestamp + 1,
-            collateralAmount,
-            1 ether - maxDebtAmount,
-            0
-        );
+        bytes memory exactInputSingleParams =
+            "83bd37f90001af88d065e77c8cc2239327c5edb3a432268e5831000182af49447d8a07e3bd95bd0d56f35241523fbab1041dcd65000803c335e79585f0a0028f5c00017e3e803E966291EE9aA69e6FADa116cD07462E5D0001576b3179e58de0C91CB15aeaAdeb4ecFEe3620AF0001cCB810B725803f2dBE11e02C8bA88C87CB8d208d00000001030102030015010100010200ff0000000000000000000000000000000000000000576b3179e58de0c91cb15aeaadeb4ecfee3620afaf88d065e77c8cc2239327c5edb3a432268e5831000000000000000000000000000000000000000000000000";
         IBorrowController.SwapData memory swapData = IBorrowController.SwapData({
             swap: Constants.UNISWAP_V3_SWAP_ROUTER,
             inAmount: collateralAmount,
