@@ -110,7 +110,7 @@ abstract contract PositionManager is ERC721Permit, ERC1155Holder, IPositionManag
         IAssetPool(assetPool).withdraw(token, amount, to);
     }
 
-    function withdrawCoupons(Coupon[] calldata coupons, address to, bytes calldata data) external onlyByLocker {
+    function mintCoupons(Coupon[] calldata coupons, address to, bytes calldata data) external onlyByLocker {
         unchecked {
             for (uint256 i = 0; i < coupons.length; ++i) {
                 _accountDelta(coupons[i].id(), coupons[i].amount, 0);
@@ -125,7 +125,7 @@ abstract contract PositionManager is ERC721Permit, ERC1155Holder, IPositionManag
         _accountDelta(uint256(uint160(token)), 0, amount);
     }
 
-    function depositCoupons(Coupon[] calldata coupons) external onlyByLocker {
+    function burnCoupons(Coupon[] calldata coupons) external onlyByLocker {
         unchecked {
             ICouponManager(_couponManager).burnBatch(msg.sender, coupons);
             for (uint256 i = 0; i < coupons.length; ++i) {
