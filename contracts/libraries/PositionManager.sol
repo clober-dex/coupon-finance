@@ -5,17 +5,16 @@ pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ERC1155Holder, ERC1155Receiver} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 
 import {IAssetPool} from "../interfaces/IAssetPool.sol";
 import {ICouponManager} from "../interfaces/ICouponManager.sol";
 import {IPositionLocker} from "../interfaces/IPositionLocker.sol";
-import {ERC721Permit, IERC165} from "./ERC721Permit.sol";
+import {ERC721Permit} from "./ERC721Permit.sol";
 import {LockData, LockDataLibrary} from "./LockData.sol";
 import {Coupon, CouponLibrary} from "./Coupon.sol";
 import {IPositionManager} from "../interfaces/IPositionManager.sol";
 
-abstract contract PositionManager is ERC721Permit, ERC1155Holder, IPositionManager {
+abstract contract PositionManager is ERC721Permit, IPositionManager {
     using SafeERC20 for IERC20;
     using CouponLibrary for Coupon;
     using LockDataLibrary for LockData;
@@ -156,15 +155,5 @@ abstract contract PositionManager is ERC721Permit, ERC1155Holder, IPositionManag
         unchecked {
             _lockData.nonzeroDeltaCount++;
         }
-    }
-
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        virtual
-        override(ERC721Permit, ERC1155Receiver, IERC165)
-        returns (bool)
-    {
-        return super.supportsInterface(interfaceId);
     }
 }
