@@ -37,6 +37,7 @@ import {LoanPositionManager} from "../../../contracts/LoanPositionManager.sol";
 import {MockOracle} from "../mocks/MockOracle.sol";
 import {AssetPool} from "../../../contracts/AssetPool.sol";
 import {CouponOracle} from "../../../contracts/CouponOracle.sol";
+import {AaveTokenSubstitute} from "../../../contracts/AaveTokenSubstitute.sol";
 
 contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiver, ERC1155Holder {
     using Strings for *;
@@ -57,6 +58,8 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
     CloberMarketFactory public cloberMarketFactory;
     IERC20 public usdc;
     IERC20 public weth;
+    AaveTokenSubstitute public wausdc;
+    AaveTokenSubstitute public waweth;
     address public user;
     PermitParams public emptyPermitParams;
 
@@ -88,8 +91,16 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         wrapped1155Factory = IWrapped1155Factory(Constants.WRAPPED1155_FACTORY);
         cloberMarketFactory = CloberMarketFactory(Constants.CLOBER_FACTORY);
 
+        wausdc = new AaveTokenSubstitute( Constants.USDC,  Constants.AAVE_V3_POOL,  address (this),  address (this));
+        waweth = new AaveTokenSubstitute( Constants.WETH,  Constants.AAVE_V3_POOL,  address (this),  address (this));
+
+        usdc.approve(address(wausdc), usdc.amount(3_000));
+        wausdc.mint(usdc.amount(3_000), address(this));
+        IERC20(Constants.WETH).approve(address(waweth), 3_000 ether);
+        waweth.mint(3_000 ether, address(this));
+
         oracle = new CouponOracle(
-            Utils.toArr(Constants.USDC, Constants.WETH, address(0)),
+            Utils.toArr(address(wausdc), address(waweth), address(0)),
             Utils.toArr(Constants.USDC_CHAINLINK_FEED, Constants.ETH_CHAINLINK_FEED, Constants.ETH_CHAINLINK_FEED)
         );
         uint64 thisNonce = vm.getNonce(address(this));
@@ -107,8 +118,8 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
             10 ** 16,
             "loan/position/uri/"
         );
-        loanPositionManager.setLoanConfiguration(Constants.USDC, Constants.WETH, 800000, 25000, 5000, 700000);
-        loanPositionManager.setLoanConfiguration(Constants.WETH, Constants.USDC, 800000, 25000, 5000, 700000);
+        loanPositionManager.setLoanConfiguration(address(wausdc), address(waweth), 800000, 25000, 5000, 700000);
+        loanPositionManager.setLoanConfiguration(address(waweth), address(wausdc), 800000, 25000, 5000, 700000);
 
         borrowController = new BorrowController(
             Constants.WRAPPED1155_FACTORY,
@@ -117,26 +128,26 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
             Constants.WETH,
             address(loanPositionManager)
         );
-        borrowController.setCollateralAllowance(Constants.USDC);
-        borrowController.setCollateralAllowance(Constants.WETH);
+        borrowController.setCollateralAllowance(address(wausdc));
+        borrowController.setCollateralAllowance(address(waweth));
 
-        usdc.transfer(address(assetPool), usdc.amount(1_000));
-        weth.transfer(address(assetPool), 1_000 ether);
+        wausdc.transfer(address(assetPool), usdc.amount(1_000));
+        waweth.transfer(address(assetPool), 1_000 ether);
 
         // create wrapped1155
         for (uint8 i = 0; i < 5; i++) {
-            couponKeys.push(CouponKey({asset: Constants.USDC, epoch: EpochLibrary.current().add(i)}));
+            couponKeys.push(CouponKey({asset: address(wausdc), epoch: EpochLibrary.current().add(i)}));
         }
-        if (!cloberMarketFactory.registeredQuoteTokens(Constants.USDC)) {
+        if (!cloberMarketFactory.registeredQuoteTokens(address(wausdc))) {
             vm.prank(cloberMarketFactory.owner());
-            cloberMarketFactory.registerQuoteToken(Constants.USDC);
+            cloberMarketFactory.registerQuoteToken(address(wausdc));
         }
         for (uint8 i = 5; i < 10; i++) {
-            couponKeys.push(CouponKey({asset: Constants.WETH, epoch: EpochLibrary.current().add(i - 5)}));
+            couponKeys.push(CouponKey({asset: address(waweth), epoch: EpochLibrary.current().add(i - 5)}));
         }
-        if (!cloberMarketFactory.registeredQuoteTokens(Constants.WETH)) {
+        if (!cloberMarketFactory.registeredQuoteTokens(address(waweth))) {
             vm.prank(cloberMarketFactory.owner());
-            cloberMarketFactory.registerQuoteToken(Constants.WETH);
+            cloberMarketFactory.registerQuoteToken(address(waweth));
         }
         for (uint256 i = 0; i < 10; i++) {
             address wrappedToken = wrapped1155Factory.requireWrapped1155(
@@ -204,8 +215,9 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         uint8 loanEpochs
     ) internal returns (uint256 positionId) {
         positionId = loanPositionManager.nextId();
-        PermitParams memory permitParams =
-            _buildERC20PermitParams(1, IERC20Permit(collateralToken), address(borrowController), collateralAmount);
+        PermitParams memory permitParams = _buildERC20PermitParams(
+            1, AaveTokenSubstitute(collateralToken), address(borrowController), collateralAmount
+        );
         vm.prank(borrower);
         borrowController.borrow(
             collateralToken, borrowToken, collateralAmount, borrowAmount, type(uint256).max, loanEpochs, permitParams
@@ -219,7 +231,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         uint256 beforeUSDCBalance = usdc.balanceOf(user);
         uint256 beforeETHBalance = user.balance;
 
-        uint256 positionId = _initialBorrow(user, Constants.USDC, Constants.WETH, collateralAmount, borrowAmount, 2);
+        uint256 positionId = _initialBorrow(user, address(wausdc), address(waweth), collateralAmount, borrowAmount, 2);
         LoanPosition memory loanPosition = loanPositionManager.getPosition(positionId);
 
         uint256 couponAmount = 0.08 ether;
@@ -231,12 +243,12 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         assertEq(loanPosition.expiredWith, EpochLibrary.current().add(1), "POSITION_EXPIRE_EPOCH");
         assertEq(loanPosition.collateralAmount, collateralAmount, "POSITION_COLLATERAL_AMOUNT");
         assertEq(loanPosition.debtAmount, borrowAmount, "POSITION_DEBT_AMOUNT");
-        assertEq(loanPosition.collateralToken, Constants.USDC, "POSITION_COLLATERAL_TOKEN");
-        assertEq(loanPosition.debtToken, Constants.WETH, "POSITION_DEBT_TOKEN");
+        assertEq(loanPosition.collateralToken, address(wausdc), "POSITION_COLLATERAL_TOKEN");
+        assertEq(loanPosition.debtToken, address(waweth), "POSITION_DEBT_TOKEN");
     }
 
     function testBorrowMore() public {
-        uint256 positionId = _initialBorrow(user, Constants.USDC, Constants.WETH, usdc.amount(10000), 1 ether, 2);
+        uint256 positionId = _initialBorrow(user, address(wausdc), address(waweth), usdc.amount(10000), 1 ether, 2);
 
         uint256 beforeUSDCBalance = usdc.balanceOf(user);
         uint256 beforeETHBalance = user.balance;
@@ -261,7 +273,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
     }
 
     function testAddCollateral() public {
-        uint256 positionId = _initialBorrow(user, Constants.USDC, Constants.WETH, usdc.amount(10000), 1 ether, 2);
+        uint256 positionId = _initialBorrow(user, address(wausdc), address(waweth), usdc.amount(10000), 1 ether, 2);
 
         uint256 beforeUSDCBalance = usdc.balanceOf(user);
         uint256 beforeETHBalance = user.balance;
@@ -270,7 +282,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         PermitParams memory permit721Params =
             _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(borrowController), positionId);
         PermitParams memory permit20Params =
-            _buildERC20PermitParams(1, IERC20Permit(Constants.USDC), address(borrowController), collateralAmount);
+            _buildERC20PermitParams(1, wausdc, address(borrowController), collateralAmount);
         vm.prank(user);
         borrowController.addCollateral(positionId, collateralAmount, permit721Params, permit20Params);
         LoanPosition memory afterLoanPosition = loanPositionManager.getPosition(positionId);
@@ -289,7 +301,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
     }
 
     function testRemoveCollateral() public {
-        uint256 positionId = _initialBorrow(user, Constants.USDC, Constants.WETH, usdc.amount(10000), 1 ether, 2);
+        uint256 positionId = _initialBorrow(user, address(wausdc), address(waweth), usdc.amount(10000), 1 ether, 2);
 
         uint256 beforeUSDCBalance = usdc.balanceOf(user);
         uint256 beforeETHBalance = user.balance;
@@ -315,7 +327,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
     }
 
     function testExtendLoanDuration() public {
-        uint256 positionId = _initialBorrow(user, Constants.USDC, Constants.WETH, usdc.amount(10000), 1 ether, 2);
+        uint256 positionId = _initialBorrow(user, address(wausdc), address(waweth), usdc.amount(10000), 1 ether, 2);
 
         uint256 beforeUSDCBalance = usdc.balanceOf(user);
         uint256 beforeETHBalance = user.balance;
@@ -343,7 +355,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
     }
 
     function testShortenLoanDuration() public {
-        uint256 positionId = _initialBorrow(user, Constants.USDC, Constants.WETH, usdc.amount(10000), 1 ether, 5);
+        uint256 positionId = _initialBorrow(user, address(wausdc), address(waweth), usdc.amount(10000), 1 ether, 5);
 
         uint256 beforeUSDCBalance = usdc.balanceOf(user);
         uint256 beforeETHBalance = user.balance;
@@ -367,7 +379,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
     }
 
     function testRepay() public {
-        uint256 positionId = _initialBorrow(user, Constants.USDC, Constants.WETH, usdc.amount(10000), 1 ether, 2);
+        uint256 positionId = _initialBorrow(user, address(wausdc), address(waweth), usdc.amount(10000), 1 ether, 2);
 
         uint256 beforeUSDCBalance = usdc.balanceOf(user);
         uint256 beforeETHBalance = user.balance;
@@ -375,8 +387,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         uint256 repayAmount = 0.3 ether;
         PermitParams memory permit721Params =
             _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(borrowController), positionId);
-        PermitParams memory permit20Params =
-            _buildERC20PermitParams(1, IERC20Permit(Constants.WETH), address(borrowController), repayAmount);
+        PermitParams memory permit20Params = _buildERC20PermitParams(1, waweth, address(borrowController), repayAmount);
         vm.prank(user);
         borrowController.repay{value: repayAmount}(positionId, repayAmount, 0, permit721Params, permit20Params);
         LoanPosition memory afterLoanPosition = loanPositionManager.getPosition(positionId);
@@ -394,7 +405,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
     }
 
     function testRepayWithCollateral() public {
-        uint256 positionId = _initialBorrow(user, Constants.USDC, Constants.WETH, usdc.amount(10000), 1 ether, 2);
+        uint256 positionId = _initialBorrow(user, address(wausdc), address(waweth), usdc.amount(10000), 1 ether, 2);
 
         uint256 beforeUSDCBalance = usdc.balanceOf(user);
         uint256 beforeETHBalance = user.balance;
@@ -442,11 +453,13 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         assertEq(beforeLoanPosition.debtToken, afterLoanPosition.debtToken, "POSITION_DEBT_TOKEN");
     }
 
-    function _buildERC20PermitParams(uint256 privateKey, IERC20Permit token, address spender, uint256 amount)
-        internal
-        view
-        returns (PermitParams memory)
-    {
+    function _buildERC20PermitParams(
+        uint256 privateKey,
+        AaveTokenSubstitute substitute,
+        address spender,
+        uint256 amount
+    ) internal view returns (PermitParams memory) {
+        IERC20Permit token = IERC20Permit(substitute.underlyingToken());
         address owner = vm.addr(privateKey);
         bytes32 structHash = keccak256(
             abi.encode(_ERC20_PERMIT_TYPEHASH, owner, spender, amount, token.nonces(owner), block.timestamp + 1)
