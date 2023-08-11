@@ -267,7 +267,6 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
             revert ControllerSlippage();
         }
 
-        // Todo useless mint
         IERC20(outTokenUnderlying).approve(outToken, diffBalance);
         ISubstitute(outToken).mint(diffBalance, address(this));
     }
