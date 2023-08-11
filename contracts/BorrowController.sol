@@ -8,6 +8,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 
 import {IWETH9} from "./external/weth/IWETH9.sol";
 import {IERC721Permit} from "./interfaces/IERC721Permit.sol";
+import {ISubstitute} from "./interfaces/ISubstitute.sol";
 import {IBorrowController} from "./interfaces/IBorrowController.sol";
 import {ILoanPositionManager} from "./interfaces/ILoanPositionManager.sol";
 import {LoanPosition, LoanPositionLibrary} from "./libraries/LoanPosition.sol";
@@ -252,13 +253,23 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
     }
 
     function _swapCollateral(SwapData memory swapData, address inToken, address outToken) internal {
-        IERC20(inToken).approve(swapData.swap, swapData.inAmount);
-        uint256 beforeBalance = IERC20(outToken).balanceOf(address(this));
+        ISubstitute(inToken).burn(swapData.inAmount, address(this));
+        IERC20(ISubstitute(inToken).underlyingToken()).approve(swapData.swap, swapData.inAmount);
+
+        address outTokenUnderlying = ISubstitute(outToken).underlyingToken();
+        uint256 beforeBalance = IERC20(outTokenUnderlying).balanceOf(address(this));
+
         (bool success, bytes memory result) = swapData.swap.call(swapData.data);
         require(success, string(result));
-        if (swapData.minOutAmount > IERC20(outToken).balanceOf(address(this)) - beforeBalance) {
+
+        uint256 diffBalance = IERC20(outTokenUnderlying).balanceOf(address(this)) - beforeBalance;
+        if (swapData.minOutAmount > diffBalance) {
             revert ControllerSlippage();
         }
+
+        // Todo useless mint
+        IERC20(outTokenUnderlying).approve(outToken, diffBalance);
+        ISubstitute(outToken).mint(diffBalance, address(this));
     }
 
     function _encodeLockData(uint256 id, LoanPosition memory p, uint256 maxPay, uint256 minEarn, bytes memory swapData)
