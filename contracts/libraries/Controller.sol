@@ -139,7 +139,9 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
 
     function _permitERC20(address token, uint256 amount, PermitParams calldata p) internal {
         if (!p.isEmpty()) {
-            IERC20Permit(token).permit(msg.sender, address(this), amount, p.deadline, p.v, p.r, p.s);
+            IERC20Permit(ISubstitute(token).underlyingToken()).permit(
+                msg.sender, address(this), amount, p.deadline, p.v, p.r, p.s
+            );
         }
     }
 
