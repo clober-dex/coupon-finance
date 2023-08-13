@@ -121,7 +121,7 @@ const config: HardhatConfig = {
     [TESTNET_ID]: {
       url: process.env.TEST_NET_URL ?? '',
       chainId: TESTNET_ID,
-      accounts: [process.env.TEST_NET_PRIVATE_KEY ?? ''],
+      accounts: process.env.TEST_NET_PRIVATE_KEY ? [process.env.TEST_NET_PRIVATE_KEY] : [],
       gas: 'auto',
       gasPrice: 'auto',
       gasMultiplier: 1,
