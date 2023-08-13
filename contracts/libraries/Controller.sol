@@ -25,6 +25,7 @@ import {IAaveTokenSubstitute} from "../interfaces/IAaveTokenSubstitute.sol";
 import {ReentrancyGuard} from "./ReentrancyGuard.sol";
 
 abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver, Ownable, ReentrancyGuard {
+    error ValueTransferFailed();
     error InvalidAccess();
     error InvalidMarket();
     error ControllerSlippage();
@@ -151,23 +152,23 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
         }
     }
 
-    function _flush(address token, address to) internal {
-        uint256 leftAmount = IERC20(token).balanceOf(address(this));
+    function _burnAllSubstitute(address substitute, address to) internal {
+        uint256 leftAmount = IERC20(substitute).balanceOf(address(this));
         if (leftAmount == 0) return;
 
-        address underlyingToken = ISubstitute(token).underlyingToken();
-        uint256 burnableAmount = ISubstitute(token).burnableAmount();
+        address underlyingToken = ISubstitute(substitute).underlyingToken();
+        uint256 burnableAmount = ISubstitute(substitute).burnableAmount();
         if (burnableAmount < leftAmount) {
-            IAaveTokenSubstitute(token).burnToAToken(leftAmount - burnableAmount, to);
+            IAaveTokenSubstitute(substitute).burnToAToken(leftAmount - burnableAmount, to);
             leftAmount = burnableAmount;
         }
         if (underlyingToken == address(_weth)) {
-            ISubstitute(token).burn(leftAmount, address(this));
+            ISubstitute(substitute).burn(leftAmount, address(this));
             _weth.withdraw(leftAmount);
             (bool success,) = payable(to).call{value: leftAmount}("");
-            require(success, "Value transfer failed");
+            if (!success) revert ValueTransferFailed();
         } else {
-            ISubstitute(token).burn(leftAmount, to);
+            ISubstitute(substitute).burn(leftAmount, to);
         }
     }
 
