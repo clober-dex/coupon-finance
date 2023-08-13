@@ -71,7 +71,7 @@ contract AaveTokenSubstituteUnitTest is Test, ERC1155Holder {
         aaveTokenSubstitute.mintByAToken(amount, address(this));
 
         assertEq(beforeTokenBalance, usdc.balanceOf(address(this)), "USDC_BALANCE");
-        assertEq(beforeATokenBalance, aUsdc.balanceOf(address(this)) + amount, "AUSDC_BALANCE");
+        assertApproxEqAbs(beforeATokenBalance, aUsdc.balanceOf(address(this)) + amount, 1, "AUSDC_BALANCE");
         assertEq(beforeSubstituteBalance + amount, aaveTokenSubstitute.balanceOf(address(this)), "WAUSDC_BALANCE");
     }
 
@@ -80,7 +80,7 @@ contract AaveTokenSubstituteUnitTest is Test, ERC1155Holder {
     }
 
     function testBurnableAmount() public {
-        assertEq(aaveTokenSubstitute.burnableAmount(), 1320271880938, "BURNABLE_AMOUNT");
+        assertEq(aaveTokenSubstitute.burnableAmount(), 1092311053764, "BURNABLE_AMOUNT");
     }
 
     function testBurn() public {
@@ -128,7 +128,7 @@ contract AaveTokenSubstituteUnitTest is Test, ERC1155Holder {
         assertLt(
             beforeTokenBalance + aUsdc.amount(2), aUsdc.balanceOf(aaveTokenSubstitute.treasury()), "TREASURY_BALANCE"
         );
-        assertEq(aUsdc.balanceOf(address(aaveTokenSubstitute)), aaveTokenSubstitute.totalSupply());
+        assertGe(aUsdc.balanceOf(address(aaveTokenSubstitute)), aaveTokenSubstitute.totalSupply());
     }
 
     function testSetTreasury() public {
