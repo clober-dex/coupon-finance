@@ -404,6 +404,31 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         assertEq(beforeLoanPosition.debtToken, afterLoanPosition.debtToken, "POSITION_DEBT_TOKEN");
     }
 
+    // Convert an hexadecimal character to their value
+    function fromHexChar(uint8 c) public pure returns (uint8) {
+        if (bytes1(c) >= bytes1("0") && bytes1(c) <= bytes1("9")) {
+            return c - uint8(bytes1("0"));
+        }
+        if (bytes1(c) >= bytes1("a") && bytes1(c) <= bytes1("f")) {
+            return 10 + c - uint8(bytes1("a"));
+        }
+        if (bytes1(c) >= bytes1("A") && bytes1(c) <= bytes1("F")) {
+            return 10 + c - uint8(bytes1("A"));
+        }
+        revert("fail");
+    }
+
+    // Convert an hexadecimal string to raw bytes
+    function fromHex(string memory s) public pure returns (bytes memory) {
+        bytes memory ss = bytes(s);
+        require(ss.length % 2 == 0); // length must be even
+        bytes memory r = new bytes(ss.length/2);
+        for (uint256 i = 0; i < ss.length / 2; ++i) {
+            r[i] = bytes1(fromHexChar(uint8(ss[2 * i])) * 16 + fromHexChar(uint8(ss[2 * i + 1])));
+        }
+        return r;
+    }
+
     function testRepayWithCollateral() public {
         uint256 positionId = _initialBorrow(user, address(wausdc), address(waweth), usdc.amount(10000), 1 ether, 2);
 
@@ -412,23 +437,14 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         LoanPosition memory beforeLoanPosition = loanPositionManager.getPosition(positionId);
         uint256 collateralAmount = usdc.amount(500);
         uint256 maxDebtAmount = 0.75 ether;
-        uint24 fee = 10000;
-        bytes memory exactInputSingleParams = abi.encodeWithSignature(
-            "exactInputSingle((address,address,uint24,address,uint256,uint256,uint256,uint160))",
-            Constants.USDC,
-            Constants.WETH,
-            fee,
-            address(borrowController),
-            block.timestamp + 1,
-            collateralAmount,
-            1 ether - maxDebtAmount,
-            0
+        bytes memory data = fromHex(
+            "83bd37f90001af88d065e77c8cc2239327c5edb3a432268e5831000182af49447d8a07e3bd95bd0d56f35241523fbab1041dcd65000803c174ee39d2c08007ae1400017e3e803E966291EE9aA69e6FADa116cD07462E5D000000010F8458E544c9D4C7C25A881240727209caae20B80000000103010204014386e4ac0b01000102000022010203020203ff0000000000000000006f38e884725a116c9c7fbf208e79fe8828a2595faf88d065e77c8cc2239327c5edb3a432268e583182af49447d8a07e3bd95bd0d56f35241523fbab100000000"
         );
         IBorrowController.SwapData memory swapData = IBorrowController.SwapData({
-            swap: Constants.UNISWAP_V3_SWAP_ROUTER,
+            swap: Constants.ODOS_V2_SWAP_ROUTER,
             inAmount: collateralAmount,
             minOutAmount: 1 ether - maxDebtAmount,
-            data: exactInputSingleParams
+            data: data
         });
 
         PermitParams memory permit721Params =
