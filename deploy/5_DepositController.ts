@@ -1,6 +1,6 @@
 import { DeployFunction } from 'hardhat-deploy/types'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import { arbitrum, hardhat } from '@wagmi/chains'
+import { hardhat } from '@wagmi/chains'
 import { CLOBER_FACTORY, TOKENS, WRAPPED1155_FACTORY } from '../utils/constants'
 import { getDeployedContract } from '../utils/contract'
 import { BondPositionManager, CouponManager } from '../typechain'
@@ -18,11 +18,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   const couponManager = await getDeployedContract<CouponManager>('CouponManager')
   const bondManager = await getDeployedContract<BondPositionManager>('BondPositionManager')
 
-  const chainId: number = network.config.chainId || hardhat.id
-
-  if (chainId !== arbitrum.id) {
-    throw new Error('Unsupported network')
-  }
+  const chainId = network.config.chainId || hardhat.id
 
   await deploy('DepositController', {
     from: deployer,

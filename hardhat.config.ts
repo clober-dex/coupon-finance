@@ -14,6 +14,7 @@ import 'hardhat-gas-reporter'
 import 'hardhat-contract-sizer'
 import 'hardhat-abi-exporter'
 import 'solidity-coverage'
+import { TESTNET_ID } from './utils/constants'
 
 dotenv.config()
 
@@ -116,6 +117,20 @@ const config: HardhatConfig = {
           apiUrl: 'https://api.arbiscan.io',
         },
       },
+    },
+    [TESTNET_ID]: {
+      url: process.env.TEST_NET_URL ?? '',
+      chainId: TESTNET_ID,
+      accounts: [process.env.TEST_NET_PRIVATE_KEY ?? ''],
+      gas: 'auto',
+      gasPrice: 'auto',
+      gasMultiplier: 1,
+      timeout: 3000000,
+      httpHeaders: {},
+      live: true,
+      saveDeployments: true,
+      tags: ['testnet', 'test'],
+      companionNetworks: {},
     },
     [hardhat.network]: {
       chainId: hardhat.id,

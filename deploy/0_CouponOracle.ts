@@ -1,6 +1,6 @@
 import { DeployFunction } from 'hardhat-deploy/types'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import { arbitrum, hardhat } from '@wagmi/chains'
+import { hardhat } from '@wagmi/chains'
 import { CHAINLINK_FEEDS } from '../utils/constants'
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -12,15 +12,9 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
     return
   }
 
-  const chainId: number = network.config.chainId || hardhat.id
-  let oracleAssets: string[]
-  let oracleFeeds: string[]
-  if (chainId === arbitrum.id) {
-    oracleAssets = [hre.ethers.constants.AddressZero]
-    oracleFeeds = [CHAINLINK_FEEDS[chainId].WETH]
-  } else {
-    throw new Error('Unsupported network')
-  }
+  const chainId = network.config.chainId || hardhat.id
+  const oracleAssets = [hre.ethers.constants.AddressZero]
+  const oracleFeeds = [CHAINLINK_FEEDS[chainId].WETH]
 
   await deploy('CouponOracle', {
     from: deployer,

@@ -1,12 +1,10 @@
 import { DeployFunction } from 'hardhat-deploy/types'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import { arbitrum, hardhat } from '@wagmi/chains'
-import { CHAINLINK_FEEDS, TOKENS } from '../utils/constants'
 import { computeCreate1Address } from '../utils/misc'
 import { BigNumber } from 'ethers'
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployments, network } = hre
+  const { deployments } = hre
   const { deploy } = deployments
 
   const [deployer] = await hre.ethers.getSigners()
@@ -15,18 +13,14 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
     return
   }
 
-  const chainId: number = network.config.chainId || hardhat.id
+  const couponOracleDeployment = await deployments.get('CouponOracle')
+  const firstDeployTransaction = await hre.ethers.provider.getTransaction(couponOracleDeployment.transactionHash ?? '')
   const nonce = await deployer.getTransactionCount('latest')
-  if (nonce !== 2) {
+  if (nonce !== firstDeployTransaction.nonce + 2) {
     throw new Error('nonce not matched')
   }
 
-  let baseURI
-  if (chainId === arbitrum.id) {
-    baseURI = 'COUPON_BASE_URI'
-  } else {
-    throw new Error('Unsupported network')
-  }
+  const baseURI = 'COUPON_BASE_URI'
 
   const computedBondPositionManager = computeCreate1Address(deployer.address, BigNumber.from(nonce + 1))
   const computedLoanPositionManager = computeCreate1Address(deployer.address, BigNumber.from(nonce + 2))

@@ -1,14 +1,10 @@
 import { DeployFunction } from 'hardhat-deploy/types'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import { arbitrum, hardhat } from '@wagmi/chains'
-import { CHAINLINK_FEEDS, TOKENS } from '../utils/constants'
-import { computeCreate1Address } from '../utils/misc'
-import { BigNumber } from 'ethers'
 import { getDeployedContract } from '../utils/contract'
 import { AssetPool, CouponManager } from '../typechain'
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployments, getNamedAccounts, network } = hre
+  const { deployments, getNamedAccounts } = hre
   const { deploy } = deployments
 
   const { deployer } = await getNamedAccounts()
@@ -20,14 +16,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   const couponManager = await getDeployedContract<CouponManager>('CouponManager')
   const assetPool = await getDeployedContract<AssetPool>('AssetPool')
 
-  const chainId: number = network.config.chainId || hardhat.id
-
-  let baseURI: string
-  if (chainId === arbitrum.id) {
-    baseURI = 'BOND_BASE_URI'
-  } else {
-    throw new Error('Unsupported network')
-  }
+  const baseURI = 'BOND_BASE_URI'
 
   await deploy('BondPositionManager', {
     from: deployer,
