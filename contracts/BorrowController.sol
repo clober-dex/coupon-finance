@@ -8,6 +8,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 
 import {IWETH9} from "./external/weth/IWETH9.sol";
 import {IERC721Permit} from "./interfaces/IERC721Permit.sol";
+import {ISubstitute} from "./interfaces/ISubstitute.sol";
 import {IBorrowController} from "./interfaces/IBorrowController.sol";
 import {ILoanPositionManager} from "./interfaces/ILoanPositionManager.sol";
 import {LoanPosition, LoanPositionLibrary} from "./libraries/LoanPosition.sol";
@@ -150,8 +151,8 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         );
         uint256 positionId = abi.decode(_loanManager.lock(lockData), (uint256));
 
-        _flush(collateralToken, msg.sender);
-        _flush(debtToken, msg.sender);
+        _burnAllSubstitute(collateralToken, msg.sender);
+        _burnAllSubstitute(debtToken, msg.sender);
         _loanManager.transferFrom(address(this), msg.sender, positionId);
     }
 
@@ -165,7 +166,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         LoanPosition memory position = _loanManager.getPosition(positionId);
         position.debtAmount += amount;
         _loanManager.lock(_encodeLockData(positionId, position, maxPayInterest, 0, ""));
-        _flush(position.debtToken, msg.sender);
+        _burnAllSubstitute(position.debtToken, msg.sender);
     }
 
     function addCollateral(
@@ -190,7 +191,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         LoanPosition memory position = _loanManager.getPosition(positionId);
         position.collateralAmount -= amount;
         _loanManager.lock(_encodeLockData(positionId, position, 0, 0, ""));
-        _flush(position.collateralToken, msg.sender);
+        _burnAllSubstitute(position.collateralToken, msg.sender);
     }
 
     function extendLoanDuration(
@@ -205,7 +206,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         _permitERC20(position.collateralToken, maxPayInterest, debtPermitParams);
         position.expiredWith = position.expiredWith.add(epochs);
         _loanManager.lock(_encodeLockData(positionId, position, maxPayInterest, 0, ""));
-        _flush(position.debtToken, msg.sender);
+        _burnAllSubstitute(position.debtToken, msg.sender);
     }
 
     function shortenLoanDuration(
@@ -218,7 +219,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         LoanPosition memory position = _loanManager.getPosition(positionId);
         position.expiredWith = position.expiredWith.sub(epochs);
         _loanManager.lock(_encodeLockData(positionId, position, 0, minEarnInterest, ""));
-        _flush(position.debtToken, msg.sender);
+        _burnAllSubstitute(position.debtToken, msg.sender);
     }
 
     function repay(
@@ -233,7 +234,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         _permitERC20(position.debtToken, amount, debtPermitParams);
         position.debtAmount -= amount;
         _loanManager.lock(_encodeLockData(positionId, position, 0, minEarnInterest, ""));
-        _flush(position.debtToken, msg.sender);
+        _burnAllSubstitute(position.debtToken, msg.sender);
     }
 
     function repayWithCollateral(
@@ -245,20 +246,27 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         _permitERC721(_loanManager, positionId, positionPermitParams);
         LoanPosition memory position = _loanManager.getPosition(positionId);
 
-        require(maxDebtAmount < position.debtAmount, "Wrong debt amount");
+        if (maxDebtAmount >= position.debtAmount) revert InvalidDebtAmount();
         position.collateralAmount -= swapData.inAmount;
         position.debtAmount = maxDebtAmount;
         _loanManager.lock(_encodeLockData(positionId, position, type(uint256).max, 0, abi.encode(swapData)));
     }
 
     function _swapCollateral(SwapData memory swapData, address inToken, address outToken) internal {
-        IERC20(inToken).approve(swapData.swap, swapData.inAmount);
-        uint256 beforeBalance = IERC20(outToken).balanceOf(address(this));
+        ISubstitute(inToken).burn(swapData.inAmount, address(this));
+        IERC20(ISubstitute(inToken).underlyingToken()).approve(swapData.swap, swapData.inAmount);
+
+        address outTokenUnderlying = ISubstitute(outToken).underlyingToken();
+        uint256 beforeBalance = IERC20(outTokenUnderlying).balanceOf(address(this));
+
         (bool success, bytes memory result) = swapData.swap.call(swapData.data);
-        require(success, string(result));
-        if (swapData.minOutAmount > IERC20(outToken).balanceOf(address(this)) - beforeBalance) {
-            revert ControllerSlippage();
-        }
+        if (!success) revert CollateralSwapFailed(string(result));
+
+        uint256 diffBalance = IERC20(outTokenUnderlying).balanceOf(address(this)) - beforeBalance;
+        if (swapData.minOutAmount > diffBalance) revert ControllerSlippage();
+
+        IERC20(outTokenUnderlying).approve(outToken, diffBalance);
+        ISubstitute(outToken).mint(diffBalance, address(this));
     }
 
     function _encodeLockData(uint256 id, LoanPosition memory p, uint256 maxPay, uint256 minEarn, bytes memory swapData)

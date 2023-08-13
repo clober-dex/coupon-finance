@@ -21,8 +21,9 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
 
     IPool private immutable _aaveV3Pool;
+    uint8 private immutable _decimals;
     address public immutable aToken;
-    address private immutable _underlyingToken;
+    address public immutable override underlyingToken;
 
     address public override treasury;
 
@@ -35,9 +36,14 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
     {
         _aaveV3Pool = IPool(aaveV3Pool_);
         aToken = _aaveV3Pool.getReserveData(asset_).aTokenAddress;
-        _underlyingToken = asset_;
+        _decimals = IERC20Metadata(asset_).decimals();
+        underlyingToken = asset_;
         treasury = treasury_;
         _transferOwnership(owner_);
+    }
+
+    function decimals() public view override returns (uint8) {
+        return _decimals;
     }
 
     function mintByAToken(uint256 amount, address to) external {
@@ -46,15 +52,15 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
     }
 
     function mint(uint256 amount, address to) external {
-        IERC20(_underlyingToken).safeTransferFrom(msg.sender, address(this), amount);
-        IERC20(_underlyingToken).approve(address(_aaveV3Pool), amount);
-        _aaveV3Pool.supply(_underlyingToken, amount, address(this), 0);
+        IERC20(underlyingToken).safeTransferFrom(msg.sender, address(this), amount);
+        IERC20(underlyingToken).approve(address(_aaveV3Pool), amount);
+        _aaveV3Pool.supply(underlyingToken, amount, address(this), 0);
         _mint(to, amount);
     }
 
     function mintableAmount() external view returns (uint256) {
         DataTypes.ReserveConfigurationMap memory configuration =
-            _aaveV3Pool.getReserveData(_underlyingToken).configuration;
+            _aaveV3Pool.getReserveData(underlyingToken).configuration;
         return configuration.getSupplyCap() * 10 ** (configuration.getDecimals());
     }
 
@@ -65,11 +71,11 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
 
     function burn(uint256 amount, address to) external {
         _burn(msg.sender, amount);
-        _aaveV3Pool.withdraw(_underlyingToken, amount, to);
+        _aaveV3Pool.withdraw(underlyingToken, amount, to);
     }
 
     function burnableAmount() external view returns (uint256) {
-        return IERC20(_underlyingToken).balanceOf(address(aToken));
+        return IERC20(underlyingToken).balanceOf(address(aToken));
     }
 
     function setTreasury(address newTreasury) external onlyOwner {

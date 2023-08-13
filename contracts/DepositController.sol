@@ -86,7 +86,6 @@ contract DepositController is IDepositController, Controller, IPositionLocker {
         if (amountDelta > 0) {
             _bondManager.depositToken(position.asset, uint256(amountDelta));
         }
-        for (uint256 i = 0; i < couponsToBurn.length; i++) {}
         if (couponsToBurn.length > 0) {
             _unwrapCoupons(couponsToBurn);
             _bondManager.burnCoupons(couponsToBurn);
@@ -111,7 +110,7 @@ contract DepositController is IDepositController, Controller, IPositionLocker {
         );
         uint256 positionId = abi.decode(_bondManager.lock(lockData), (uint256));
 
-        _flush(asset, msg.sender);
+        _burnAllSubstitute(asset, msg.sender);
         _bondManager.transferFrom(address(this), msg.sender, positionId);
     }
 
@@ -132,7 +131,7 @@ contract DepositController is IDepositController, Controller, IPositionLocker {
             )
         );
 
-        _flush(position.asset, msg.sender);
+        _burnAllSubstitute(position.asset, msg.sender);
     }
 
     function collect(uint256 positionId, PermitParams calldata positionPermitParams)
@@ -143,7 +142,7 @@ contract DepositController is IDepositController, Controller, IPositionLocker {
         _permitERC721(IERC721Permit(_bondManager), positionId, positionPermitParams);
         BondPosition memory position = _bondManager.getPosition(positionId);
         _bondManager.lock(abi.encode(positionId, msg.sender, abi.encode(0, position.expiredWith, 0, 0)));
-        _flush(position.asset, msg.sender);
+        _burnAllSubstitute(position.asset, msg.sender);
     }
 
     function setCouponMarket(CouponKey memory couponKey, address cloberMarket) public override onlyOwner {
