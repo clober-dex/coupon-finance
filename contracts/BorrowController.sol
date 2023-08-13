@@ -151,8 +151,8 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         );
         uint256 positionId = abi.decode(_loanManager.lock(lockData), (uint256));
 
-        _flush(collateralToken, msg.sender);
-        _flush(debtToken, msg.sender);
+        _burnAllSubstitute(collateralToken, msg.sender);
+        _burnAllSubstitute(debtToken, msg.sender);
         _loanManager.transferFrom(address(this), msg.sender, positionId);
     }
 
@@ -166,7 +166,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         LoanPosition memory position = _loanManager.getPosition(positionId);
         position.debtAmount += amount;
         _loanManager.lock(_encodeLockData(positionId, position, maxPayInterest, 0, ""));
-        _flush(position.debtToken, msg.sender);
+        _burnAllSubstitute(position.debtToken, msg.sender);
     }
 
     function addCollateral(
@@ -191,7 +191,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         LoanPosition memory position = _loanManager.getPosition(positionId);
         position.collateralAmount -= amount;
         _loanManager.lock(_encodeLockData(positionId, position, 0, 0, ""));
-        _flush(position.collateralToken, msg.sender);
+        _burnAllSubstitute(position.collateralToken, msg.sender);
     }
 
     function extendLoanDuration(
@@ -206,7 +206,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         _permitERC20(position.collateralToken, maxPayInterest, debtPermitParams);
         position.expiredWith = position.expiredWith.add(epochs);
         _loanManager.lock(_encodeLockData(positionId, position, maxPayInterest, 0, ""));
-        _flush(position.debtToken, msg.sender);
+        _burnAllSubstitute(position.debtToken, msg.sender);
     }
 
     function shortenLoanDuration(
@@ -219,7 +219,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         LoanPosition memory position = _loanManager.getPosition(positionId);
         position.expiredWith = position.expiredWith.sub(epochs);
         _loanManager.lock(_encodeLockData(positionId, position, 0, minEarnInterest, ""));
-        _flush(position.debtToken, msg.sender);
+        _burnAllSubstitute(position.debtToken, msg.sender);
     }
 
     function repay(
@@ -234,7 +234,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         _permitERC20(position.debtToken, amount, debtPermitParams);
         position.debtAmount -= amount;
         _loanManager.lock(_encodeLockData(positionId, position, 0, minEarnInterest, ""));
-        _flush(position.debtToken, msg.sender);
+        _burnAllSubstitute(position.debtToken, msg.sender);
     }
 
     function repayWithCollateral(
