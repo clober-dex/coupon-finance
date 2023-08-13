@@ -5,6 +5,17 @@ import { getDeployedContract, waitForTx } from '../utils/contract'
 import { CouponOracle } from '../typechain'
 import { bn2StrWithPrecision } from '../utils/misc'
 
+task('oracle:set-feed')
+  .addParam('asset', 'the name of the asset')
+  .setAction(async ({ asset }, hre) => {
+    const oracle = await getDeployedContract<CouponOracle>('CouponOracle')
+    const chainId = hre.network.config.chainId ?? hardhat.id
+    const token = AAVE_SUBSTITUTES[chainId][asset]
+    const feed = CHAINLINK_FEEDS[chainId][asset]
+    const receipt = await waitForTx(oracle.setFeeds([token], [feed]))
+    console.log('Set feed at tx', receipt.transactionHash)
+  })
+
 task('oracle:set-feeds').setAction(async (taskArgs, hre) => {
   const oracle = await getDeployedContract<CouponOracle>('CouponOracle')
   const chainId = hre.network.config.chainId ?? hardhat.id

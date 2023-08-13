@@ -1,4 +1,5 @@
 import { arbitrum } from '@wagmi/chains'
+import { BigNumber } from 'ethers'
 
 export const TESTNET_ID = 7777
 
@@ -31,6 +32,8 @@ const TOKEN_KEYS = {
   USDT: 'USDT',
   WBTC: 'WBTC',
 }
+
+const STABLES = [TOKEN_KEYS.USDC, TOKEN_KEYS.DAI, TOKEN_KEYS.USDT]
 
 export const TOKENS: { [chainId: number]: { [name: string]: string } } = {
   [arbitrum.id]: {
@@ -74,4 +77,40 @@ export const AAVE_SUBSTITUTES: { [chainId: number]: { [name: string]: string } }
     [TOKEN_KEYS.USDT]: '0xFB848FACc3A13Dbd673d85ae533f3f5BD447029D',
     [TOKEN_KEYS.WBTC]: '0xb48B8CAC2f3dE9cca8FCbdcc37990490AAb0BED5',
   },
+}
+
+export type LoanConfiguration = {
+  liquidationThreshold: number
+  liquidationFee: number
+  liquidationProtocolFee: number
+  liquidationTargetLtv: number
+}
+
+const DEFAULT_LOAN_CONFIGURATION: LoanConfiguration = {
+  liquidationThreshold: 800000,
+  liquidationFee: 25000,
+  liquidationProtocolFee: 5000,
+  liquidationTargetLtv: 700000,
+}
+
+const STABLE_LOAN_CONFIGURATION: LoanConfiguration = {
+  liquidationThreshold: 900000,
+  liquidationFee: 25000,
+  liquidationProtocolFee: 5000,
+  liquidationTargetLtv: 800000,
+}
+
+const LOAN_CONFIGURATION: { [collateral: string]: { [debt: string]: LoanConfiguration } } = {}
+
+export const getLoanConfiguration = (collateral: string, debt: string): LoanConfiguration => {
+  if (!Object.values(TOKEN_KEYS).includes(collateral) && !Object.values(TOKEN_KEYS).includes(debt)) {
+    throw new Error('Invalid collateral or debt')
+  }
+  if (collateral === debt) {
+    return STABLE_LOAN_CONFIGURATION
+  }
+  if (STABLES.includes(debt) && STABLES.includes(collateral)) {
+    return STABLE_LOAN_CONFIGURATION
+  }
+  return LOAN_CONFIGURATION[collateral]?.[debt] ?? DEFAULT_LOAN_CONFIGURATION
 }
