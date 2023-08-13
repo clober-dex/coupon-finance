@@ -79,7 +79,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
             _loanManager.withdrawToken(position.debtToken, address(this), uint256(debtDelta));
         }
         if (couponsToRefund.length > 0) {
-            _loanManager.withdrawCoupons(couponsToRefund, address(this), new bytes(0));
+            _loanManager.mintCoupons(couponsToRefund, address(this), new bytes(0));
             _wrapCoupons(couponsToRefund);
         }
 
@@ -106,7 +106,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         }
         if (couponsToPay.length > 0) {
             _unwrapCoupons(couponsToPay);
-            _loanManager.depositCoupons(couponsToPay);
+            _loanManager.burnCoupons(couponsToPay);
         }
         if (swapData.length > 0) {
             uint256 leftDebtToken = IERC20(position.debtToken).balanceOf(address(this));
@@ -119,7 +119,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
                     position.expiredWith
                 );
                 _loanManager.depositToken(position.debtToken, leftDebtToken);
-                _loanManager.withdrawCoupons(leftCoupons, user, "");
+                _loanManager.mintCoupons(leftCoupons, user, "");
             }
         }
 

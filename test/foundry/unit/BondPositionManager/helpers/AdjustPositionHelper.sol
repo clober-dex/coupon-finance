@@ -44,11 +44,11 @@ contract BondPositionAdjustPositionHelper is IPositionLocker, ERC1155Holder {
             bondPositionManager.withdrawToken(bondPosition.asset, params.user, uint256(-amountDelta));
         }
         if (couponsToMint.length > 0) {
-            bondPositionManager.withdrawCoupons(couponsToMint, params.user, "");
+            bondPositionManager.mintCoupons(couponsToMint, params.user, "");
         }
         if (couponsToBurn.length > 0) {
             couponManager.safeBatchTransferFrom(params.user, address(this), couponsToBurn, "");
-            bondPositionManager.depositCoupons(couponsToBurn);
+            bondPositionManager.burnCoupons(couponsToBurn);
         }
 
         bondPositionManager.settlePosition(params.positionId);

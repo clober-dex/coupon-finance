@@ -69,7 +69,7 @@ contract DepositController is IDepositController, Controller, IPositionLocker {
             _bondManager.withdrawToken(position.asset, address(this), uint256(-amountDelta));
         }
         if (couponsToMint.length > 0) {
-            _bondManager.withdrawCoupons(couponsToMint, address(this), new bytes(0));
+            _bondManager.mintCoupons(couponsToMint, address(this), new bytes(0));
             _wrapCoupons(couponsToMint);
         }
 
@@ -89,7 +89,7 @@ contract DepositController is IDepositController, Controller, IPositionLocker {
         for (uint256 i = 0; i < couponsToBurn.length; i++) {}
         if (couponsToBurn.length > 0) {
             _unwrapCoupons(couponsToBurn);
-            _bondManager.depositCoupons(couponsToBurn);
+            _bondManager.burnCoupons(couponsToBurn);
         }
 
         _bondManager.settlePosition(positionId);
