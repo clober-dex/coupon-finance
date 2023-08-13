@@ -21,7 +21,7 @@ task('coupon:deploy-wrapped-token')
     if (epoch < (await couponManager.currentEpoch())) {
       throw new Error('Cannot deploy for past epoch')
     }
-    const metadata = buildWrapped1155Metadata(token, epoch)
+    const metadata = await buildWrapped1155Metadata(token, epoch)
     const couponId = convertToCouponId(token, epoch)
     const computedAddress = await wrapped1155Factory.getWrapped1155(couponManager.address, couponId, metadata)
     if ((await hre.ethers.provider.getCode(computedAddress)) !== '0x') {
@@ -49,7 +49,7 @@ task('coupon:create-clober-market')
     const computedAddress = await wrapped1155Factory.getWrapped1155(
       couponManager.address,
       convertToCouponId(token, epoch),
-      buildWrapped1155Metadata(token, epoch),
+      await buildWrapped1155Metadata(token, epoch),
     )
     const decimals = await (await hre.ethers.getContractAt('IERC20Metadata', token)).decimals()
     let receipt = await waitForTx(

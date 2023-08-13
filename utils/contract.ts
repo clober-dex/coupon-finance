@@ -18,12 +18,13 @@ export const buildWrapped1155Metadata = async (tokenAddress: string, epoch: numb
   const token = await hre.ethers.getContractAt('IERC20Metadata', tokenAddress)
   const tokenSymbol = await token.symbol()
   const epochString = epoch.toString()
-  const addLength = tokenSymbol.length + epochString.length
-  const nameData = hre.ethers.utils.solidityPack(
-    ['string', 'string', 'string', 'string'],
-    [tokenSymbol, ' Bond Coupon (', epochString, ')'],
-  )
-  const symbolData = hre.ethers.utils.solidityPack(['string', 'string', 'string'], [tokenSymbol, '-CP', epochString])
+  const addLength = (tokenSymbol.length + epochString.length) * 2
+  const nameData = hre.ethers.utils
+    .solidityPack(['string', 'string', 'string', 'string'], [tokenSymbol, ' Bond Coupon (', epochString, ')'])
+    .padEnd(66, '0')
+  const symbolData = hre.ethers.utils
+    .solidityPack(['string', 'string', 'string'], [tokenSymbol, '-CP', epochString])
+    .padEnd(66, '0')
   const decimal = await token.decimals()
   return hre.ethers.utils.solidityPack(
     ['bytes32', 'bytes32', 'bytes1'],
@@ -32,9 +33,9 @@ export const buildWrapped1155Metadata = async (tokenAddress: string, epoch: numb
         .add(30 + addLength)
         .toHexString(),
       BigNumber.from(symbolData)
-        .add(30 + addLength)
+        .add(6 + addLength)
         .toHexString(),
-      decimal,
+      BigNumber.from(decimal).toHexString(),
     ],
   )
 }
