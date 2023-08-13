@@ -175,17 +175,11 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
     function _ensureBalance(address token, address user, uint256 amount) internal {
         address underlyingToken = ISubstitute(token).underlyingToken();
         uint256 thisBalance = IERC20(token).balanceOf(address(this));
-        uint256 underlyingBalance;
-        if (underlyingToken == address(_weth)) {
-            underlyingBalance = IERC20(_weth).balanceOf(address(this));
-            if (amount > thisBalance + underlyingBalance) {
-                IERC20(_weth).safeTransferFrom(user, address(this), amount - thisBalance - underlyingBalance);
+        uint256 underlyingBalance = IERC20(underlyingToken).balanceOf(address(this));
+        if (amount > thisBalance + underlyingBalance) {
+            unchecked {
+                IERC20(underlyingToken).safeTransferFrom(user, address(this), amount - thisBalance - underlyingBalance);
                 underlyingBalance = amount - thisBalance;
-            }
-        } else {
-            if (amount > thisBalance) {
-                underlyingBalance = amount - thisBalance;
-                IERC20(underlyingToken).safeTransferFrom(user, address(this), underlyingBalance);
             }
         }
         if (underlyingBalance > 0) {
