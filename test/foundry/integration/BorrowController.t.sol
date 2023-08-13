@@ -429,6 +429,10 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         return r;
     }
 
+    function remove0x(string calldata s) external pure returns (string memory) {
+        return s[2:];
+    }
+
     function testRepayWithCollateral() public {
         uint256 positionId = _initialBorrow(user, address(wausdc), address(waweth), usdc.amount(10000), 1 ether, 2);
 
@@ -438,7 +442,11 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         uint256 collateralAmount = usdc.amount(500);
         uint256 maxDebtAmount = 0.75 ether;
         bytes memory data = fromHex(
-            "83bd37f90001af88d065e77c8cc2239327c5edb3a432268e5831000182af49447d8a07e3bd95bd0d56f35241523fbab1041dcd65000803c174ee39d2c08007ae1400017e3e803E966291EE9aA69e6FADa116cD07462E5D000000010F8458E544c9D4C7C25A881240727209caae20B80000000103010204014386e4ac0b01000102000022010203020203ff0000000000000000006f38e884725a116c9c7fbf208e79fe8828a2595faf88d065e77c8cc2239327c5edb3a432268e583182af49447d8a07e3bd95bd0d56f35241523fbab100000000"
+            string.concat(
+                "83bd37f90001af88d065e77c8cc2239327c5edb3a432268e5831000182af49447d8a07e3bd95bd0d56f35241523fbab1041dcd65000803c174ee39d2c08007ae1400017e3e803E966291EE9aA69e6FADa116cD07462E5D00000001",
+                this.remove0x(Strings.toHexString(address(borrowController))),
+                "0000000103010204014386e4ac0b01000102000022010203020203ff0000000000000000006f38e884725a116c9c7fbf208e79fe8828a2595faf88d065e77c8cc2239327c5edb3a432268e583182af49447d8a07e3bd95bd0d56f35241523fbab100000000"
+            )
         );
         IBorrowController.SwapData memory swapData = IBorrowController.SwapData({
             swap: Constants.ODOS_V2_SWAP_ROUTER,
