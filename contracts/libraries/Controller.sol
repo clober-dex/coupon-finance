@@ -25,6 +25,7 @@ import {IAaveTokenSubstitute} from "../interfaces/IAaveTokenSubstitute.sol";
 import {ReentrancyGuard} from "./ReentrancyGuard.sol";
 
 abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver, Ownable, ReentrancyGuard {
+    error ValueTransferFailed();
     error InvalidAccess();
     error InvalidMarket();
     error ControllerSlippage();
@@ -165,7 +166,7 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
             ISubstitute(substitute).burn(leftAmount, address(this));
             _weth.withdraw(leftAmount);
             (bool success,) = payable(to).call{value: leftAmount}("");
-            require(success, "Value transfer failed");
+            if (!success) revert ValueTransferFailed();
         } else {
             ISubstitute(substitute).burn(leftAmount, to);
         }
