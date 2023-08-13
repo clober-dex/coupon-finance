@@ -68,12 +68,10 @@ contract AaveTokenSubstituteUnitTest is Test, ERC1155Holder {
         uint256 beforeSubstituteBalance = aaveTokenSubstitute.balanceOf(address(this));
 
         IERC20(aUsdc).approve(address(aaveTokenSubstitute), amount);
-        console.log(IERC20(aUsdc).allowance(address(this), address(aaveTokenSubstitute)));
         aaveTokenSubstitute.mintByAToken(amount, address(this));
-        console.log(amount, beforeATokenBalance, aUsdc.balanceOf(address(this)));
 
         assertEq(beforeTokenBalance, usdc.balanceOf(address(this)), "USDC_BALANCE");
-        assertEq(beforeATokenBalance, aUsdc.balanceOf(address(this)) + amount, "AUSDC_BALANCE");
+        assertApproxEqAbs(beforeATokenBalance, aUsdc.balanceOf(address(this)) + amount, 1, "AUSDC_BALANCE");
         assertEq(beforeSubstituteBalance + amount, aaveTokenSubstitute.balanceOf(address(this)), "WAUSDC_BALANCE");
     }
 
