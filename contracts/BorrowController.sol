@@ -246,7 +246,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         _permitERC721(_loanManager, positionId, positionPermitParams);
         LoanPosition memory position = _loanManager.getPosition(positionId);
 
-        require(maxDebtAmount < position.debtAmount, "Wrong debt amount");
+        if (maxDebtAmount >= position.debtAmount) revert InvalidDebtAmount();
         position.collateralAmount -= swapData.inAmount;
         position.debtAmount = maxDebtAmount;
         _loanManager.lock(_encodeLockData(positionId, position, type(uint256).max, 0, abi.encode(swapData)));
@@ -260,12 +260,10 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         uint256 beforeBalance = IERC20(outTokenUnderlying).balanceOf(address(this));
 
         (bool success, bytes memory result) = swapData.swap.call(swapData.data);
-        require(success, string(result));
+        if (!success) revert RawCallFailed(string(result));
 
         uint256 diffBalance = IERC20(outTokenUnderlying).balanceOf(address(this)) - beforeBalance;
-        if (swapData.minOutAmount > diffBalance) {
-            revert ControllerSlippage();
-        }
+        if (swapData.minOutAmount > diffBalance) revert ControllerSlippage();
 
         IERC20(outTokenUnderlying).approve(outToken, diffBalance);
         ISubstitute(outToken).mint(diffBalance, address(this));
