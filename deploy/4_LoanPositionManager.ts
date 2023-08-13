@@ -12,7 +12,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 
   const { deployer } = await getNamedAccounts()
 
-  if ((await deployments.getOrNull('LoanPositionManager')) !== null) {
+  if (await deployments.getOrNull('LoanPositionManager')) {
     return
   }
 

@@ -11,7 +11,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 
   const { deployer } = await getNamedAccounts()
 
-  if ((await deployments.getOrNull('BorrowController')) !== null) {
+  if (await deployments.getOrNull('BorrowController')) {
     return
   }
 

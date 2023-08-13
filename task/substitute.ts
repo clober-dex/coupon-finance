@@ -1,10 +1,10 @@
 import { task } from 'hardhat/config'
-import { AAVE_V3_POOL, SINGLETON_FACTORY, TREASURY } from '../utils/constants'
+import { AAVE_V3_POOL, SINGLETON_FACTORY, TOKENS, TREASURY } from '../utils/constants'
 import { hardhat } from '@wagmi/chains'
 import { waitForTx } from '../utils/contract'
 
 task('substitute:aave:deploy')
-  .addParam<string>('asset', 'address of the asset')
+  .addParam('asset', 'name of the asset')
   .setAction(async ({ asset }, hre) => {
     const [signer] = await hre.ethers.getSigners()
     const singletonFactory = await hre.ethers.getContractAt('ISingletonFactory', SINGLETON_FACTORY)
@@ -15,7 +15,7 @@ task('substitute:aave:deploy')
       throw new Error('missing aaveV3Pool or treasury')
     }
     const constructorArguments = aaveTokenSubstituteFactory.interface.encodeDeploy([
-      asset,
+      TOKENS[hre.network.config.chainId ?? hardhat.id][asset],
       aaveV3Pool,
       treasury,
       signer.address,
@@ -30,11 +30,11 @@ task('substitute:aave:deploy')
       hre.ethers.utils.keccak256(initCode),
     )
     if ((await hre.ethers.provider.getCode(computedAddress)) !== '0x') {
-      console.log('Contract already deployed')
+      console.log('Contract already deployed:', computedAddress)
       return
     }
     const receipt = await waitForTx(singletonFactory.deploy(initCode, hre.ethers.constants.HashZero))
-    console.log('Deployed AaveTokenSubstitute at tx', receipt.transactionHash)
+    console.log(`Deployed AaveTokenSubstitute(${computedAddress}) at tx`, receipt.transactionHash)
   })
 
 task('substitute:set-treasury')

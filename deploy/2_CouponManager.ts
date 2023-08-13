@@ -9,7 +9,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 
   const [deployer] = await hre.ethers.getSigners()
 
-  if ((await deployments.getOrNull('CouponManager')) !== null) {
+  if (await deployments.getOrNull('CouponManager')) {
     return
   }
 

@@ -8,7 +8,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   const { deploy } = deployments
   const { deployer } = await getNamedAccounts()
 
-  if ((await deployments.getOrNull('CouponOracle')) !== null) {
+  if (await deployments.getOrNull('CouponOracle')) {
     return
   }
 

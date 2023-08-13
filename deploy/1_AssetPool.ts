@@ -11,7 +11,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 
   const [deployer] = await hre.ethers.getSigners()
 
-  if ((await deployments.getOrNull('AssetPool')) !== null) {
+  if (await deployments.getOrNull('AssetPool')) {
     return
   }
 
