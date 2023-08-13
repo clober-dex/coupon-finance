@@ -29,9 +29,9 @@ interface IPositionManager is IERC721Metadata, IERC721Permit, IPositionManagerTy
 
     function withdrawToken(address token, address to, uint256 amount) external;
 
-    function withdrawCoupons(Coupon[] calldata coupons, address to, bytes calldata data) external;
+    function mintCoupons(Coupon[] calldata coupons, address to, bytes calldata data) external;
 
     function depositToken(address token, uint256 amount) external;
 
-    function depositCoupons(Coupon[] calldata coupons) external;
+    function burnCoupons(Coupon[] calldata coupons) external;
 }

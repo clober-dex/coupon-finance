@@ -42,7 +42,7 @@ contract BondPositionMintHelper is IPositionLocker {
         IERC20(params.asset).transferFrom(params.user, address(this), params.amount);
         bondPositionManager.depositToken(params.asset, params.amount);
         if (couponsToMint.length > 0) {
-            bondPositionManager.withdrawCoupons(couponsToMint, params.recipient, "");
+            bondPositionManager.mintCoupons(couponsToMint, params.recipient, "");
         }
 
         bondPositionManager.settlePosition(positionId);
