@@ -260,7 +260,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         uint256 beforeBalance = IERC20(outTokenUnderlying).balanceOf(address(this));
 
         (bool success, bytes memory result) = swapData.swap.call(swapData.data);
-        if (!success) revert RawCallFailed(string(result));
+        if (!success) revert CollateralSwapFailed(string(result));
 
         uint256 diffBalance = IERC20(outTokenUnderlying).balanceOf(address(this)) - beforeBalance;
         if (swapData.minOutAmount > diffBalance) revert ControllerSlippage();

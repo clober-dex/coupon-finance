@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import {PermitParams} from "../libraries/PermitParams.sol";
 
 interface IBorrowController {
-    error RawCallFailed(string reason);
+    error CollateralSwapFailed(string reason);
     error InvalidDebtAmount();
 
     function borrow(
