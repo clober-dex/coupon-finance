@@ -12,8 +12,11 @@ task('coupon:current-epoch').setAction(async () => {
 
 task('coupon:deploy-wrapped-token')
   .addParam('asset', 'the name of the asset')
-  .addParam('epoch', 'the epoch number')
+  .addParam<number>('epoch', 'the epoch number')
   .setAction(async ({ asset, epoch }, hre) => {
+    if (typeof epoch === 'string') {
+      epoch = parseInt(epoch)
+    }
     const couponManager = await getDeployedContract<CouponManager>('CouponManager')
     const chainId = hre.network.config.chainId ?? hardhat.id
     const wrapped1155Factory = await hre.ethers.getContractAt('IWrapped1155Factory', WRAPPED1155_FACTORY[chainId])
@@ -29,13 +32,16 @@ task('coupon:deploy-wrapped-token')
       return
     }
     const receipt = await waitForTx(wrapped1155Factory.requireWrapped1155(couponManager.address, couponId, metadata))
-    console.log(`Deployed ${token} for epoch ${epoch} at ${computedAddress} at ${receipt.transactionHash}`)
+    console.log(`Deployed ${asset} for epoch ${epoch} at ${computedAddress} at ${receipt.transactionHash}`)
   })
 
 task('coupon:create-clober-market')
   .addParam('asset', 'the name of the asset')
-  .addParam('epoch', 'the epoch number')
+  .addParam<number>('epoch', 'the epoch number')
   .setAction(async ({ asset, epoch }, hre) => {
+    if (typeof epoch === 'string') {
+      epoch = parseInt(epoch)
+    }
     const couponManager = await getDeployedContract<CouponManager>('CouponManager')
     const chainId = hre.network.config.chainId ?? hardhat.id
     const wrapped1155Factory = await hre.ethers.getContractAt('IWrapped1155Factory', WRAPPED1155_FACTORY[chainId])
