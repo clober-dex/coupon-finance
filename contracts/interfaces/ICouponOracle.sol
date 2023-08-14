@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 interface ICouponOracle {
     error LengthMismatch();
     error InvalidDecimals();
+    error AssetFeedAlreadySet();
 
     function decimals() external view returns (uint8);
 

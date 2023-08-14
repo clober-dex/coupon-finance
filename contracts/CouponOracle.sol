@@ -63,6 +63,7 @@ contract CouponOracle is ICouponOracle, Ownable {
         unchecked {
             for (uint256 i = 0; i < assets.length; ++i) {
                 if (AggregatorV3Interface(feeds[i]).decimals() != 8) revert InvalidDecimals();
+                if (_assetFeedMap[assets[i]] != address(0)) revert AssetFeedAlreadySet();
                 _assetFeedMap[assets[i]] = feeds[i];
             }
         }
