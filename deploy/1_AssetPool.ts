@@ -15,8 +15,8 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
     return
   }
 
-  const couponOracleDeployment = await deployments.get('CouponOracle')
-  const firstDeployTransaction = await hre.ethers.provider.getTransaction(couponOracleDeployment.transactionHash ?? '')
+  const oracleDeployment = await deployments.get('CouponOracle')
+  const firstDeployTransaction = await hre.ethers.provider.getTransaction(oracleDeployment.transactionHash ?? '')
   const nonce = await deployer.getTransactionCount('latest')
   if (nonce !== firstDeployTransaction.nonce + 1) {
     throw new Error('nonce not matched')
