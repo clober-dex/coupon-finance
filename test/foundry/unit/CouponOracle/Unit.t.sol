@@ -51,6 +51,12 @@ contract CouponOracleUnitTest is Test {
         couponOracle.setFeeds(Utils.toArr(Constants.USDC), Utils.toArr(address(invalidPriceFeed)));
     }
 
+    function testSetFeedsAlreadySet() public {
+        couponOracle.setFeeds(Utils.toArr(Constants.USDC), Utils.toArr(Constants.USDC_CHAINLINK_FEED));
+        vm.expectRevert(abi.encodeWithSelector(ICouponOracle.AssetFeedAlreadySet.selector));
+        couponOracle.setFeeds(Utils.toArr(Constants.USDC), Utils.toArr(Constants.USDC_CHAINLINK_FEED));
+    }
+
     function testSetFallbackOracle() public {
         assertEq(couponOracle.fallbackOracle(), address(0), "FALLBACK_ORACLE_NOT_SET");
 
@@ -82,13 +88,13 @@ contract CouponOracleUnitTest is Test {
 
     function testGetPriceWhenPriceIsInvalid() public {
         couponOracle.setFallbackOracle(address(mockFallbackOracle));
-        couponOracle.setFeeds(Utils.toArr(Constants.WETH), Utils.toArr(address(invalidPriceFeed)));
+        couponOracle.setFeeds(Utils.toArr(Constants.USDC), Utils.toArr(address(invalidPriceFeed)));
         invalidPriceFeed.setPrice(0);
 
-        assertEq(couponOracle.getAssetPrice(Constants.WETH), mockFallbackOracle.FALLBACK_PRICE(), "FALLBACK_PRICE_0");
+        assertEq(couponOracle.getAssetPrice(Constants.USDC), mockFallbackOracle.FALLBACK_PRICE(), "FALLBACK_PRICE_0");
 
         invalidPriceFeed.setPrice(-1);
-        assertEq(couponOracle.getAssetPrice(Constants.WETH), mockFallbackOracle.FALLBACK_PRICE(), "FALLBACK_PRICE_1");
+        assertEq(couponOracle.getAssetPrice(Constants.USDC), mockFallbackOracle.FALLBACK_PRICE(), "FALLBACK_PRICE_1");
     }
 
     function testGetPriceWhenFeedAndFallbackNotSet() public {
