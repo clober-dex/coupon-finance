@@ -4,7 +4,7 @@ import fs from 'fs'
 import * as dotenv from 'dotenv'
 import readlineSync from 'readline-sync'
 import { HardhatConfig } from 'hardhat/types'
-import { hardhat, mainnet } from '@wagmi/chains'
+import { arbitrum, hardhat, mainnet } from '@wagmi/chains'
 
 import '@nomiclabs/hardhat-waffle'
 import '@typechain/hardhat'
@@ -14,6 +14,7 @@ import 'hardhat-gas-reporter'
 import 'hardhat-contract-sizer'
 import 'hardhat-abi-exporter'
 import 'solidity-coverage'
+import { TESTNET_ID } from './utils/constants'
 
 dotenv.config()
 
@@ -97,6 +98,40 @@ const config: HardhatConfig = {
   },
   defaultNetwork: 'hardhat',
   networks: {
+    [arbitrum.id]: {
+      url: arbitrum.rpcUrls.default.http[0],
+      chainId: arbitrum.id,
+      accounts: [getMainnetPrivateKey()],
+      gas: 'auto',
+      gasPrice: 'auto',
+      gasMultiplier: 1,
+      timeout: 3000000,
+      httpHeaders: {},
+      live: true,
+      saveDeployments: true,
+      tags: ['mainnet', 'prod'],
+      companionNetworks: {},
+      verify: {
+        etherscan: {
+          apiKey: process.env.ARBISCAN_API_KEY,
+          apiUrl: 'https://api.arbiscan.io',
+        },
+      },
+    },
+    [TESTNET_ID]: {
+      url: process.env.TEST_NET_URL ?? '',
+      chainId: TESTNET_ID,
+      accounts: process.env.TEST_NET_PRIVATE_KEY ? [process.env.TEST_NET_PRIVATE_KEY] : [],
+      gas: 'auto',
+      gasPrice: 'auto',
+      gasMultiplier: 1,
+      timeout: 3000000,
+      httpHeaders: {},
+      live: true,
+      saveDeployments: true,
+      tags: ['testnet', 'test'],
+      companionNetworks: {},
+    },
     [hardhat.network]: {
       chainId: hardhat.id,
       gas: 20000000,

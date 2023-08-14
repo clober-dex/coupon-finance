@@ -430,8 +430,6 @@ contract LoanPositionManagerLiquidateUnitTest is Test, ILoanPositionManagerTypes
 
         oracle.setAssetPrice(address(weth), 1000 * 10 ** 8);
 
-        //        LiquidationStatus memory liquidationStatus = loanPositionManager.getLiquidationStatus(tokenId, 0);
         helper.liquidate(tokenId, 0);
-        // todo: should check state
     }
 }

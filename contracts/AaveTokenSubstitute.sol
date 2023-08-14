@@ -22,7 +22,7 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
 
     IPool private immutable _aaveV3Pool;
     uint8 private immutable _decimals;
-    address public immutable aToken;
+    address public immutable override aToken;
     address public immutable override underlyingToken;
 
     address public override treasury;
