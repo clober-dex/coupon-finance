@@ -2,6 +2,7 @@ import { task } from 'hardhat/config'
 import { AAVE_V3_POOL, SINGLETON_FACTORY, TOKENS, TREASURY } from '../utils/constants'
 import { hardhat } from '@wagmi/chains'
 import { waitForTx } from '../utils/contract'
+import { verify } from '../utils/misc'
 
 task('substitute:aave:deploy')
   .addParam('asset', 'name of the asset')
@@ -14,12 +15,13 @@ task('substitute:aave:deploy')
     if (!aaveV3Pool || !treasury) {
       throw new Error('missing aaveV3Pool or treasury')
     }
-    const constructorArguments = aaveTokenSubstituteFactory.interface.encodeDeploy([
+    const constructorArgs = [
       TOKENS[hre.network.config.chainId ?? hardhat.id][asset],
       aaveV3Pool,
       treasury,
       signer.address,
-    ])
+    ]
+    const constructorArguments = aaveTokenSubstituteFactory.interface.encodeDeploy(constructorArgs)
     const initCode = hre.ethers.utils.solidityPack(
       ['bytes', 'bytes'],
       [aaveTokenSubstituteFactory.bytecode, constructorArguments],
@@ -35,6 +37,7 @@ task('substitute:aave:deploy')
     }
     const receipt = await waitForTx(singletonFactory.deploy(initCode, hre.ethers.constants.HashZero))
     console.log(`Deployed AaveTokenSubstitute(${computedAddress}) at tx`, receipt.transactionHash)
+    await verify(computedAddress, constructorArgs)
   })
 
 task('substitute:set-treasury')
