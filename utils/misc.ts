@@ -1,4 +1,5 @@
 import { BigNumber, BigNumberish, utils } from 'ethers'
+import { run } from 'hardhat'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { hardhat } from '@wagmi/chains'
 
@@ -32,6 +33,18 @@ export const convertToDateString = (utc: BigNumber): string => {
     minute: '2-digit',
     second: '2-digit',
   })
+}
+
+export const verify = async (contractAddress: string, args: any[]) => {
+  console.log('Verifying Contract:', contractAddress)
+  try {
+    await run('verify:verify', {
+      address: contractAddress,
+      constructorArguments: args,
+    })
+  } catch (e) {
+    console.log(e)
+  }
 }
 
 export const sleep = (ms: number): Promise<void> => {
