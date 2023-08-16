@@ -1,5 +1,4 @@
-import { BigNumber, BigNumberish, utils } from 'ethers'
-import { run } from 'hardhat'
+import { BigNumber, utils } from 'ethers'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { hardhat } from '@wagmi/chains'
 
@@ -36,9 +35,9 @@ export const convertToDateString = (utc: BigNumber): string => {
 }
 
 export const verify = async (contractAddress: string, args: any[]) => {
-  console.log('Verifying Contract:', contractAddress)
+  liveLog(`Verifying Contract: ${contractAddress}`)
   try {
-    await run('verify:verify', {
+    await getHRE().run('verify:verify', {
       address: contractAddress,
       constructorArguments: args,
     })
