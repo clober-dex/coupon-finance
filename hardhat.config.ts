@@ -13,7 +13,8 @@ import '@nomiclabs/hardhat-ethers'
 import 'hardhat-gas-reporter'
 import 'hardhat-contract-sizer'
 import 'hardhat-abi-exporter'
-import 'solidity-coverage'
+import '@nomicfoundation/hardhat-verify'
+
 import { TESTNET_ID } from './utils/constants'
 
 dotenv.config()
