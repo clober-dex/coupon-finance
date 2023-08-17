@@ -199,21 +199,19 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
     }
 
     function _unwrapCoupons(Coupon[] memory coupons) internal {
-        if (coupons.length > 0) {
-            uint256[] memory tokenIds = new uint256[](coupons.length);
-            uint256[] memory amounts = new uint256[](coupons.length);
-            for (uint256 i = 0; i < coupons.length; i++) {
-                tokenIds[i] = coupons[i].id();
-                amounts[i] = coupons[i].amount;
-            }
-            _wrapped1155Factory.batchUnwrap(
-                address(_couponManager),
-                tokenIds,
-                amounts,
-                address(this),
-                Wrapped1155MetadataBuilder.buildWrapped1155BatchMetadata(coupons)
-            );
+        uint256[] memory tokenIds = new uint256[](coupons.length);
+        uint256[] memory amounts = new uint256[](coupons.length);
+        for (uint256 i = 0; i < coupons.length; i++) {
+            tokenIds[i] = coupons[i].id();
+            amounts[i] = coupons[i].amount;
         }
+        _wrapped1155Factory.batchUnwrap(
+            address(_couponManager),
+            tokenIds,
+            amounts,
+            address(this),
+            Wrapped1155MetadataBuilder.buildWrapped1155BatchMetadata(coupons)
+        );
     }
 
     function getCouponMarket(CouponKey memory couponKey) external view returns (address) {
