@@ -11,8 +11,6 @@ import {IAssetPool} from "./interfaces/IAssetPool.sol";
 contract AssetPool is IAssetPool {
     using SafeERC20 for IERC20;
 
-    error InvalidAccess();
-
     mapping(address => bool) public override isOperator;
 
     constructor(address[] memory operators) {

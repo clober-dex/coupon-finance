@@ -15,23 +15,23 @@ import {IWETH9} from "../external/weth/IWETH9.sol";
 import {IWrapped1155Factory} from "../external/wrapped1155/IWrapped1155Factory.sol";
 import {CloberOrderBook} from "../external/clober/CloberOrderBook.sol";
 import {ICouponManager} from "../interfaces/ICouponManager.sol";
-import {PermitParams, PermitParamsLibrary} from "./PermitParams.sol";
 import {Coupon, CouponLibrary} from "./Coupon.sol";
 import {CouponKey, CouponKeyLibrary} from "./CouponKey.sol";
 import {Wrapped1155MetadataBuilder} from "./Wrapped1155MetadataBuilder.sol";
 import {IERC721Permit} from "../interfaces/IERC721Permit.sol";
 import {ISubstitute} from "../interfaces/ISubstitute.sol";
 import {IAaveTokenSubstitute} from "../interfaces/IAaveTokenSubstitute.sol";
+import {IController} from "../interfaces/IController.sol";
 import {ReentrancyGuard} from "./ReentrancyGuard.sol";
 
-abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver, Ownable, ReentrancyGuard {
-    error ValueTransferFailed();
-    error InvalidAccess();
-    error InvalidMarket();
-    error ControllerSlippage();
-
+abstract contract Controller is
+    IController,
+    ERC1155Holder,
+    CloberMarketSwapCallbackReceiver,
+    Ownable,
+    ReentrancyGuard
+{
     using SafeERC20 for IERC20;
-    using PermitParamsLibrary for PermitParams;
     using CouponKeyLibrary for CouponKey;
     using CouponLibrary for Coupon;
 
@@ -139,7 +139,7 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
     }
 
     function _permitERC20(address token, uint256 amount, PermitParams calldata p) internal {
-        if (!p.isEmpty()) {
+        if (p.deadline > 0) {
             IERC20Permit(ISubstitute(token).underlyingToken()).permit(
                 msg.sender, address(this), amount, p.deadline, p.v, p.r, p.s
             );
@@ -147,7 +147,7 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
     }
 
     function _permitERC721(IERC721Permit permitNFT, uint256 positionId, PermitParams calldata p) internal {
-        if (!p.isEmpty()) {
+        if (p.deadline > 0) {
             permitNFT.permit(address(this), positionId, p.deadline, p.v, p.r, p.s);
         }
     }

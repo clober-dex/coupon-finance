@@ -15,7 +15,6 @@ import {LoanPosition, LoanPositionLibrary} from "./libraries/LoanPosition.sol";
 import {CouponKey, CouponKeyLibrary} from "./libraries/CouponKey.sol";
 import {Coupon} from "./libraries/Coupon.sol";
 import {Epoch, EpochLibrary} from "./libraries/Epoch.sol";
-import {PermitParams} from "./libraries/PermitParams.sol";
 import {Controller} from "./libraries/Controller.sol";
 import {IPositionLocker} from "./interfaces/IPositionLocker.sol";
 

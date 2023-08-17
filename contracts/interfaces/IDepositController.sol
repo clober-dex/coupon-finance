@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.0;
 
-import {PermitParams} from "../libraries/PermitParams.sol";
+import {IController} from "./IController.sol";
 
-interface IDepositController {
+interface IDepositController is IController {
     function deposit(
         address token,
         uint256 amount,
