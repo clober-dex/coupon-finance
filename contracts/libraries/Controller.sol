@@ -201,9 +201,11 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
     function _unwrapCoupons(Coupon[] memory coupons) internal {
         uint256[] memory tokenIds = new uint256[](coupons.length);
         uint256[] memory amounts = new uint256[](coupons.length);
-        for (uint256 i = 0; i < coupons.length; i++) {
-            tokenIds[i] = coupons[i].id();
-            amounts[i] = coupons[i].amount;
+        unchecked {
+            for (uint256 i = 0; i < coupons.length; ++i) {
+                tokenIds[i] = coupons[i].id();
+                amounts[i] = coupons[i].amount;
+            }
         }
         _wrapped1155Factory.batchUnwrap(
             address(_couponManager),
