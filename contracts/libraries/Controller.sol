@@ -50,8 +50,8 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
     }
 
     modifier wrapETH() {
-        if (msg.value > 0) {
-            _weth.deposit{value: msg.value}();
+        if (address(this).balance > 0) {
+            _weth.deposit{value: address(this).balance}();
         }
         _;
     }
