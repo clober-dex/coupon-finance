@@ -43,7 +43,7 @@ contract LoanPositionManagerBurnUnitTest is Test, ILoanPositionManagerTypes {
     uint256 public tokenId;
 
     function setUp() public {
-        vm.warp(EpochLibrary.wrap(10).startTime());
+        vm.warp(Epoch.wrap(10).startTime());
 
         TestInitializer.Params memory p = TestInitializer.init(vm);
         weth = p.weth;
@@ -125,6 +125,6 @@ contract LoanPositionManagerBurnUnitTest is Test, ILoanPositionManagerTypes {
     }
 
     function assertEq(Epoch e1, Epoch e2, string memory err) internal {
-        assertEq(e1.unwrap(), e2.unwrap(), err);
+        assertEq(Epoch.unwrap(e1), Epoch.unwrap(e2), err);
     }
 }

@@ -251,6 +251,6 @@ contract BondPositionManagerAdjustPositionUnitTest is Test, IBondPositionManager
     }
 
     function assertEq(Epoch e1, Epoch e2, string memory err) internal {
-        assertEq(e1.unwrap(), e2.unwrap(), err);
+        assertEq(Epoch.unwrap(e1), Epoch.unwrap(e2), err);
     }
 }

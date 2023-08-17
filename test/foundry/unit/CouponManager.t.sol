@@ -33,10 +33,10 @@ contract CouponManagerUnitTest is Test, ERC1155Holder {
     }
 
     function testMintBatch() public {
-        vm.warp(EpochLibrary.wrap(20).startTime());
+        vm.warp(Epoch.wrap(20).startTime());
         Coupon[] memory coupons = new Coupon[](2);
-        coupons[0] = CouponLibrary.from(Constants.USDC, EpochLibrary.wrap(20), 100);
-        coupons[1] = CouponLibrary.from(Constants.USDC, EpochLibrary.wrap(20).add(1), 70);
+        coupons[0] = CouponLibrary.from(Constants.USDC, Epoch.wrap(20), 100);
+        coupons[1] = CouponLibrary.from(Constants.USDC, Epoch.wrap(20).add(1), 70);
 
         couponManager.mintBatch(Constants.USER1, coupons, new bytes(0));
 

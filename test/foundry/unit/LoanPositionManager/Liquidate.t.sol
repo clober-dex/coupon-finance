@@ -38,7 +38,7 @@ contract LoanPositionManagerLiquidateUnitTest is Test, ILoanPositionManagerTypes
     LoanPositionLiquidateHelper public helper;
 
     function setUp() public {
-        vm.warp(EpochLibrary.wrap(10).startTime());
+        vm.warp(Epoch.wrap(10).startTime());
 
         TestInitializer.Params memory p = TestInitializer.init(vm);
         weth = p.weth;

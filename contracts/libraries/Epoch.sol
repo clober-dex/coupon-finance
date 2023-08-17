@@ -36,14 +36,6 @@ library EpochLibrary {
     uint256 constant SECONDS_PER_DAY = 24 * 60 * 60;
     int256 constant OFFSET19700101 = 2440588;
 
-    function wrap(uint8 epoch) internal pure returns (Epoch) {
-        return Epoch.wrap(epoch);
-    }
-
-    function unwrap(Epoch epoch) internal pure returns (uint8) {
-        return Epoch.unwrap(epoch);
-    }
-
     function startTime(Epoch epoch) internal pure returns (uint256) {
         uint8 currentEpoch = Epoch.unwrap(epoch);
         if (currentEpoch == 0) return 0;
