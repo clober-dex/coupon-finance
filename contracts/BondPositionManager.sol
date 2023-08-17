@@ -12,7 +12,6 @@ import {IBondPositionManager} from "./interfaces/IBondPositionManager.sol";
 import {ICouponManager} from "./interfaces/ICouponManager.sol";
 import {IPositionManager} from "./interfaces/IPositionManager.sol";
 import {IAssetPool} from "./interfaces/IAssetPool.sol";
-import {IBondPositionCallbackReceiver} from "./interfaces/IBondPositionCallbackReceiver.sol";
 import {ERC721Permit} from "./libraries/ERC721Permit.sol";
 import {BondPosition, BondPositionLibrary} from "./libraries/BondPosition.sol";
 import {Coupon, CouponLibrary} from "./libraries/Coupon.sol";
