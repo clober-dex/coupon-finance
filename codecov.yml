@@ -1,5 +1,4 @@
 ignore:
-  - "contracts/utils"
   - "test"
 
 coverage:
