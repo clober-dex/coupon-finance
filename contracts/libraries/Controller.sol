@@ -70,8 +70,9 @@ abstract contract Controller is
             assembly {
                 mstore(couponsToBuy, sub(mload(couponsToBuy), 1))
             }
-            bytes memory data =
-                abi.encode(user, couponsToBuy, new Coupon[](0), amountToPay, maxPayInterest, leftRequiredInterest);
+            bytes memory data = abi.encode(
+                user, lastCoupon, couponsToBuy, new Coupon[](0), amountToPay, maxPayInterest, leftRequiredInterest
+            );
             assembly {
                 mstore(couponsToBuy, add(mload(couponsToBuy), 1))
             }
@@ -84,8 +85,9 @@ abstract contract Controller is
             assembly {
                 mstore(couponsToSell, sub(mload(couponsToSell), 1))
             }
-            bytes memory data =
-                abi.encode(user, new Coupon[](0), couponsToSell, amountToPay, maxPayInterest, leftRequiredInterest);
+            bytes memory data = abi.encode(
+                user, lastCoupon, new Coupon[](0), couponsToSell, amountToPay, maxPayInterest, leftRequiredInterest
+            );
             assembly {
                 mstore(couponsToSell, add(mload(couponsToSell), 1))
             }
@@ -108,33 +110,46 @@ abstract contract Controller is
         // check if caller is registered market
         if (_cloberMarketFactory.getMarketHost(msg.sender) == address(0)) revert InvalidAccess();
 
-        (
-            address user,
-            Coupon[] memory buyCoupons,
-            Coupon[] memory sellCoupons,
-            uint256 amountToPay,
-            uint256 maxPayInterest,
-            uint256 leftRequiredInterest
-        ) = abi.decode(data, (address, Coupon[], Coupon[], uint256, uint256, uint256));
-
         address asset = CloberOrderBook(msg.sender).quoteToken();
-        if (asset == inputToken) {
-            if (maxPayInterest < inputAmount) revert ControllerSlippage();
-            maxPayInterest -= inputAmount;
-            amountToPay += inputAmount;
-        } else {
-            if (leftRequiredInterest > outputAmount) {
-                leftRequiredInterest -= outputAmount;
-            } else {
-                leftRequiredInterest = 0;
-            }
-        }
+        address user;
+        Coupon memory lastCoupon;
+        {
+            Coupon[] memory buyCoupons;
+            Coupon[] memory sellCoupons;
+            uint256 amountToPay;
+            uint256 maxPayInterest;
+            uint256 leftRequiredInterest;
+            (user, lastCoupon, buyCoupons, sellCoupons, amountToPay, maxPayInterest, leftRequiredInterest) =
+                abi.decode(data, (address, Coupon, Coupon[], Coupon[], uint256, uint256, uint256));
 
-        _executeCouponTrade(user, asset, buyCoupons, sellCoupons, amountToPay, maxPayInterest, leftRequiredInterest);
+            if (asset == inputToken) {
+                if (maxPayInterest < inputAmount) revert ControllerSlippage();
+                maxPayInterest -= inputAmount;
+                amountToPay += inputAmount;
+            } else {
+                if (leftRequiredInterest > outputAmount) {
+                    leftRequiredInterest -= outputAmount;
+                } else {
+                    leftRequiredInterest = 0;
+                }
+            }
+
+            _executeCouponTrade(user, asset, buyCoupons, sellCoupons, amountToPay, maxPayInterest, leftRequiredInterest);
+        }
 
         // transfer input tokens
         if (inputAmount > 0) {
             IERC20(inputToken).safeTransfer(msg.sender, inputAmount);
+        }
+        uint256 couponBalance = IERC20(inputToken).balanceOf(address(this));
+        if (asset != inputToken && couponBalance > 0) {
+            _wrapped1155Factory.unwrap(
+                address(_couponManager),
+                lastCoupon.id(),
+                couponBalance,
+                user,
+                Wrapped1155MetadataBuilder.buildWrapped1155Metadata(lastCoupon.key)
+            );
         }
     }
 
