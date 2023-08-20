@@ -409,9 +409,10 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         uint256 positionId = _initialBorrow(user, address(wausdc), address(waweth), usdc.amount(200_000), 70 ether, 2);
 
         uint256 repayAmount = 60 ether;
-        PermitParams memory permit721Params =
+        IController.PermitParams memory permit721Params =
             _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(borrowController), positionId);
-        PermitParams memory permit20Params = _buildERC20PermitParams(1, waweth, address(borrowController), repayAmount);
+        IController.PermitParams memory permit20Params =
+            _buildERC20PermitParams(1, waweth, address(borrowController), repayAmount);
         vm.prank(user);
         borrowController.repay{value: repayAmount}(positionId, repayAmount, 0, permit721Params, permit20Params);
 

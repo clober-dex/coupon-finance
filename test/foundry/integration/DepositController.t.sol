@@ -21,7 +21,6 @@ import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
 import {IController} from "../../../contracts/interfaces/IController.sol";
 import {IERC721Permit} from "../../../contracts/interfaces/IERC721Permit.sol";
 import {IBondPositionManager} from "../../../contracts/interfaces/IBondPositionManager.sol";
-import {PermitParams} from "../../../contracts/libraries/PermitParams.sol";
 import {Coupon, CouponLibrary} from "../../../contracts/libraries/Coupon.sol";
 import {CouponKey, CouponKeyLibrary} from "../../../contracts/libraries/CouponKey.sol";
 import {Epoch, EpochLibrary} from "../../../contracts/libraries/Epoch.sol";
@@ -218,9 +217,9 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
     function testDepositOverSlippage() public {
         uint256 amount = usdc.amount(10);
 
-        PermitParams memory permitParams =
+        IController.PermitParams memory permitParams =
             _buildERC20PermitParams(1, IERC20Permit(Constants.USDC), address(depositController), amount);
-        vm.expectRevert(abi.encodeWithSelector(Controller.ControllerSlippage.selector));
+        vm.expectRevert(abi.encodeWithSelector(IController.ControllerSlippage.selector));
         vm.prank(user);
         depositController.deposit(address(wausdc), amount, 2, amount * 4 / 100, permitParams);
     }
@@ -228,7 +227,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
     function testDepositOverCloberMarket() public {
         uint256 amount = usdc.amount(7000);
 
-        PermitParams memory permitParams =
+        IController.PermitParams memory permitParams =
             _buildERC20PermitParams(1, IERC20Permit(Constants.USDC), address(depositController), amount);
         vm.prank(user);
         depositController.deposit(address(wausdc), amount, 2, 0, permitParams);
