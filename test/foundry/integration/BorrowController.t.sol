@@ -182,7 +182,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
             (uint16 bidIndex,) = market.priceToIndex(1e18 / 100 * 2, false); // 2%
             (uint16 askIndex,) = market.priceToIndex(1e18 / 100 * 4, false); // 4%
             CloberOrderBook(market).limitOrder(
-                MARKET_MAKER, bidIndex, market.quoteToRaw(IERC20(key.asset).amount(100), false), 0, 3, ""
+                MARKET_MAKER, bidIndex, market.quoteToRaw(IERC20(key.asset).amount(1), false), 0, 3, ""
             );
             uint256 amount = IERC20(wrappedCoupons[i]).amount(100);
             Coupon[] memory coupons = Utils.toArr(Coupon(key, amount));
@@ -402,6 +402,20 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         assertEq(beforeLoanPosition.debtAmount, afterLoanPosition.debtAmount + repayAmount, "POSITION_DEBT_AMOUNT");
         assertEq(beforeLoanPosition.collateralToken, afterLoanPosition.collateralToken, "POSITION_COLLATERAL_TOKEN");
         assertEq(beforeLoanPosition.debtToken, afterLoanPosition.debtToken, "POSITION_DEBT_TOKEN");
+    }
+
+    function testRepayOverCloberMarket() public {
+        uint256 positionId = _initialBorrow(user, address(wausdc), address(waweth), usdc.amount(200_000), 70 ether, 2);
+
+        uint256 repayAmount = 60 ether;
+        PermitParams memory permit721Params =
+            _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(borrowController), positionId);
+        PermitParams memory permit20Params = _buildERC20PermitParams(1, waweth, address(borrowController), repayAmount);
+        vm.prank(user);
+        borrowController.repay{value: repayAmount}(positionId, repayAmount, 0, permit721Params, permit20Params);
+
+        assertGt(couponManager.balanceOf(user, couponKeys[5].toId()), 9.9 ether, "COUPON0_BALANCE");
+        assertLt(couponManager.balanceOf(user, couponKeys[6].toId()), 10 ether, "COUPON0_BALANCE");
     }
 
     // Convert an hexadecimal character to their value
