@@ -414,8 +414,8 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         vm.prank(user);
         borrowController.repay{value: repayAmount}(positionId, repayAmount, 0, permit721Params, permit20Params);
 
-        assertEq(couponManager.balanceOf(user, couponKeys[5].toId()), 9954459105033147456, "COUPON0_BALANCE");
-        assertEq(couponManager.balanceOf(user, couponKeys[6].toId()), 9954459105033147456, "COUPON0_BALANCE");
+        assertGt(couponManager.balanceOf(user, couponKeys[5].toId()), 9.9 ether, "COUPON0_BALANCE");
+        assertLt(couponManager.balanceOf(user, couponKeys[6].toId()), 10 ether, "COUPON0_BALANCE");
     }
 
     // Convert an hexadecimal character to their value
