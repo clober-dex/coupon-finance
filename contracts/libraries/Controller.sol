@@ -231,25 +231,6 @@ abstract contract Controller is ERC1155Holder, CloberMarketSwapCallbackReceiver,
         }
     }
 
-    //    function _sendCoupon(CouponKey memory couponKey, address to) internal {
-    //
-    //        if (couponKeys.length > 0) {
-    //            uint256[] memory tokenIds = new uint256[](couponKeys.length);
-    //            uint256[] memory amounts = new uint256[](couponKeys.length);
-    //            for (uint256 i = 0; i < coupons.length; i++) {
-    //                tokenIds[i] = couponKeys[i].toId();
-    //                amounts[i] = coupons[i].amount;
-    //            }
-    //            _wrapped1155Factory.batchUnwrap(
-    //                address(_couponManager),
-    //                tokenIds,
-    //                amounts,
-    //                address(this),
-    //                Wrapped1155MetadataBuilder.buildWrapped1155BatchMetadata(coupons)
-    //            );
-    //        }
-    //    }
-
     function getCouponMarket(CouponKey memory couponKey) external view returns (address) {
         return _couponMarkets[couponKey.toId()];
     }
