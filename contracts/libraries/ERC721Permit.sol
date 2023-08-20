@@ -40,8 +40,7 @@ abstract contract ERC721Permit is ERC721, IERC721Permit, EIP712 {
                 revert InvalidSignature();
             }
         } else {
-            address signer = ECDSA.recover(digest, v, r, s);
-            if (signer != owner) revert InvalidSignature();
+            if (ECDSA.recover(digest, v, r, s) != owner) revert InvalidSignature();
         }
 
         _approve(spender, tokenId);

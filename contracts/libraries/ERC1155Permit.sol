@@ -37,8 +37,7 @@ contract ERC1155Permit is ERC1155, IERC1155Permit, EIP712 {
                 revert InvalidSignature();
             }
         } else {
-            address signer = ECDSA.recover(digest, v, r, s);
-            if (signer != owner) revert InvalidSignature();
+            if (ECDSA.recover(digest, v, r, s) != owner) revert InvalidSignature();
         }
 
         _setApprovalForAll(owner, operator, approved);

@@ -48,22 +48,12 @@ library EpochLibrary {
         return _epochToTimestamp(Epoch.unwrap(epoch));
     }
 
-    function isExpired(Epoch epoch) internal view returns (bool) {
-        return endTime(epoch) <= block.timestamp;
-    }
-
     function lastExpiredEpoch() internal view returns (Epoch) {
         return current().sub(1);
     }
 
     function current() internal view returns (Epoch) {
         return Epoch.wrap(_timestampToEpoch(block.timestamp));
-    }
-
-    function long(Epoch epoch) internal pure returns (uint256) {
-        unchecked {
-            return endTime(epoch) - startTime(epoch);
-        }
     }
 
     function add(Epoch epoch, uint8 epochs) internal pure returns (Epoch) {

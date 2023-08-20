@@ -32,9 +32,7 @@ contract CouponManager is ERC1155Permit, ERC1155Supply, ICouponManager {
     }
 
     modifier onlyMinter() {
-        if (!isMinter[msg.sender]) {
-            revert InvalidAccess();
-        }
+        if (!isMinter[msg.sender]) revert InvalidAccess();
         _;
     }
 
@@ -71,14 +69,10 @@ contract CouponManager is ERC1155Permit, ERC1155Supply, ICouponManager {
         Epoch current = EpochLibrary.current();
         uint256 count;
         for (uint256 i = 0; i < couponKeys.length; ++i) {
-            if (couponKeys[i].epoch >= current) {
-                continue;
-            }
+            if (couponKeys[i].epoch >= current) continue;
             uint256 id = couponKeys[i].toId();
             uint256 amount = balanceOf(msg.sender, id);
-            if (amount == 0) {
-                continue;
-            }
+            if (amount == 0) continue;
             count++;
             ids[i] = id;
             amounts[i] = amount;

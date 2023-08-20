@@ -28,9 +28,7 @@ contract DepositController is IDepositController, Controller, IPositionLocker {
     IBondPositionManager private immutable _bondManager;
 
     modifier onlyPositionOwner(uint256 positionId) {
-        if (_bondManager.ownerOf(positionId) != msg.sender) {
-            revert InvalidAccess();
-        }
+        if (_bondManager.ownerOf(positionId) != msg.sender) revert InvalidAccess();
         _;
     }
 

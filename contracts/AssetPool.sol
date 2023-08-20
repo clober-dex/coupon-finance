@@ -20,9 +20,7 @@ contract AssetPool is IAssetPool {
     }
 
     function withdraw(address asset, uint256 amount, address recipient) external {
-        if (!isOperator[msg.sender]) {
-            revert InvalidAccess();
-        }
+        if (!isOperator[msg.sender]) revert InvalidAccess();
         IERC20(asset).safeTransfer(recipient, amount);
     }
 }

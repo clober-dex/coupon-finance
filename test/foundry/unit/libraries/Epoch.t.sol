@@ -32,13 +32,6 @@ contract EpochUnitTest is Test {
         assertEq(Epoch.unwrap(EpochLibrary.current()), 2 * (2032 - 1970)); // 1  Mar 2032 00:00:00 GMT
     }
 
-    function testIsExpired() public {
-        vm.warp(1961712000); // 1 Mar 2032 00:00:00 GMT
-        assertEq(Epoch.wrap(2 * (2032 - 1970)).isExpired(), false);
-        assertEq(Epoch.wrap(2 * (2032 - 1970) + 1).isExpired(), false);
-        assertEq(Epoch.wrap(2 * (2032 - 1970) - 1).isExpired(), true);
-    }
-
     function testStartTime() public {
         assertEq(Epoch.wrap(0).startTime(), 0);
         assertEq(Epoch.wrap(1).startTime(), 15638400); // 31 days
@@ -63,16 +56,6 @@ contract EpochUnitTest is Test {
         assertEq(Epoch.wrap(55).endTime(), 883612800); // 336 months
         assertEq(Epoch.wrap(89).endTime(), 1420070400); // 540 months
         assertEq(Epoch.wrap(144).endTime(), 2287785600); // 870 months
-    }
-
-    function testLong() public {
-        assertEq(Epoch.wrap(0).long(), 15638400); // 181 days
-        assertEq(Epoch.wrap(1).long(), 15897600); // 184 days
-        assertEq(Epoch.wrap(12).long(), 15724800); // 182 days
-        assertEq(Epoch.wrap(13).long(), 15897600); // 184 days
-        assertEq(Epoch.wrap(24).long(), 15638400); // 181 days
-        assertEq(Epoch.wrap(25).long(), 15897600); // 184 days
-        assertEq(Epoch.wrap(27).long(), 15897600); // 184 days
     }
 
     function testAdd() public {

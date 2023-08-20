@@ -27,9 +27,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
     ILoanPositionManager private immutable _loanManager;
 
     modifier onlyPositionOwner(uint256 positionId) {
-        if (_loanManager.ownerOf(positionId) != msg.sender) {
-            revert InvalidAccess();
-        }
+        if (_loanManager.ownerOf(positionId) != msg.sender) revert InvalidAccess();
         _;
     }
 
