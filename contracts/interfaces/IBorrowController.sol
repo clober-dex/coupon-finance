@@ -57,18 +57,4 @@ interface IBorrowController is IController {
         PermitParams calldata positionPermitParams,
         PermitParams calldata debtPermitParams
     ) external payable;
-
-    struct SwapData {
-        address swap;
-        uint256 inAmount;
-        uint256 minOutAmount;
-        bytes data;
-    }
-
-    function repayWithCollateral(
-        uint256 positionId,
-        uint256 maxDebtAmount,
-        SwapData calldata swapData,
-        PermitParams calldata positionPermitParams
-    ) external;
 }
