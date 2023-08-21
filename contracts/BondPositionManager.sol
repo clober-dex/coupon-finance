@@ -98,8 +98,8 @@ contract BondPositionManager is IBondPositionManager, PositionManager, Ownable {
         if (_MAX_EPOCH < position.expiredWith) revert InvalidEpoch();
         if (position.amount == 0) {
             _burn(positionId);
-        } else {
-            if (position.expiredWith < EpochLibrary.current()) revert InvalidEpoch();
+        } else if (position.expiredWith < EpochLibrary.current()) {
+            revert InvalidEpoch();
         }
         emit PositionUpdated(positionId, position.amount, position.expiredWith);
     }
