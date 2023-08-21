@@ -87,7 +87,7 @@ contract LoanPositionManagerBurnUnitTest is Test, ILoanPositionManagerTypes {
         uint256 beforePositionBalance = loanPositionManager.balanceOf(address(this));
 
         vm.expectEmit(true, true, true, true);
-        emit PositionUpdated(tokenId, 0, 0, beforePosition.expiredWith);
+        emit UpdatePosition(tokenId, 0, 0, beforePosition.expiredWith);
         vm.expectCall(
             address(assetPool),
             abi.encodeCall(assetPool.withdraw, (address(weth), initialCollateralAmount, address(helper)))

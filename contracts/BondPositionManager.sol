@@ -101,7 +101,7 @@ contract BondPositionManager is IBondPositionManager, PositionManager, Ownable {
         } else if (position.expiredWith < EpochLibrary.current()) {
             revert InvalidEpoch();
         }
-        emit PositionUpdated(positionId, position.amount, position.expiredWith);
+        emit UpdatePosition(positionId, position.amount, position.expiredWith);
     }
 
     function registerAsset(address asset) external onlyOwner {
@@ -114,7 +114,7 @@ contract BondPositionManager is IBondPositionManager, PositionManager, Ownable {
 
     function _registerAsset(address asset) internal {
         isAssetRegistered[asset] = true;
-        emit AssetRegistered(asset);
+        emit RegisterAsset(asset);
     }
 
     function _getAndIncrementNonce(uint256 positionId) internal override returns (uint256) {

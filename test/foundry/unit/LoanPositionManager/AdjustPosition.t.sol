@@ -98,7 +98,7 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
         couponsToPay[2] = CouponLibrary.from(address(usdc), startEpoch.add(3), debtAmount);
         couponsToPay[3] = CouponLibrary.from(address(usdc), startEpoch.add(4), debtAmount);
         vm.expectEmit(true, true, true, true);
-        emit PositionUpdated(tokenId, initialCollateralAmount, debtAmount, epoch);
+        emit UpdatePosition(tokenId, initialCollateralAmount, debtAmount, epoch);
         vm.expectCall(
             address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(helper), couponsToPay)), 1
         );
@@ -123,7 +123,7 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
         Coupon[] memory couponsToRefund = new Coupon[](1);
         couponsToRefund[0] = CouponLibrary.from(address(usdc), startEpoch.add(2), initialDebtAmount);
         vm.expectEmit(true, true, true, true);
-        emit PositionUpdated(tokenId, initialCollateralAmount, debtAmount, epoch);
+        emit UpdatePosition(tokenId, initialCollateralAmount, debtAmount, epoch);
         vm.expectCall(
             address(couponManager),
             abi.encodeCall(ICouponManager.mintBatch, (address(helper), couponsToRefund, new bytes(0))),
@@ -158,7 +158,7 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
         couponsToRefund[0] = CouponLibrary.from(address(usdc), startEpoch.add(1), decreaseAmount);
         couponsToRefund[1] = CouponLibrary.from(address(usdc), startEpoch.add(2), decreaseAmount);
         vm.expectEmit(true, true, true, true);
-        emit PositionUpdated(tokenId, initialCollateralAmount, debtAmount, epoch);
+        emit UpdatePosition(tokenId, initialCollateralAmount, debtAmount, epoch);
         vm.expectCall(
             address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(helper), couponsToPay)), 1
         );
@@ -189,7 +189,7 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
         couponsToRefund[0] = CouponLibrary.from(address(usdc), startEpoch.add(1), decreaseAmount);
         couponsToRefund[1] = CouponLibrary.from(address(usdc), startEpoch.add(2), initialDebtAmount);
         vm.expectEmit(true, true, true, true);
-        emit PositionUpdated(tokenId, initialCollateralAmount, debtAmount, epoch);
+        emit UpdatePosition(tokenId, initialCollateralAmount, debtAmount, epoch);
         vm.expectCall(
             address(couponManager),
             abi.encodeCall(ICouponManager.mintBatch, (address(helper), couponsToRefund, new bytes(0))),
@@ -218,7 +218,7 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
         couponsToRefund[0] = CouponLibrary.from(address(usdc), startEpoch.add(1), decreaseAmount);
         couponsToRefund[1] = CouponLibrary.from(address(usdc), startEpoch.add(2), decreaseAmount);
         vm.expectEmit(true, true, true, true);
-        emit PositionUpdated(tokenId, initialCollateralAmount, debtAmount, epoch);
+        emit UpdatePosition(tokenId, initialCollateralAmount, debtAmount, epoch);
         vm.expectCall(
             address(couponManager),
             abi.encodeCall(ICouponManager.mintBatch, (address(helper), couponsToRefund, new bytes(0))),
@@ -245,7 +245,7 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
         uint256 beforePoolCollateralBalance = weth.balanceOf(address(assetPool));
 
         vm.expectEmit(true, true, true, true);
-        emit PositionUpdated(tokenId, collateralAmount, initialDebtAmount, epoch);
+        emit UpdatePosition(tokenId, collateralAmount, initialDebtAmount, epoch);
         helper.adjustPosition(tokenId, collateralAmount, initialDebtAmount, epoch);
 
         LoanPosition memory position = loanPositionManager.getPosition(tokenId);
@@ -263,7 +263,7 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
         Epoch epoch = startEpoch.add(1);
 
         vm.expectEmit(true, true, true, true);
-        emit PositionUpdated(tokenId, collateralAmount, initialDebtAmount, epoch);
+        emit UpdatePosition(tokenId, collateralAmount, initialDebtAmount, epoch);
         vm.expectCall(
             address(assetPool), abi.encodeCall(IAssetPool.withdraw, (address(weth), decreaseAmount, address(helper))), 1
         );

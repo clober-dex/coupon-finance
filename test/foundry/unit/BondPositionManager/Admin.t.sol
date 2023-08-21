@@ -22,7 +22,7 @@ contract BondPositionManagerAdminUnitTest is Test, IBondPositionManagerTypes {
         MockERC20 newToken = new MockERC20("New", "NEW", 18);
         assertTrue(!bondPositionManager.isAssetRegistered(address(newToken)), "NEW_TOKEN_IS_REGISTERED");
         vm.expectEmit(true, true, true, true);
-        emit AssetRegistered(address(newToken));
+        emit RegisterAsset(address(newToken));
         bondPositionManager.registerAsset(address(newToken));
         assertTrue(bondPositionManager.isAssetRegistered(address(newToken)), "NEW_TOKEN_IS_NOT_REGISTERED");
     }

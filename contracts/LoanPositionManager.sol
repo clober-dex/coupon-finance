@@ -67,9 +67,7 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
     }
 
     function mint(address collateralToken, address debtToken) external onlyByLocker returns (uint256 positionId) {
-        if (_isPairUnregistered(collateralToken, debtToken)) {
-            revert InvalidPair();
-        }
+        if (_isPairUnregistered(collateralToken, debtToken)) revert InvalidPair();
 
         unchecked {
             positionId = nextId++;
@@ -128,9 +126,7 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
         super.settlePosition(positionId);
         LoanPosition memory position = _positionMap[positionId];
 
-        if (position.debtAmount > 0 && position.expiredWith <= EpochLibrary.lastExpiredEpoch()) {
-            revert UnpaidDebt();
-        }
+        if (position.debtAmount > 0 && position.expiredWith <= EpochLibrary.lastExpiredEpoch()) revert UnpaidDebt();
 
         LoanConfiguration memory loanConfig =
             _loanConfiguration[_buildLoanPairId(position.collateralToken, position.debtToken)];
@@ -150,7 +146,7 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
             _burn(positionId);
         }
 
-        emit PositionUpdated(positionId, position.collateralAmount, position.debtAmount, position.expiredWith);
+        emit UpdatePosition(positionId, position.collateralAmount, position.debtAmount, position.expiredWith);
     }
 
     function _buildLoanPairId(address collateral, address debt) internal pure returns (bytes32) {
@@ -319,8 +315,8 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
                 }
             }
 
-            emit PositionLiquidated(positionId);
-            emit PositionUpdated(positionId, position.collateralAmount, position.debtAmount, position.expiredWith);
+            emit LiquidatePosition(positionId, msg.sender, liquidationAmount, repayAmount, protocolFeeAmount);
+            emit UpdatePosition(positionId, position.collateralAmount, position.debtAmount, position.expiredWith);
         }
     }
 
@@ -354,6 +350,9 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
             liquidationProtocolFee: liquidationProtocolFee,
             liquidationTargetLtv: liquidationTargetLtv
         });
+        emit SetLoanConfiguration(
+            collateral, debt, liquidationThreshold, liquidationFee, liquidationProtocolFee, liquidationTargetLtv
+        );
     }
 
     function nonces(uint256 positionId) external view returns (uint256) {

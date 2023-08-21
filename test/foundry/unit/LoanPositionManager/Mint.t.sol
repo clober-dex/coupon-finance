@@ -74,7 +74,7 @@ contract LoanPositionManagerMintUnitTest is Test, ILoanPositionManagerTypes {
         _mintCoupons(address(helper), coupons);
 
         vm.expectEmit(true, true, true, true);
-        emit PositionUpdated(nextId, initialCollateralAmount, initialDebtAmount, epoch);
+        emit UpdatePosition(nextId, initialCollateralAmount, initialDebtAmount, epoch);
         vm.expectCall(address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(helper), coupons)), 1);
         uint256 tokenId = helper.mint(
             address(weth), address(usdc), initialCollateralAmount, initialDebtAmount, epoch, Constants.USER1

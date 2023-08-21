@@ -20,10 +20,22 @@ interface ILoanPositionManagerTypes is IPositionManagerTypes {
         uint32 liquidationTargetLtv;
     }
 
-    event AssetRegistered(address indexed asset);
-    event PositionUpdated(uint256 indexed positionId, uint256 collateralAmount, uint256 debtAmount, Epoch unlockedAt);
-    // todo: should give more information
-    event PositionLiquidated(uint256 indexed positionId);
+    event SetLoanConfiguration(
+        address indexed collateral,
+        address indexed debt,
+        uint32 liquidationThreshold,
+        uint32 liquidationFee,
+        uint32 liquidationProtocolFee,
+        uint32 liquidationTargetLtv
+    );
+    event UpdatePosition(uint256 indexed positionId, uint256 collateralAmount, uint256 debtAmount, Epoch unlockedAt);
+    event LiquidatePosition(
+        uint256 indexed positionId,
+        address indexed liquidator,
+        uint256 liquidationAmount,
+        uint256 repayAmount,
+        uint256 protocolFeeAmount
+    );
 
     error AlreadyExpired();
     error TooSmallDebt();
