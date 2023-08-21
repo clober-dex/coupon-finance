@@ -5,6 +5,9 @@ pragma solidity ^0.8.0;
 import {IERC1155} from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 
 interface IERC1155Permit is IERC1155 {
+    error InvalidSignature();
+    error PermitExpired();
+
     function PERMIT_TYPEHASH() external pure returns (bytes32);
 
     function DOMAIN_SEPARATOR() external view returns (bytes32);

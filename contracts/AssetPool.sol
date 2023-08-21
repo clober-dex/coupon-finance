@@ -11,8 +11,6 @@ import {IAssetPool} from "./interfaces/IAssetPool.sol";
 contract AssetPool is IAssetPool {
     using SafeERC20 for IERC20;
 
-    error InvalidAccess();
-
     mapping(address => bool) public override isOperator;
 
     constructor(address[] memory operators) {
@@ -22,9 +20,7 @@ contract AssetPool is IAssetPool {
     }
 
     function withdraw(address asset, uint256 amount, address recipient) external {
-        if (!isOperator[msg.sender]) {
-            revert InvalidAccess();
-        }
+        if (!isOperator[msg.sender]) revert InvalidAccess();
         IERC20(asset).safeTransfer(recipient, amount);
     }
 }

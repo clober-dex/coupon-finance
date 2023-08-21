@@ -12,7 +12,6 @@ import {IBondPositionManager} from "./interfaces/IBondPositionManager.sol";
 import {ICouponManager} from "./interfaces/ICouponManager.sol";
 import {IPositionManager} from "./interfaces/IPositionManager.sol";
 import {IAssetPool} from "./interfaces/IAssetPool.sol";
-import {IBondPositionCallbackReceiver} from "./interfaces/IBondPositionCallbackReceiver.sol";
 import {ERC721Permit} from "./libraries/ERC721Permit.sol";
 import {BondPosition, BondPositionLibrary} from "./libraries/BondPosition.sol";
 import {Coupon, CouponLibrary} from "./libraries/Coupon.sol";
@@ -44,9 +43,7 @@ contract BondPositionManager is IBondPositionManager, PositionManager, Ownable {
     }
 
     function mint(address asset) external onlyByLocker returns (uint256 positionId) {
-        if (!isAssetRegistered[asset]) {
-            revert UnregisteredAsset();
-        }
+        if (!isAssetRegistered[asset]) revert UnregisteredAsset();
 
         unchecked {
             positionId = nextId++;
@@ -61,18 +58,14 @@ contract BondPositionManager is IBondPositionManager, PositionManager, Ownable {
         modifyPosition(positionId)
         returns (Coupon[] memory couponsToMint, Coupon[] memory couponsToBurn, int256 amountDelta)
     {
-        if (!_isApprovedOrOwner(msg.sender, positionId)) {
-            revert InvalidAccess();
-        }
+        if (!_isApprovedOrOwner(msg.sender, positionId)) revert InvalidAccess();
         Epoch lastExpiredEpoch = EpochLibrary.lastExpiredEpoch();
         if (amount == 0 || expiredWith == Epoch.wrap(0)) {
             amount = 0;
             expiredWith = lastExpiredEpoch;
         }
 
-        if (expiredWith < lastExpiredEpoch || _MAX_EPOCH < expiredWith) {
-            revert InvalidEpoch();
-        }
+        if (expiredWith < lastExpiredEpoch || _MAX_EPOCH < expiredWith) revert InvalidEpoch();
 
         BondPosition memory position = _positionMap[positionId];
 
@@ -88,11 +81,13 @@ contract BondPositionManager is IBondPositionManager, PositionManager, Ownable {
             (couponsToMint, couponsToBurn) = position.calculateCouponRequirement(_positionMap[positionId]);
         }
 
-        for (uint256 i = 0; i < couponsToMint.length; ++i) {
-            _accountDelta(couponsToMint[i].id(), 0, couponsToMint[i].amount);
-        }
-        for (uint256 i = 0; i < couponsToBurn.length; ++i) {
-            _accountDelta(couponsToBurn[i].id(), couponsToBurn[i].amount, 0);
+        unchecked {
+            for (uint256 i = 0; i < couponsToMint.length; ++i) {
+                _accountDelta(couponsToMint[i].id(), 0, couponsToMint[i].amount);
+            }
+            for (uint256 i = 0; i < couponsToBurn.length; ++i) {
+                _accountDelta(couponsToBurn[i].id(), couponsToBurn[i].amount, 0);
+            }
         }
         amountDelta = _accountDelta(uint256(uint160(position.asset)), amount, position.amount);
     }
@@ -100,15 +95,11 @@ contract BondPositionManager is IBondPositionManager, PositionManager, Ownable {
     function settlePosition(uint256 positionId) public override(IPositionManager, PositionManager) onlyByLocker {
         super.settlePosition(positionId);
         BondPosition memory position = _positionMap[positionId];
-        if (_MAX_EPOCH < position.expiredWith) {
-            revert InvalidEpoch();
-        }
+        if (_MAX_EPOCH < position.expiredWith) revert InvalidEpoch();
         if (position.amount == 0) {
             _burn(positionId);
-        } else {
-            if (position.expiredWith < EpochLibrary.current()) {
-                revert InvalidEpoch();
-            }
+        } else if (position.expiredWith < EpochLibrary.current()) {
+            revert InvalidEpoch();
         }
         emit PositionUpdated(positionId, position.amount, position.expiredWith);
     }

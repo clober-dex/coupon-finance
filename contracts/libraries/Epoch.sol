@@ -36,14 +36,6 @@ library EpochLibrary {
     uint256 constant SECONDS_PER_DAY = 24 * 60 * 60;
     int256 constant OFFSET19700101 = 2440588;
 
-    function wrap(uint8 epoch) internal pure returns (Epoch) {
-        return Epoch.wrap(epoch);
-    }
-
-    function unwrap(Epoch epoch) internal pure returns (uint8) {
-        return Epoch.unwrap(epoch);
-    }
-
     function startTime(Epoch epoch) internal pure returns (uint256) {
         uint8 currentEpoch = Epoch.unwrap(epoch);
         if (currentEpoch == 0) return 0;
@@ -56,22 +48,12 @@ library EpochLibrary {
         return _epochToTimestamp(Epoch.unwrap(epoch));
     }
 
-    function isExpired(Epoch epoch) internal view returns (bool) {
-        return endTime(epoch) <= block.timestamp;
-    }
-
     function lastExpiredEpoch() internal view returns (Epoch) {
         return current().sub(1);
     }
 
     function current() internal view returns (Epoch) {
         return Epoch.wrap(_timestampToEpoch(block.timestamp));
-    }
-
-    function long(Epoch epoch) internal pure returns (uint256) {
-        unchecked {
-            return endTime(epoch) - startTime(epoch);
-        }
     }
 
     function add(Epoch epoch, uint8 epochs) internal pure returns (Epoch) {

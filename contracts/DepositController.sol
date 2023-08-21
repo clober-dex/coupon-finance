@@ -15,7 +15,6 @@ import {BondPosition, BondPositionLibrary} from "./libraries/BondPosition.sol";
 import {Epoch, EpochLibrary} from "./libraries/Epoch.sol";
 import {CouponKey, CouponKeyLibrary} from "./libraries/CouponKey.sol";
 import {Coupon, CouponLibrary} from "./libraries/Coupon.sol";
-import {PermitParams} from "./libraries/PermitParams.sol";
 import {Controller} from "./libraries/Controller.sol";
 import {Wrapped1155MetadataBuilder} from "./libraries/Wrapped1155MetadataBuilder.sol";
 
@@ -29,9 +28,7 @@ contract DepositController is IDepositController, Controller, IPositionLocker {
     IBondPositionManager private immutable _bondManager;
 
     modifier onlyPositionOwner(uint256 positionId) {
-        if (_bondManager.ownerOf(positionId) != msg.sender) {
-            revert InvalidAccess();
-        }
+        if (_bondManager.ownerOf(positionId) != msg.sender) revert InvalidAccess();
         _;
     }
 

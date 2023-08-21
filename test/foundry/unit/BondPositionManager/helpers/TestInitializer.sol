@@ -34,7 +34,7 @@ library TestInitializer {
 
         p.usdc.mint(address(this), p.usdc.amount(1_000_000_000));
 
-        vm.warp(EpochLibrary.wrap(10).startTime());
+        vm.warp(Epoch.wrap(10).startTime());
         p.startEpoch = EpochLibrary.current();
 
         p.initialAmount = p.usdc.amount(100);

@@ -30,9 +30,7 @@ contract CouponOracle is ICouponOracle, Ownable {
 
         if (feed != address(0)) {
             (, int256 price,,,) = AggregatorV3Interface(feed).latestRoundData();
-            if (price > 0) {
-                return uint256(price);
-            }
+            if (price > 0) return uint256(price);
         }
         return _fallback(asset);
     }

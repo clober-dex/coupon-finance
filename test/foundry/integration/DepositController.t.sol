@@ -18,10 +18,9 @@ import {Constants} from "../Constants.sol";
 import {ForkUtils, ERC20Utils, Utils} from "../Utils.sol";
 import {IAssetPool} from "../../../contracts/interfaces/IAssetPool.sol";
 import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
+import {IController} from "../../../contracts/interfaces/IController.sol";
 import {IERC721Permit} from "../../../contracts/interfaces/IERC721Permit.sol";
 import {IBondPositionManager} from "../../../contracts/interfaces/IBondPositionManager.sol";
-import {PermitParams} from "../../../contracts/libraries/PermitParams.sol";
-import {Controller} from "../../../contracts/libraries/Controller.sol";
 import {Coupon, CouponLibrary} from "../../../contracts/libraries/Coupon.sol";
 import {CouponKey, CouponKeyLibrary} from "../../../contracts/libraries/CouponKey.sol";
 import {Epoch, EpochLibrary} from "../../../contracts/libraries/Epoch.sol";
@@ -57,7 +56,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
     AaveTokenSubstitute public wausdc;
     AaveTokenSubstitute public waweth;
     address public user;
-    PermitParams public emptyPermitParams;
+    IController.PermitParams public emptyPermitParams;
 
     CouponKey[] public couponKeys;
     address[] public wrappedCoupons;
@@ -218,9 +217,9 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
     function testDepositOverSlippage() public {
         uint256 amount = usdc.amount(10);
 
-        PermitParams memory permitParams =
+        IController.PermitParams memory permitParams =
             _buildERC20PermitParams(1, IERC20Permit(Constants.USDC), address(depositController), amount);
-        vm.expectRevert(abi.encodeWithSelector(Controller.ControllerSlippage.selector));
+        vm.expectRevert(abi.encodeWithSelector(IController.ControllerSlippage.selector));
         vm.prank(user);
         depositController.deposit(address(wausdc), amount, 2, amount * 4 / 100, permitParams);
     }
@@ -228,7 +227,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
     function testDepositOverCloberMarket() public {
         uint256 amount = usdc.amount(7000);
 
-        PermitParams memory permitParams =
+        IController.PermitParams memory permitParams =
             _buildERC20PermitParams(1, IERC20Permit(Constants.USDC), address(depositController), amount);
         vm.prank(user);
         depositController.deposit(address(wausdc), amount, 2, 0, permitParams);
@@ -423,7 +422,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
     function _buildERC20PermitParams(uint256 privateKey, IERC20Permit token, address spender, uint256 amount)
         internal
         view
-        returns (PermitParams memory)
+        returns (IController.PermitParams memory)
     {
         address owner = vm.addr(privateKey);
         bytes32 structHash = keccak256(
@@ -431,22 +430,22 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         );
         bytes32 hash = ECDSA.toTypedDataHash(token.DOMAIN_SEPARATOR(), structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, hash);
-        return PermitParams(block.timestamp + 1, v, r, s);
+        return IController.PermitParams(block.timestamp + 1, v, r, s);
     }
 
     function _buildERC721PermitParams(uint256 privateKey, IERC721Permit token, address spender, uint256 tokenId)
         internal
         view
-        returns (PermitParams memory)
+        returns (IController.PermitParams memory)
     {
         bytes32 structHash =
             keccak256(abi.encode(token.PERMIT_TYPEHASH(), spender, tokenId, token.nonces(tokenId), block.timestamp + 1));
         bytes32 hash = ECDSA.toTypedDataHash(token.DOMAIN_SEPARATOR(), structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, hash);
-        return PermitParams(block.timestamp + 1, v, r, s);
+        return IController.PermitParams(block.timestamp + 1, v, r, s);
     }
 
     function assertEq(Epoch e1, Epoch e2, string memory err) internal {
-        assertEq(e1.unwrap(), e2.unwrap(), err);
+        assertEq(Epoch.unwrap(e1), Epoch.unwrap(e2), err);
     }
 }

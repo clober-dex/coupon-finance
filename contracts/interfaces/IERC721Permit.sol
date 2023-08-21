@@ -5,6 +5,9 @@ pragma solidity ^0.8.0;
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 interface IERC721Permit is IERC721 {
+    error InvalidSignature();
+    error PermitExpired();
+
     function PERMIT_TYPEHASH() external pure returns (bytes32);
 
     function DOMAIN_SEPARATOR() external view returns (bytes32);

@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.0;
 
-import {PermitParams} from "../libraries/PermitParams.sol";
+import {IController} from "./IController.sol";
 
-interface IBorrowController {
+interface IBorrowController is IController {
     error CollateralSwapFailed(string reason);
     error InvalidDebtAmount();
 

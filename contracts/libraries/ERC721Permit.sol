@@ -12,9 +12,6 @@ import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {IERC721Permit} from "../interfaces/IERC721Permit.sol";
 
 abstract contract ERC721Permit is ERC721, IERC721Permit, EIP712 {
-    error InvalidSignature();
-    error PermitExpired();
-
     // keccak256("Permit(address spender,uint256 tokenId,uint256 nonce,uint256 deadline)");
     bytes32 public constant override PERMIT_TYPEHASH =
         0x49ecf333e5b8c95c40fdafc95c1ad136e8914a8fb55e9dc8bb01eaa83a2df9ad;
@@ -43,8 +40,7 @@ abstract contract ERC721Permit is ERC721, IERC721Permit, EIP712 {
                 revert InvalidSignature();
             }
         } else {
-            address signer = ECDSA.recover(digest, v, r, s);
-            if (signer != owner) revert InvalidSignature();
+            if (ECDSA.recover(digest, v, r, s) != owner) revert InvalidSignature();
         }
 
         _approve(spender, tokenId);

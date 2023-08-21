@@ -202,7 +202,7 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
                 uint256 minDebtAmount
             ) = _calculatePricesAndMinDebtAmount(position.collateralToken, position.debtToken, loanConfig);
 
-            if (position.expiredWith.isExpired()) {
+            if (position.expiredWith.endTime() <= block.timestamp) {
                 if (maxRepayAmount >= position.debtAmount) {
                     repayAmount = position.debtAmount;
                 } else if (maxRepayAmount + minDebtAmount > position.debtAmount) {

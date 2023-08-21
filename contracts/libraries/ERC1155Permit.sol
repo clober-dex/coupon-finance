@@ -12,9 +12,6 @@ import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {IERC1155Permit} from "../interfaces/IERC1155Permit.sol";
 
 contract ERC1155Permit is ERC1155, IERC1155Permit, EIP712 {
-    error InvalidSignature();
-    error PermitExpired();
-
     mapping(address => uint256) public override nonces;
 
     bytes32 public constant override PERMIT_TYPEHASH =
@@ -40,8 +37,7 @@ contract ERC1155Permit is ERC1155, IERC1155Permit, EIP712 {
                 revert InvalidSignature();
             }
         } else {
-            address signer = ECDSA.recover(digest, v, r, s);
-            if (signer != owner) revert InvalidSignature();
+            if (ECDSA.recover(digest, v, r, s) != owner) revert InvalidSignature();
         }
 
         _setApprovalForAll(owner, operator, approved);
