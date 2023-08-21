@@ -4,24 +4,16 @@
 pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import {IWETH9} from "./external/weth/IWETH9.sol";
-import {IERC721Permit} from "./interfaces/IERC721Permit.sol";
-import {ISubstitute} from "./interfaces/ISubstitute.sol";
 import {IBorrowController} from "./interfaces/IBorrowController.sol";
 import {ILoanPositionManager} from "./interfaces/ILoanPositionManager.sol";
-import {LoanPosition, LoanPositionLibrary} from "./libraries/LoanPosition.sol";
-import {CouponKey, CouponKeyLibrary} from "./libraries/CouponKey.sol";
+import {LoanPosition} from "./libraries/LoanPosition.sol";
 import {Coupon} from "./libraries/Coupon.sol";
 import {Epoch, EpochLibrary} from "./libraries/Epoch.sol";
 import {Controller} from "./libraries/Controller.sol";
 import {IPositionLocker} from "./interfaces/IPositionLocker.sol";
 
 contract BorrowController is IBorrowController, Controller, IPositionLocker {
-    using SafeERC20 for IERC20;
-    using LoanPositionLibrary for LoanPosition;
-    using CouponKeyLibrary for CouponKey;
     using EpochLibrary for Epoch;
 
     ILoanPositionManager private immutable _loanManager;

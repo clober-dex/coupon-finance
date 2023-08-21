@@ -10,7 +10,6 @@ import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20P
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-import {IAToken} from "./external/aave-v3/IAToken.sol";
 import {IPool} from "./external/aave-v3/IPool.sol";
 import {DataTypes} from "./external/aave-v3/DataTypes.sol";
 import {ReserveConfiguration} from "./external/aave-v3/ReserveConfiguration.sol";

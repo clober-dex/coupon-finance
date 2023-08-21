@@ -3,24 +3,16 @@
 
 pragma solidity ^0.8.0;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 import {IBondPositionManager} from "./interfaces/IBondPositionManager.sol";
-import {ICouponManager} from "./interfaces/ICouponManager.sol";
 import {IPositionManager} from "./interfaces/IPositionManager.sol";
-import {IAssetPool} from "./interfaces/IAssetPool.sol";
-import {ERC721Permit} from "./libraries/ERC721Permit.sol";
 import {BondPosition, BondPositionLibrary} from "./libraries/BondPosition.sol";
 import {Coupon, CouponLibrary} from "./libraries/Coupon.sol";
 import {Epoch, EpochLibrary} from "./libraries/Epoch.sol";
 import {PositionManager} from "./libraries/PositionManager.sol";
 
 contract BondPositionManager is IBondPositionManager, PositionManager, Ownable {
-    using SafeERC20 for IERC20;
-    using Strings for uint256;
     using EpochLibrary for Epoch;
     using BondPositionLibrary for BondPosition;
     using CouponLibrary for Coupon;
