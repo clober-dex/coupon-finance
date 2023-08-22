@@ -56,10 +56,9 @@ contract OdosRepayAdapter is IRepayAdapter, Controller, IPositionLocker {
         uint256 repayDebtAmount =
             _swapCollateral(position.collateralToken, position.debtToken, sellCollateralAmount, swapData);
         position.collateralAmount = position.collateralAmount - sellCollateralAmount;
-        position.debtAmount = position.debtAmount - repayDebtAmount;
 
         (Coupon[] memory couponsToPay, Coupon[] memory couponsToRefund,,) = _loanManager.adjustPosition(
-            positionId, position.collateralAmount, position.debtAmount, position.expiredWith
+            positionId, position.collateralAmount, position.debtAmount - repayDebtAmount, position.expiredWith
         );
         if (couponsToRefund.length > 0) {
             _loanManager.mintCoupons(couponsToRefund, address(this), new bytes(0));
