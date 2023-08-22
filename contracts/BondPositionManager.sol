@@ -3,29 +3,21 @@
 
 pragma solidity ^0.8.0;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 import {IBondPositionManager} from "./interfaces/IBondPositionManager.sol";
-import {ICouponManager} from "./interfaces/ICouponManager.sol";
 import {IPositionManager} from "./interfaces/IPositionManager.sol";
-import {IAssetPool} from "./interfaces/IAssetPool.sol";
-import {ERC721Permit} from "./libraries/ERC721Permit.sol";
 import {BondPosition, BondPositionLibrary} from "./libraries/BondPosition.sol";
 import {Coupon, CouponLibrary} from "./libraries/Coupon.sol";
 import {Epoch, EpochLibrary} from "./libraries/Epoch.sol";
 import {PositionManager} from "./libraries/PositionManager.sol";
 
 contract BondPositionManager is IBondPositionManager, PositionManager, Ownable {
-    using SafeERC20 for IERC20;
-    using Strings for uint256;
     using EpochLibrary for Epoch;
     using BondPositionLibrary for BondPosition;
     using CouponLibrary for Coupon;
 
-    Epoch private constant _MAX_EPOCH = Epoch.wrap(157); // Ends at 31 Dec 2048 23:59:59 GMT
+    Epoch public constant override MAX_EPOCH = Epoch.wrap(157); // Ends at 31 Dec 2048 23:59:59 GMT
 
     mapping(address asset => bool) public override isAssetRegistered;
     mapping(uint256 id => BondPosition) private _positionMap;
@@ -33,10 +25,6 @@ contract BondPositionManager is IBondPositionManager, PositionManager, Ownable {
     constructor(address coupon_, address assetPool_, string memory baseURI_)
         PositionManager(coupon_, assetPool_, baseURI_, "Bond Position", "BP")
     {}
-
-    function getMaxEpoch() external pure returns (Epoch maxEpoch) {
-        return _MAX_EPOCH;
-    }
 
     function getPosition(uint256 positionId) external view returns (BondPosition memory) {
         return _positionMap[positionId];
@@ -65,7 +53,7 @@ contract BondPositionManager is IBondPositionManager, PositionManager, Ownable {
             expiredWith = lastExpiredEpoch;
         }
 
-        if (expiredWith < lastExpiredEpoch || _MAX_EPOCH < expiredWith) revert InvalidEpoch();
+        if (expiredWith < lastExpiredEpoch || MAX_EPOCH < expiredWith) revert InvalidEpoch();
 
         BondPosition memory position = _positionMap[positionId];
 
@@ -74,9 +62,7 @@ contract BondPositionManager is IBondPositionManager, PositionManager, Ownable {
             if (amount > 0) revert AlreadyExpired();
         } else {
             _positionMap[positionId].expiredWith = expiredWith;
-            if (position.expiredWith == Epoch.wrap(0)) {
-                position.expiredWith = lastExpiredEpoch;
-            }
+            if (position.expiredWith == Epoch.wrap(0)) position.expiredWith = lastExpiredEpoch;
 
             (couponsToMint, couponsToBurn) = position.calculateCouponRequirement(_positionMap[positionId]);
         }
@@ -95,26 +81,22 @@ contract BondPositionManager is IBondPositionManager, PositionManager, Ownable {
     function settlePosition(uint256 positionId) public override(IPositionManager, PositionManager) onlyByLocker {
         super.settlePosition(positionId);
         BondPosition memory position = _positionMap[positionId];
-        if (_MAX_EPOCH < position.expiredWith) revert InvalidEpoch();
+        if (MAX_EPOCH < position.expiredWith) revert InvalidEpoch();
         if (position.amount == 0) {
             _burn(positionId);
         } else if (position.expiredWith < EpochLibrary.current()) {
             revert InvalidEpoch();
         }
-        emit PositionUpdated(positionId, position.amount, position.expiredWith);
+        emit UpdatePosition(positionId, position.amount, position.expiredWith);
     }
 
     function registerAsset(address asset) external onlyOwner {
-        _registerAsset(asset);
+        isAssetRegistered[asset] = true;
+        emit RegisterAsset(asset);
     }
 
     function nonces(uint256 positionId) external view returns (uint256) {
         return _positionMap[positionId].nonce;
-    }
-
-    function _registerAsset(address asset) internal {
-        isAssetRegistered[asset] = true;
-        emit AssetRegistered(asset);
     }
 
     function _getAndIncrementNonce(uint256 positionId) internal override returns (uint256) {

@@ -61,7 +61,7 @@ contract BondPositionManagerMintUnitTest is Test, IBondPositionManagerTypes {
             1
         );
         vm.expectEmit(true, true, true, true);
-        emit PositionUpdated(nextId, amount, expectedExpiredWith);
+        emit UpdatePosition(nextId, amount, expectedExpiredWith);
         uint256 tokenId = helper.mint(address(usdc), amount, startEpoch.add(1), Constants.USER1);
 
         BondPosition memory position = bondPositionManager.getPosition(tokenId);
@@ -88,7 +88,7 @@ contract BondPositionManagerMintUnitTest is Test, IBondPositionManagerTypes {
         Epoch expectedExpiredWith = EpochLibrary.lastExpiredEpoch();
 
         vm.expectEmit(true, true, true, true);
-        emit PositionUpdated(nextId, 0, expectedExpiredWith);
+        emit UpdatePosition(nextId, 0, expectedExpiredWith);
         uint256 tokenId = helper.mint(address(usdc), 0, startEpoch.add(1), Constants.USER1);
 
         BondPosition memory position = bondPositionManager.getPosition(tokenId);

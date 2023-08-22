@@ -8,8 +8,8 @@ import {Coupon} from "../libraries/Coupon.sol";
 import {BondPosition} from "../libraries/BondPosition.sol";
 
 interface IBondPositionManagerTypes is IPositionManagerTypes {
-    event AssetRegistered(address indexed asset);
-    event PositionUpdated(uint256 indexed tokenId, uint256 amount, Epoch expiredWith);
+    event RegisterAsset(address indexed asset);
+    event UpdatePosition(uint256 indexed tokenId, uint256 amount, Epoch expiredWith);
 
     error InvalidAccess();
     error UnregisteredAsset();
@@ -19,7 +19,7 @@ interface IBondPositionManagerTypes is IPositionManagerTypes {
 
 interface IBondPositionManager is IBondPositionManagerTypes, IPositionManager {
     // View Functions //
-    function getMaxEpoch() external view returns (Epoch maxEpoch);
+    function MAX_EPOCH() external view returns (Epoch maxEpoch);
 
     function getPosition(uint256 tokenId) external view returns (BondPosition memory);
 

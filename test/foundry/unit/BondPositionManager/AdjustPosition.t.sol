@@ -79,7 +79,7 @@ contract BondPositionManagerAdjustPositionUnitTest is Test, IBondPositionManager
             address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(helper), new Coupon[](0))), 0
         );
         vm.expectEmit(true, true, true, true);
-        emit PositionUpdated(tokenId, initialAmount + increaseAmount, expiredWith);
+        emit UpdatePosition(tokenId, initialAmount + increaseAmount, expiredWith);
         helper.adjustPosition(tokenId, initialAmount + increaseAmount, expiredWith);
 
         BondPosition memory afterPosition = bondPositionManager.getPosition(tokenId);
@@ -109,7 +109,7 @@ contract BondPositionManagerAdjustPositionUnitTest is Test, IBondPositionManager
             address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(helper), couponsToBurn)), 1
         );
         vm.expectEmit(true, true, true, true);
-        emit PositionUpdated(tokenId, initialAmount + increaseAmount, expiredWith);
+        emit UpdatePosition(tokenId, initialAmount + increaseAmount, expiredWith);
         helper.adjustPosition(tokenId, initialAmount + increaseAmount, expiredWith);
 
         BondPosition memory afterPosition = bondPositionManager.getPosition(tokenId);
@@ -145,7 +145,7 @@ contract BondPositionManagerAdjustPositionUnitTest is Test, IBondPositionManager
             address(assetPool), abi.encodeCall(IAssetPool.withdraw, (address(usdc), decreaseAmount, address(this))), 1
         );
         vm.expectEmit(true, true, true, true);
-        emit PositionUpdated(tokenId, amount, expiredWith);
+        emit UpdatePosition(tokenId, amount, expiredWith);
         helper.adjustPosition(tokenId, amount, expiredWith);
 
         BondPosition memory afterPosition = bondPositionManager.getPosition(tokenId);
@@ -175,7 +175,7 @@ contract BondPositionManagerAdjustPositionUnitTest is Test, IBondPositionManager
             address(assetPool), abi.encodeCall(IAssetPool.withdraw, (address(usdc), decreaseAmount, address(this))), 1
         );
         vm.expectEmit(true, true, true, true);
-        emit PositionUpdated(tokenId, amount, expiredWith);
+        emit UpdatePosition(tokenId, amount, expiredWith);
         helper.adjustPosition(tokenId, amount, expiredWith);
 
         BondPosition memory afterPosition = bondPositionManager.getPosition(tokenId);
@@ -200,7 +200,7 @@ contract BondPositionManagerAdjustPositionUnitTest is Test, IBondPositionManager
             address(assetPool), abi.encodeCall(IAssetPool.withdraw, (address(usdc), initialAmount, address(this))), 1
         );
         vm.expectEmit(true, true, true, true);
-        emit PositionUpdated(tokenId, 0, startEpoch);
+        emit UpdatePosition(tokenId, 0, startEpoch);
         helper.adjustPosition(tokenId, 0, startEpoch);
 
         BondPosition memory afterPosition = bondPositionManager.getPosition(tokenId);
@@ -245,7 +245,7 @@ contract BondPositionManagerAdjustPositionUnitTest is Test, IBondPositionManager
         vm.expectRevert(abi.encodeWithSelector(InvalidEpoch.selector));
         helper.adjustPosition(tokenId, initialAmount, epoch);
 
-        epoch = bondPositionManager.getMaxEpoch().add(1);
+        epoch = bondPositionManager.MAX_EPOCH().add(1);
         vm.expectRevert(abi.encodeWithSelector(InvalidEpoch.selector));
         helper.adjustPosition(tokenId, initialAmount, epoch);
     }

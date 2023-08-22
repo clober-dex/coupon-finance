@@ -29,7 +29,7 @@ library BondPositionLibrary {
     function calculateCouponRequirement(BondPosition memory oldPosition, BondPosition memory newPosition)
         internal
         view
-        returns (Coupon[] memory, Coupon[] memory)
+        returns (Coupon[] memory mintCoupons, Coupon[] memory burnCoupons)
     {
         if (!(oldPosition.asset == newPosition.asset && oldPosition.nonce == newPosition.nonce)) {
             revert UnmatchedPosition();
@@ -53,10 +53,9 @@ library BondPositionLibrary {
             }
         }
 
-        Coupon[] memory mintCoupons = new Coupon[](mintCouponsLength);
-        Coupon[] memory burnCoupons = new Coupon[](burnCouponsLength);
-        mintCouponsLength = 0;
-        burnCouponsLength = 0;
+        mintCoupons = new Coupon[](mintCouponsLength);
+        burnCoupons = new Coupon[](burnCouponsLength);
+        (mintCouponsLength, burnCouponsLength) = (0, 0);
         uint256 farthestExpiredEpochs = newPosition.expiredWith.max(oldPosition.expiredWith).sub(latestExpiredEpoch);
         unchecked {
             Epoch epoch = latestExpiredEpoch;
@@ -73,6 +72,5 @@ library BondPositionLibrary {
                 }
             }
         }
-        return (mintCoupons, burnCoupons);
     }
 }

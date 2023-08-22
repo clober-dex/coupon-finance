@@ -95,14 +95,8 @@ contract CouponManager is ERC1155Permit, ERC1155Supply, ICouponManager {
         _burnBatch(user, ids, amounts);
     }
 
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        virtual
-        override(ERC1155, ERC1155Permit, IERC165)
-        returns (bool)
-    {
-        return super.supportsInterface(interfaceId);
+    function supportsInterface(bytes4 id) public view override(ERC1155, ERC1155Permit, IERC165) returns (bool) {
+        return super.supportsInterface(id);
     }
 
     function _beforeTokenTransfer(
@@ -116,18 +110,15 @@ contract CouponManager is ERC1155Permit, ERC1155Supply, ICouponManager {
         super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
     }
 
-    function _splitCoupons(Coupon[] calldata coupons)
-        internal
-        pure
-        returns (uint256[] memory ids, uint256[] memory amounts)
-    {
-        ids = new uint256[](coupons.length);
-        amounts = new uint256[](coupons.length);
+    function _splitCoupons(Coupon[] calldata coupons) internal pure returns (uint256[] memory, uint256[] memory) {
+        uint256[] memory ids = new uint256[](coupons.length);
+        uint256[] memory amounts = new uint256[](coupons.length);
         unchecked {
             for (uint256 i = 0; i < coupons.length; ++i) {
                 ids[i] = coupons[i].key.toId();
                 amounts[i] = coupons[i].amount;
             }
         }
+        return (ids, amounts);
     }
 }

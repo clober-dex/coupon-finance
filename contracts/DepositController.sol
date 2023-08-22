@@ -4,26 +4,18 @@
 pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import {IWETH9} from "./external/weth/IWETH9.sol";
-import {IERC721Permit} from "./interfaces/IERC721Permit.sol";
 import {IDepositController} from "./interfaces/IDepositController.sol";
 import {IBondPositionManager} from "./interfaces/IBondPositionManager.sol";
 import {IPositionLocker} from "./interfaces/IPositionLocker.sol";
-import {BondPosition, BondPositionLibrary} from "./libraries/BondPosition.sol";
+import {BondPosition} from "./libraries/BondPosition.sol";
 import {Epoch, EpochLibrary} from "./libraries/Epoch.sol";
-import {CouponKey, CouponKeyLibrary} from "./libraries/CouponKey.sol";
-import {Coupon, CouponLibrary} from "./libraries/Coupon.sol";
+import {CouponKey} from "./libraries/CouponKey.sol";
+import {Coupon} from "./libraries/Coupon.sol";
 import {Controller} from "./libraries/Controller.sol";
-import {Wrapped1155MetadataBuilder} from "./libraries/Wrapped1155MetadataBuilder.sol";
 
 contract DepositController is IDepositController, Controller, IPositionLocker {
-    using SafeERC20 for IERC20;
-    using BondPositionLibrary for BondPosition;
     using EpochLibrary for Epoch;
-    using CouponKeyLibrary for CouponKey;
-    using CouponLibrary for Coupon;
 
     IBondPositionManager private immutable _bondManager;
 
@@ -62,9 +54,7 @@ contract DepositController is IDepositController, Controller, IPositionLocker {
             abi.decode(data, (uint256, Epoch, uint256, uint256));
         (Coupon[] memory couponsToMint, Coupon[] memory couponsToBurn, int256 amountDelta) =
             _bondManager.adjustPosition(positionId, position.amount, position.expiredWith);
-        if (amountDelta < 0) {
-            _bondManager.withdrawToken(position.asset, address(this), uint256(-amountDelta));
-        }
+        if (amountDelta < 0) _bondManager.withdrawToken(position.asset, address(this), uint256(-amountDelta));
         if (couponsToMint.length > 0) {
             _bondManager.mintCoupons(couponsToMint, address(this), new bytes(0));
             _wrapCoupons(couponsToMint);
@@ -80,9 +70,7 @@ contract DepositController is IDepositController, Controller, IPositionLocker {
             minEarnInterest
         );
 
-        if (amountDelta > 0) {
-            _bondManager.depositToken(position.asset, uint256(amountDelta));
-        }
+        if (amountDelta > 0) _bondManager.depositToken(position.asset, uint256(amountDelta));
         if (couponsToBurn.length > 0) {
             _unwrapCoupons(couponsToBurn);
             _bondManager.burnCoupons(couponsToBurn);
@@ -100,15 +88,11 @@ contract DepositController is IDepositController, Controller, IPositionLocker {
     ) external payable nonReentrant wrapETH {
         _permitERC20(asset, amount, tokenPermitParams);
 
-        bytes memory lockData = abi.encode(
-            0,
-            msg.sender,
-            abi.encode(asset, abi.encode(amount, EpochLibrary.current().add(lockEpochs - 1), 0, minEarnInterest))
-        );
-        uint256 positionId = abi.decode(_bondManager.lock(lockData), (uint256));
+        bytes memory lockData = abi.encode(amount, EpochLibrary.current().add(lockEpochs - 1), 0, minEarnInterest);
+        uint256 id = abi.decode(_bondManager.lock(abi.encode(0, msg.sender, abi.encode(asset, lockData))), (uint256));
 
         _burnAllSubstitute(asset, msg.sender);
-        _bondManager.transferFrom(address(this), msg.sender, positionId);
+        _bondManager.transferFrom(address(this), msg.sender, id);
     }
 
     function withdraw(
@@ -117,16 +101,11 @@ contract DepositController is IDepositController, Controller, IPositionLocker {
         uint256 maxPayInterest,
         PermitParams calldata positionPermitParams
     ) external nonReentrant onlyPositionOwner(positionId) {
-        _permitERC721(IERC721Permit(_bondManager), positionId, positionPermitParams);
+        _permitERC721(_bondManager, positionId, positionPermitParams);
         BondPosition memory position = _bondManager.getPosition(positionId);
 
-        _bondManager.lock(
-            abi.encode(
-                positionId,
-                msg.sender,
-                abi.encode(position.amount - withdrawAmount, position.expiredWith, maxPayInterest, 0)
-            )
-        );
+        bytes memory lockData = abi.encode(position.amount - withdrawAmount, position.expiredWith, maxPayInterest, 0);
+        _bondManager.lock(abi.encode(positionId, msg.sender, lockData));
 
         _burnAllSubstitute(position.asset, msg.sender);
     }
@@ -136,7 +115,7 @@ contract DepositController is IDepositController, Controller, IPositionLocker {
         nonReentrant
         onlyPositionOwner(positionId)
     {
-        _permitERC721(IERC721Permit(_bondManager), positionId, positionPermitParams);
+        _permitERC721(_bondManager, positionId, positionPermitParams);
         BondPosition memory position = _bondManager.getPosition(positionId);
         _bondManager.lock(abi.encode(positionId, msg.sender, abi.encode(0, position.expiredWith, 0, 0)));
         _burnAllSubstitute(position.asset, msg.sender);

@@ -28,9 +28,9 @@ abstract contract ERC721Permit is ERC721, IERC721Permit, EIP712 {
     {
         if (block.timestamp > deadline) revert PermitExpired();
 
-        bytes32 structHash =
-            keccak256(abi.encode(PERMIT_TYPEHASH, spender, tokenId, _getAndIncrementNonce(tokenId), deadline));
-        bytes32 digest = _hashTypedDataV4(structHash);
+        bytes32 digest = _hashTypedDataV4(
+            keccak256(abi.encode(PERMIT_TYPEHASH, spender, tokenId, _getAndIncrementNonce(tokenId), deadline))
+        );
 
         address owner = ownerOf(tokenId);
         if (spender == owner) revert InvalidSignature();

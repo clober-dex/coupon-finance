@@ -11,31 +11,19 @@ import {IFallbackOracle} from "./interfaces/IFallbackOracle.sol";
 
 contract CouponOracle is ICouponOracle, Ownable {
     address public override fallbackOracle;
-    mapping(address => address) private _assetFeedMap;
-
-    constructor(address[] memory assets, address[] memory feeds) {
-        _setFeeds(assets, feeds);
-    }
+    mapping(address => address) public override getFeed;
 
     function decimals() external pure returns (uint8) {
         return 8;
     }
 
-    function getFeed(address asset) external view returns (address) {
-        return _assetFeedMap[asset];
-    }
-
     function getAssetPrice(address asset) public view returns (uint256) {
-        address feed = _assetFeedMap[asset];
+        address feed = getFeed[asset];
 
         if (feed != address(0)) {
             (, int256 price,,,) = AggregatorV3Interface(feed).latestRoundData();
             if (price > 0) return uint256(price);
         }
-        return _fallback(asset);
-    }
-
-    function _fallback(address asset) internal view returns (uint256) {
         return IFallbackOracle(fallbackOracle).getAssetPrice(asset);
     }
 
@@ -53,16 +41,12 @@ contract CouponOracle is ICouponOracle, Ownable {
     }
 
     function setFeeds(address[] memory assets, address[] memory feeds) external onlyOwner {
-        _setFeeds(assets, feeds);
-    }
-
-    function _setFeeds(address[] memory assets, address[] memory feeds) internal {
         if (assets.length != feeds.length) revert LengthMismatch();
         unchecked {
             for (uint256 i = 0; i < assets.length; ++i) {
                 if (AggregatorV3Interface(feeds[i]).decimals() != 8) revert InvalidDecimals();
-                if (_assetFeedMap[assets[i]] != address(0)) revert AssetFeedAlreadySet();
-                _assetFeedMap[assets[i]] = feeds[i];
+                if (getFeed[assets[i]] != address(0)) revert AssetFeedAlreadySet();
+                getFeed[assets[i]] = feeds[i];
             }
         }
     }

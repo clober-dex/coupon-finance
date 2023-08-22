@@ -2,9 +2,11 @@
 
 pragma solidity ^0.8.0;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 
 import {IPositionLocker} from "../../../../../contracts/interfaces/IPositionLocker.sol";
+import {ICouponManager} from "../../../../../contracts/interfaces/ICouponManager.sol";
 import "../../../../../contracts/BondPositionManager.sol";
 
 contract BondPositionAdjustPositionHelper is IPositionLocker, ERC1155Holder {
