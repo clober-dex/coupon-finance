@@ -289,6 +289,21 @@ contract OdosRepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         odosRepayAdapter.repayWithCollateral(
             positionId, collateralAmount, 1 ether - maxDebtAmount, data, permit721Params
         );
+
+        LoanPosition memory afterLoanPosition = loanPositionManager.getPosition(positionId);
+
+        assertEq(usdc.balanceOf(user), beforeUSDCBalance, "USDC_BALANCE");
+        assertLe(user.balance, beforeETHBalance, "NATIVE_BALANCE");
+        assertEq(beforeLoanPosition.expiredWith, afterLoanPosition.expiredWith, "POSITION_EXPIRE_EPOCH");
+        assertEq(
+            beforeLoanPosition.collateralAmount - collateralAmount,
+            afterLoanPosition.collateralAmount,
+            "POSITION_COLLATERAL_AMOUNT"
+        );
+        assertLe(afterLoanPosition.debtAmount, maxDebtAmount, "POSITION_DEBT_AMOUNT");
+        assertGe(afterLoanPosition.debtAmount, 0.7 ether, "POSITION_DEBT_AMOUNT");
+        assertEq(beforeLoanPosition.collateralToken, afterLoanPosition.collateralToken, "POSITION_COLLATERAL_TOKEN");
+        assertEq(beforeLoanPosition.debtToken, afterLoanPosition.debtToken, "POSITION_DEBT_TOKEN");
     }
 
     function _buildERC20PermitParams(
