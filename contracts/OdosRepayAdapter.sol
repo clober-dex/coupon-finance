@@ -99,9 +99,6 @@ contract OdosRepayAdapter is IRepayAdapter, Controller, IPositionLocker {
         PermitParams calldata positionPermitParams
     ) external nonReentrant onlyPositionOwner(positionId) {
         _permitERC721(_loanManager, positionId, positionPermitParams);
-        LoanPosition memory position = _loanManager.getPosition(positionId);
-
-        position.collateralAmount -= sellCollateralAmount;
         _loanManager.lock(abi.encode(positionId, msg.sender, sellCollateralAmount, minRepayAmount, swapData));
     }
 
