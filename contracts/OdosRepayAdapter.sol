@@ -57,6 +57,9 @@ contract OdosRepayAdapter is IRepayAdapter, Controller, IPositionLocker {
             _swapCollateral(position.collateralToken, position.debtToken, sellCollateralAmount, swapData);
         _loanManager.depositToken(position.collateralToken, leftCollateralAmount);
         position.collateralAmount = position.collateralAmount - sellCollateralAmount + leftCollateralAmount;
+        if (position.debtAmount < repayDebtAmount) {
+            repayDebtAmount = position.debtAmount;
+        }
 
         (Coupon[] memory couponsToPay, Coupon[] memory couponsToRefund,,) = _loanManager.adjustPosition(
             positionId, position.collateralAmount, position.debtAmount - repayDebtAmount, position.expiredWith
@@ -84,6 +87,7 @@ contract OdosRepayAdapter is IRepayAdapter, Controller, IPositionLocker {
             positionId, position.collateralAmount, position.debtAmount, position.expiredWith
         );
         _loanManager.mintCoupons(leftCoupons, user, "");
+        _burnAllSubstitute(position.debtToken, user);
         _loanManager.settlePosition(positionId);
     }
 
@@ -105,11 +109,10 @@ contract OdosRepayAdapter is IRepayAdapter, Controller, IPositionLocker {
         internal
         returns (uint256 leftInAmount, uint256 outAmount)
     {
-        ISubstitute(inToken).burn(inAmount, address(this));
-
         address inTokenUnderlying = ISubstitute(inToken).underlyingToken();
         address outTokenUnderlying = ISubstitute(outToken).underlyingToken();
 
+        ISubstitute(inToken).burn(inAmount, address(this));
         IERC20(inTokenUnderlying).approve(_odosRouter, inAmount);
         (bool success, bytes memory result) = _odosRouter.call(swapData);
         if (!success) revert CollateralSwapFailed(string(result));
@@ -117,8 +120,10 @@ contract OdosRepayAdapter is IRepayAdapter, Controller, IPositionLocker {
         outAmount = IERC20(outTokenUnderlying).balanceOf(address(this));
         leftInAmount = IERC20(inTokenUnderlying).balanceOf(address(this));
 
-        IERC20(inTokenUnderlying).approve(inToken, leftInAmount);
-        ISubstitute(inToken).mint(leftInAmount, address(this));
+        if (leftInAmount > 0) {
+            IERC20(inTokenUnderlying).approve(inToken, leftInAmount);
+            ISubstitute(inToken).mint(leftInAmount, address(this));
+        }
 
         IERC20(outTokenUnderlying).approve(outToken, outAmount);
         ISubstitute(outToken).mint(outAmount, address(this));
