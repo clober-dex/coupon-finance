@@ -50,9 +50,7 @@ abstract contract Controller is
     }
 
     modifier wrapETH() {
-        if (address(this).balance > 0) {
-            _weth.deposit{value: address(this).balance}();
-        }
+        if (address(this).balance > 0) _weth.deposit{value: address(this).balance}();
         _;
     }
 
@@ -138,18 +136,11 @@ abstract contract Controller is
         }
 
         // transfer input tokens
-        if (inputAmount > 0) {
-            IERC20(inputToken).safeTransfer(msg.sender, inputAmount);
-        }
+        if (inputAmount > 0) IERC20(inputToken).safeTransfer(msg.sender, inputAmount);
         uint256 couponBalance = IERC20(inputToken).balanceOf(address(this));
         if (asset != inputToken && couponBalance > 0) {
-            _wrapped1155Factory.unwrap(
-                address(_couponManager),
-                lastCoupon.id(),
-                couponBalance,
-                user,
-                Wrapped1155MetadataBuilder.buildWrapped1155Metadata(lastCoupon.key)
-            );
+            bytes memory metadata = Wrapped1155MetadataBuilder.buildWrapped1155Metadata(lastCoupon.key);
+            _wrapped1155Factory.unwrap(address(_couponManager), lastCoupon.id(), couponBalance, user, metadata);
         }
     }
 
@@ -162,9 +153,7 @@ abstract contract Controller is
     }
 
     function _permitERC721(IERC721Permit permitNFT, uint256 positionId, PermitParams calldata p) internal {
-        if (p.deadline > 0) {
-            permitNFT.permit(address(this), positionId, p.deadline, p.v, p.r, p.s);
-        }
+        if (p.deadline > 0) permitNFT.permit(address(this), positionId, p.deadline, p.v, p.r, p.s);
     }
 
     function _burnAllSubstitute(address substitute, address to) internal {
@@ -205,12 +194,8 @@ abstract contract Controller is
 
     function _wrapCoupons(Coupon[] memory coupons) internal {
         // wrap 1155 to 20
-        _couponManager.safeBatchTransferFrom(
-            address(this),
-            address(_wrapped1155Factory),
-            coupons,
-            Wrapped1155MetadataBuilder.buildWrapped1155BatchMetadata(coupons)
-        );
+        bytes memory metadata = Wrapped1155MetadataBuilder.buildWrapped1155BatchMetadata(coupons);
+        _couponManager.safeBatchTransferFrom(address(this), address(_wrapped1155Factory), coupons, metadata);
     }
 
     function _unwrapCoupons(Coupon[] memory coupons) internal {
@@ -222,13 +207,8 @@ abstract contract Controller is
                 amounts[i] = coupons[i].amount;
             }
         }
-        _wrapped1155Factory.batchUnwrap(
-            address(_couponManager),
-            tokenIds,
-            amounts,
-            address(this),
-            Wrapped1155MetadataBuilder.buildWrapped1155BatchMetadata(coupons)
-        );
+        bytes memory metadata = Wrapped1155MetadataBuilder.buildWrapped1155BatchMetadata(coupons);
+        _wrapped1155Factory.batchUnwrap(address(_couponManager), tokenIds, amounts, address(this), metadata);
     }
 
     function getCouponMarket(CouponKey memory couponKey) external view returns (address) {
@@ -236,9 +216,9 @@ abstract contract Controller is
     }
 
     function setCouponMarket(CouponKey memory couponKey, address cloberMarket) public virtual onlyOwner {
-        bytes memory wrappedCouponMetadata = Wrapped1155MetadataBuilder.buildWrapped1155Metadata(couponKey);
+        bytes memory metadata = Wrapped1155MetadataBuilder.buildWrapped1155Metadata(couponKey);
         uint256 id = couponKey.toId();
-        address wrappedCoupon = _wrapped1155Factory.getWrapped1155(address(_couponManager), id, wrappedCouponMetadata);
+        address wrappedCoupon = _wrapped1155Factory.getWrapped1155(address(_couponManager), id, metadata);
         CloberMarketFactory.MarketInfo memory marketInfo = _cloberMarketFactory.getMarketInfo(cloberMarket);
         if (marketInfo.host == address(0)) revert InvalidMarket();
         if (CloberOrderBook(cloberMarket).baseToken() != wrappedCoupon) revert InvalidMarket();

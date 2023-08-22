@@ -19,7 +19,7 @@ interface IBondPositionManagerTypes is IPositionManagerTypes {
 
 interface IBondPositionManager is IBondPositionManagerTypes, IPositionManager {
     // View Functions //
-    function getMaxEpoch() external view returns (Epoch maxEpoch);
+    function MAX_EPOCH() external view returns (Epoch maxEpoch);
 
     function getPosition(uint256 tokenId) external view returns (BondPosition memory);
 

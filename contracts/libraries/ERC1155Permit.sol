@@ -25,12 +25,9 @@ contract ERC1155Permit is ERC1155, IERC1155Permit, EIP712 {
     {
         if (block.timestamp > deadline) revert PermitExpired();
 
-        bytes32 structHash;
-        unchecked {
-            structHash = keccak256(abi.encode(PERMIT_TYPEHASH, owner, operator, approved, nonces[owner]++, deadline));
-        }
-
-        bytes32 digest = _hashTypedDataV4(structHash);
+        bytes32 digest = _hashTypedDataV4(
+            keccak256(abi.encode(PERMIT_TYPEHASH, owner, operator, approved, nonces[owner]++, deadline))
+        );
 
         if (Address.isContract(owner)) {
             if (IERC1271(owner).isValidSignature(digest, abi.encodePacked(r, s, v)) != 0x1626ba7e) {

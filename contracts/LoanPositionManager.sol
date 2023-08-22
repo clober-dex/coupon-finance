@@ -79,12 +79,7 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
         external
         onlyByLocker
         modifyPosition(positionId)
-        returns (
-            Coupon[] memory couponsToPay,
-            Coupon[] memory couponsToRefund,
-            int256 collateralDelta,
-            int256 debtDelta
-        )
+        returns (Coupon[] memory couponsToBurn, Coupon[] memory couponsToMint, int256 collateralDelta, int256 debtDelta)
     {
         if (!_isApprovedOrOwner(msg.sender, positionId)) revert InvalidAccess();
 
@@ -96,21 +91,19 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
             // Only unexpired position can adjust debtAmount
             if (oldPosition.debtAmount != debtAmount) revert AlreadyExpired();
         } else {
-            if (oldPosition.expiredWith == Epoch.wrap(0)) {
-                oldPosition.expiredWith = lastExpiredEpoch;
-            }
+            if (oldPosition.expiredWith == Epoch.wrap(0)) oldPosition.expiredWith = lastExpiredEpoch;
             _positionMap[positionId].debtAmount = debtAmount;
             _positionMap[positionId].expiredWith = debtAmount == 0 ? lastExpiredEpoch : expiredWith;
 
-            (couponsToPay, couponsToRefund) = oldPosition.calculateCouponRequirement(_positionMap[positionId]);
+            (couponsToBurn, couponsToMint) = oldPosition.calculateCouponRequirement(_positionMap[positionId]);
         }
 
         unchecked {
-            for (uint256 i = 0; i < couponsToRefund.length; ++i) {
-                _accountDelta(couponsToRefund[i].id(), 0, couponsToRefund[i].amount);
+            for (uint256 i = 0; i < couponsToMint.length; ++i) {
+                _accountDelta(couponsToMint[i].id(), 0, couponsToMint[i].amount);
             }
-            for (uint256 i = 0; i < couponsToPay.length; ++i) {
-                _accountDelta(couponsToPay[i].id(), couponsToPay[i].amount, 0);
+            for (uint256 i = 0; i < couponsToBurn.length; ++i) {
+                _accountDelta(couponsToBurn[i].id(), couponsToBurn[i].amount, 0);
             }
             collateralDelta = _accountDelta(
                 uint256(uint160(oldPosition.collateralToken)), collateralAmount, oldPosition.collateralAmount
@@ -139,9 +132,7 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
                 < position.debtAmount * debtPriceWithPrecisionComplement * _RATE_PRECISION
         ) revert LiquidationThreshold();
 
-        if (position.debtAmount == 0 && position.collateralAmount == 0) {
-            _burn(positionId);
-        }
+        if (position.debtAmount == 0 && position.collateralAmount == 0) _burn(positionId);
 
         emit UpdatePosition(positionId, position.collateralAmount, position.debtAmount, position.expiredWith);
     }
@@ -216,9 +207,7 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
                 uint256 debtValueMulRatePrecision =
                     position.debtAmount * debtPriceWithPrecisionComplement * _RATE_PRECISION;
 
-                if (collateralValue * loanConfig.liquidationThreshold >= debtValueMulRatePrecision) {
-                    return (0, 0, 0);
-                }
+                if (collateralValue * loanConfig.liquidationThreshold >= debtValueMulRatePrecision) return (0, 0, 0);
 
                 liquidationAmount = Math.ceilDiv(
                     debtValueMulRatePrecision - collateralValue * loanConfig.liquidationTargetLtv,
@@ -280,10 +269,7 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
             if (liquidationAmount == 0 && repayAmount == 0) revert UnableToLiquidate();
 
             Epoch currentEpoch = EpochLibrary.current();
-            uint256 validEpochLength;
-            if (position.expiredWith >= currentEpoch) {
-                validEpochLength = position.expiredWith.sub(currentEpoch) + 1;
-            }
+            uint256 epochLength = position.expiredWith >= currentEpoch ? position.expiredWith.sub(currentEpoch) + 1 : 0;
 
             position.collateralAmount -= liquidationAmount;
             position.debtAmount -= repayAmount;
@@ -298,15 +284,15 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
             IAssetPool(assetPool).withdraw(position.collateralToken, protocolFeeAmount, treasury);
             _accountDelta(uint256(uint160(position.debtToken)), repayAmount, 0);
 
-            if (validEpochLength > 0) {
+            if (epochLength > 0) {
                 address couponOwner = ownerOf(positionId);
-                Coupon[] memory coupons = new Coupon[](validEpochLength);
-                for (uint256 i = 0; i < validEpochLength; ++i) {
+                Coupon[] memory coupons = new Coupon[](epochLength);
+                for (uint256 i = 0; i < epochLength; ++i) {
                     coupons[i] = CouponLibrary.from(position.debtToken, currentEpoch.add(uint8(i)), repayAmount);
                 }
                 try ICouponManager(_couponManager).mintBatch(couponOwner, coupons, "") {}
                 catch {
-                    for (uint256 i = 0; i < validEpochLength; ++i) {
+                    for (uint256 i = 0; i < epochLength; ++i) {
                         _couponOwed[couponOwner][coupons[i].id()] += coupons[i].amount;
                     }
                 }

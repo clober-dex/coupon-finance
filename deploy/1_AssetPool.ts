@@ -1,7 +1,5 @@
 import { DeployFunction } from 'hardhat-deploy/types'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import { arbitrum, hardhat } from '@wagmi/chains'
-import { CHAINLINK_FEEDS, TOKENS } from '../utils/constants'
 import { computeCreate1Address } from '../utils/misc'
 import { BigNumber } from 'ethers'
 

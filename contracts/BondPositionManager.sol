@@ -17,7 +17,7 @@ contract BondPositionManager is IBondPositionManager, PositionManager, Ownable {
     using BondPositionLibrary for BondPosition;
     using CouponLibrary for Coupon;
 
-    Epoch private constant _MAX_EPOCH = Epoch.wrap(157); // Ends at 31 Dec 2048 23:59:59 GMT
+    Epoch public constant override MAX_EPOCH = Epoch.wrap(157); // Ends at 31 Dec 2048 23:59:59 GMT
 
     mapping(address asset => bool) public override isAssetRegistered;
     mapping(uint256 id => BondPosition) private _positionMap;
@@ -25,10 +25,6 @@ contract BondPositionManager is IBondPositionManager, PositionManager, Ownable {
     constructor(address coupon_, address assetPool_, string memory baseURI_)
         PositionManager(coupon_, assetPool_, baseURI_, "Bond Position", "BP")
     {}
-
-    function getMaxEpoch() external pure returns (Epoch maxEpoch) {
-        return _MAX_EPOCH;
-    }
 
     function getPosition(uint256 positionId) external view returns (BondPosition memory) {
         return _positionMap[positionId];
@@ -57,7 +53,7 @@ contract BondPositionManager is IBondPositionManager, PositionManager, Ownable {
             expiredWith = lastExpiredEpoch;
         }
 
-        if (expiredWith < lastExpiredEpoch || _MAX_EPOCH < expiredWith) revert InvalidEpoch();
+        if (expiredWith < lastExpiredEpoch || MAX_EPOCH < expiredWith) revert InvalidEpoch();
 
         BondPosition memory position = _positionMap[positionId];
 
@@ -66,9 +62,7 @@ contract BondPositionManager is IBondPositionManager, PositionManager, Ownable {
             if (amount > 0) revert AlreadyExpired();
         } else {
             _positionMap[positionId].expiredWith = expiredWith;
-            if (position.expiredWith == Epoch.wrap(0)) {
-                position.expiredWith = lastExpiredEpoch;
-            }
+            if (position.expiredWith == Epoch.wrap(0)) position.expiredWith = lastExpiredEpoch;
 
             (couponsToMint, couponsToBurn) = position.calculateCouponRequirement(_positionMap[positionId]);
         }
@@ -87,7 +81,7 @@ contract BondPositionManager is IBondPositionManager, PositionManager, Ownable {
     function settlePosition(uint256 positionId) public override(IPositionManager, PositionManager) onlyByLocker {
         super.settlePosition(positionId);
         BondPosition memory position = _positionMap[positionId];
-        if (_MAX_EPOCH < position.expiredWith) revert InvalidEpoch();
+        if (MAX_EPOCH < position.expiredWith) revert InvalidEpoch();
         if (position.amount == 0) {
             _burn(positionId);
         } else if (position.expiredWith < EpochLibrary.current()) {
@@ -97,16 +91,12 @@ contract BondPositionManager is IBondPositionManager, PositionManager, Ownable {
     }
 
     function registerAsset(address asset) external onlyOwner {
-        _registerAsset(asset);
+        isAssetRegistered[asset] = true;
+        emit RegisterAsset(asset);
     }
 
     function nonces(uint256 positionId) external view returns (uint256) {
         return _positionMap[positionId].nonce;
-    }
-
-    function _registerAsset(address asset) internal {
-        isAssetRegistered[asset] = true;
-        emit RegisterAsset(asset);
     }
 
     function _getAndIncrementNonce(uint256 positionId) internal override returns (uint256) {

@@ -245,7 +245,7 @@ contract BondPositionManagerAdjustPositionUnitTest is Test, IBondPositionManager
         vm.expectRevert(abi.encodeWithSelector(InvalidEpoch.selector));
         helper.adjustPosition(tokenId, initialAmount, epoch);
 
-        epoch = bondPositionManager.getMaxEpoch().add(1);
+        epoch = bondPositionManager.MAX_EPOCH().add(1);
         vm.expectRevert(abi.encodeWithSelector(InvalidEpoch.selector));
         helper.adjustPosition(tokenId, initialAmount, epoch);
     }

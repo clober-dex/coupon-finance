@@ -23,6 +23,8 @@ task('oracle:set-feeds').setAction(async (taskArgs, hre) => {
   const feeds = Object.keys(AAVE_SUBSTITUTES[chainId]).map((key) => {
     return CHAINLINK_FEEDS[chainId][key]
   })
+  tokens.push(hre.ethers.constants.AddressZero)
+  feeds.push(CHAINLINK_FEEDS[chainId].WETH)
   const receipt = await waitForTx(oracle.setFeeds(tokens, feeds))
   console.log('Set feeds at tx', receipt.transactionHash)
 })

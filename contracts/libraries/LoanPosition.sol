@@ -45,24 +45,24 @@ library LoanPositionLibrary {
             revert InvalidPositionEpoch();
         }
 
-        uint256 payCouponsLength = newPosition.expiredWith.sub(latestExpiredEpoch);
-        uint256 refundCouponsLength = oldPosition.expiredWith.sub(latestExpiredEpoch);
+        uint256 burnCouponsLength = newPosition.expiredWith.sub(latestExpiredEpoch);
+        uint256 mintCouponsLength = oldPosition.expiredWith.sub(latestExpiredEpoch);
         unchecked {
-            uint256 minCount = Math.min(payCouponsLength, refundCouponsLength);
+            uint256 minCount = Math.min(burnCouponsLength, mintCouponsLength);
             if (newPosition.debtAmount > oldPosition.debtAmount) {
-                refundCouponsLength -= minCount;
+                mintCouponsLength -= minCount;
             } else if (newPosition.debtAmount < oldPosition.debtAmount) {
-                payCouponsLength -= minCount;
+                burnCouponsLength -= minCount;
             } else {
-                payCouponsLength -= minCount;
-                refundCouponsLength -= minCount;
+                burnCouponsLength -= minCount;
+                mintCouponsLength -= minCount;
             }
         }
 
-        Coupon[] memory payCoupons = new Coupon[](payCouponsLength);
-        Coupon[] memory refundCoupons = new Coupon[](refundCouponsLength);
-        payCouponsLength = 0;
-        refundCouponsLength = 0;
+        Coupon[] memory burnCoupons = new Coupon[](burnCouponsLength);
+        Coupon[] memory mintCoupons = new Coupon[](mintCouponsLength);
+        burnCouponsLength = 0;
+        mintCouponsLength = 0;
         uint256 farthestExpiredEpochs = newPosition.expiredWith.max(oldPosition.expiredWith).sub(latestExpiredEpoch);
         unchecked {
             Epoch epoch = latestExpiredEpoch;
@@ -71,14 +71,14 @@ library LoanPositionLibrary {
                 uint256 newAmount = newPosition.expiredWith < epoch ? 0 : newPosition.debtAmount;
                 uint256 oldAmount = oldPosition.expiredWith < epoch ? 0 : oldPosition.debtAmount;
                 if (newAmount > oldAmount) {
-                    payCoupons[payCouponsLength++] =
+                    burnCoupons[burnCouponsLength++] =
                         CouponLibrary.from(oldPosition.debtToken, epoch, newAmount - oldAmount);
                 } else if (newAmount < oldAmount) {
-                    refundCoupons[refundCouponsLength++] =
+                    mintCoupons[mintCouponsLength++] =
                         CouponLibrary.from(oldPosition.debtToken, epoch, oldAmount - newAmount);
                 }
             }
         }
-        return (payCoupons, refundCoupons);
+        return (burnCoupons, mintCoupons);
     }
 }

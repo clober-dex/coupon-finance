@@ -21,7 +21,8 @@ contract CouponOracleUnitTest is Test {
 
         invalidPriceFeed = new InvalidPriceFeed();
         mockFallbackOracle = new MockFallbackOracle();
-        couponOracle = new CouponOracle(Utils.toArr(Constants.WETH), Utils.toArr(Constants.ETH_CHAINLINK_FEED));
+        couponOracle = new CouponOracle();
+        couponOracle.setFeeds(Utils.toArr(Constants.WETH), Utils.toArr(Constants.ETH_CHAINLINK_FEED));
     }
 
     function testSetFeeds() public {

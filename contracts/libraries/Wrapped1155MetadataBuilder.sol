@@ -22,13 +22,11 @@ library Wrapped1155MetadataBuilder {
             nameData := add(nameData, add(30, addLength))
             symbolData := add(symbolData, add(6, addLength))
         }
-        bytes1 decimal = bytes1(IERC20Metadata(couponKey.asset).decimals());
-        return abi.encodePacked(nameData, symbolData, decimal);
+        return abi.encodePacked(nameData, symbolData, bytes1(IERC20Metadata(couponKey.asset).decimals()));
     }
 
     function buildWrapped1155BatchMetadata(Coupon[] memory coupons) internal view returns (bytes memory data) {
         unchecked {
-            data = new bytes(0);
             for (uint256 i = 0; i < coupons.length; ++i) {
                 data = bytes.concat(data, buildWrapped1155Metadata(coupons[i].key));
             }
