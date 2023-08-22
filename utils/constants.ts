@@ -25,6 +25,11 @@ export const TREASURY: { [chainId: number]: string } = {
   [TESTNET_ID]: '0x000000000000000000000000000000000000dEaD',
 }
 
+export const ODOS_ROUTER: { [chainId: number]: string } = {
+  [arbitrum.id]: '0xa669e7A0d4b3e4Fa48af2dE86BD4CD7126Be4e13',
+  [TESTNET_ID]: '0xa669e7A0d4b3e4Fa48af2dE86BD4CD7126Be4e13',
+}
+
 const TOKEN_KEYS = {
   WETH: 'WETH',
   USDC: 'USDC',
