@@ -4,26 +4,16 @@
 pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import {IWETH9} from "./external/weth/IWETH9.sol";
-import {IERC721Permit} from "./interfaces/IERC721Permit.sol";
 import {ISubstitute} from "./interfaces/ISubstitute.sol";
 import {ILoanPositionManager} from "./interfaces/ILoanPositionManager.sol";
-import {LoanPosition, LoanPositionLibrary} from "./libraries/LoanPosition.sol";
-import {CouponKey, CouponKeyLibrary} from "./libraries/CouponKey.sol";
+import {LoanPosition} from "./libraries/LoanPosition.sol";
 import {Coupon} from "./libraries/Coupon.sol";
-import {Epoch, EpochLibrary} from "./libraries/Epoch.sol";
 import {Controller} from "./libraries/Controller.sol";
 import {IPositionLocker} from "./interfaces/IPositionLocker.sol";
 import {IRepayAdapter} from "./interfaces/IRepayAdapter.sol";
 
 contract OdosRepayAdapter is IRepayAdapter, Controller, IPositionLocker {
-    using SafeERC20 for IERC20;
-    using LoanPositionLibrary for LoanPosition;
-    using CouponKeyLibrary for CouponKey;
-    using EpochLibrary for Epoch;
-
     ILoanPositionManager private immutable _loanManager;
     address private immutable _odosRouter;
 
@@ -44,7 +34,7 @@ contract OdosRepayAdapter is IRepayAdapter, Controller, IPositionLocker {
         _odosRouter = odosRouter;
     }
 
-    function positionLockAcquired(bytes memory data) external returns (bytes memory result) {
+    function positionLockAcquired(bytes memory data) external returns (bytes memory) {
         if (msg.sender != address(_loanManager)) revert InvalidAccess();
 
         (uint256 positionId, address user, uint256 sellCollateralAmount, uint256 minRepayAmount, bytes memory swapData)
@@ -61,16 +51,17 @@ contract OdosRepayAdapter is IRepayAdapter, Controller, IPositionLocker {
             repayDebtAmount = position.debtAmount;
         }
 
-        (Coupon[] memory couponsToPay, Coupon[] memory couponsToRefund,,) = _loanManager.adjustPosition(
+        // @dev We know that couponsToBurn.length == 0
+        (Coupon[] memory couponsToBurn, Coupon[] memory couponsToMint,,) = _loanManager.adjustPosition(
             positionId, position.collateralAmount, position.debtAmount - repayDebtAmount, position.expiredWith
         );
-        if (couponsToRefund.length > 0) {
-            _loanManager.mintCoupons(couponsToRefund, address(this), new bytes(0));
-            _wrapCoupons(couponsToRefund);
+        if (couponsToMint.length > 0) {
+            _loanManager.mintCoupons(couponsToMint, address(this), new bytes(0));
+            _wrapCoupons(couponsToMint);
         }
 
         _executeCouponTrade(
-            user, position.debtToken, couponsToPay, couponsToRefund, repayDebtAmount, type(uint256).max, 0
+            user, position.debtToken, couponsToBurn, couponsToMint, repayDebtAmount, type(uint256).max, 0
         );
 
         uint256 depositDebtTokenAmount = IERC20(position.debtToken).balanceOf(address(this));
@@ -89,6 +80,7 @@ contract OdosRepayAdapter is IRepayAdapter, Controller, IPositionLocker {
         _loanManager.mintCoupons(leftCoupons, user, "");
         _burnAllSubstitute(position.debtToken, user);
         _loanManager.settlePosition(positionId);
+        return "";
     }
 
     function repayWithCollateral(
@@ -102,28 +94,28 @@ contract OdosRepayAdapter is IRepayAdapter, Controller, IPositionLocker {
         _loanManager.lock(abi.encode(positionId, msg.sender, sellCollateralAmount, minRepayAmount, swapData));
     }
 
-    function _swapCollateral(address inToken, address outToken, uint256 inAmount, bytes memory swapData)
+    function _swapCollateral(address collateral, address debt, uint256 inAmount, bytes memory swapData)
         internal
         returns (uint256 leftInAmount, uint256 outAmount)
     {
-        address inTokenUnderlying = ISubstitute(inToken).underlyingToken();
-        address outTokenUnderlying = ISubstitute(outToken).underlyingToken();
+        address inToken = ISubstitute(collateral).underlyingToken();
+        address outToken = ISubstitute(debt).underlyingToken();
 
-        ISubstitute(inToken).burn(inAmount, address(this));
-        IERC20(inTokenUnderlying).approve(_odosRouter, inAmount);
+        ISubstitute(collateral).burn(inAmount, address(this));
+        IERC20(inToken).approve(_odosRouter, inAmount);
         (bool success, bytes memory result) = _odosRouter.call(swapData);
         if (!success) revert CollateralSwapFailed(string(result));
 
-        outAmount = IERC20(outTokenUnderlying).balanceOf(address(this));
-        leftInAmount = IERC20(inTokenUnderlying).balanceOf(address(this));
+        outAmount = IERC20(outToken).balanceOf(address(this));
+        leftInAmount = IERC20(inToken).balanceOf(address(this));
 
         if (leftInAmount > 0) {
-            IERC20(inTokenUnderlying).approve(inToken, leftInAmount);
-            ISubstitute(inToken).mint(leftInAmount, address(this));
+            IERC20(inToken).approve(collateral, leftInAmount);
+            ISubstitute(collateral).mint(leftInAmount, address(this));
         }
 
-        IERC20(outTokenUnderlying).approve(outToken, outAmount);
-        ISubstitute(outToken).mint(outAmount, address(this));
+        IERC20(outToken).approve(debt, outAmount);
+        ISubstitute(debt).mint(outAmount, address(this));
     }
 
     function setCollateralAllowance(address collateralToken) external onlyOwner {
