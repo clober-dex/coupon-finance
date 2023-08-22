@@ -2,21 +2,16 @@
 
 pragma solidity ^0.8.0;
 
-interface IRepayAdapter {
-    error InvalidAccess();
+import {IController} from "./IController.sol";
 
-    struct PermitParams {
-        uint256 deadline;
-        uint8 v;
-        bytes32 r;
-        bytes32 s;
-    }
+interface IRepayAdapter is IController {
+    error CollateralSwapFailed(string reason);
 
     function repayWithCollateral(
         uint256 positionId,
         uint256 sellCollateralAmount,
         uint256 minRepayAmount,
-        bytes swapData,
+        bytes memory swapData,
         PermitParams calldata positionPermitParams
     ) external;
 }
