@@ -101,7 +101,8 @@ contract OdosRepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         IERC20(Constants.WETH).approve(address(waweth), 3_000 ether);
         waweth.mint(3_000 ether, address(this));
 
-        oracle = new CouponOracle(
+        oracle = new CouponOracle();
+        oracle.setFeeds(
             Utils.toArr(address(wausdc), address(waweth), address(0)),
             Utils.toArr(Constants.USDC_CHAINLINK_FEED, Constants.ETH_CHAINLINK_FEED, Constants.ETH_CHAINLINK_FEED)
         );
