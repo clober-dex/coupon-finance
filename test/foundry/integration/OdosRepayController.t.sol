@@ -306,6 +306,46 @@ contract OdosRepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         assertEq(beforeLoanPosition.debtToken, afterLoanPosition.debtToken, "POSITION_DEBT_TOKEN");
     }
 
+    function testRepayAllWithCollateral() public {
+        uint256 positionId = _initialBorrow(user, address(wausdc), address(waweth), usdc.amount(10000), 1 ether, 2);
+
+        uint256 beforeUSDCBalance = usdc.balanceOf(user);
+        uint256 beforeETHBalance = user.balance;
+        LoanPosition memory beforeLoanPosition = loanPositionManager.getPosition(positionId);
+        uint256 collateralAmount = usdc.amount(5000);
+        uint256 maxDebtAmount = 0.75 ether;
+        bytes memory data = fromHex(
+            string.concat(
+                "83bd37f90001af88d065e77c8cc2239327c5edb3a432268e5831000182af49447d8a07e3bd95bd0d56f35241523fbab1041dcd65000803c174ee39d2c08007ae1400017e3e803E966291EE9aA69e6FADa116cD07462E5D00000001",
+                this.remove0x(Strings.toHexString(address(odosRepayAdapter))),
+                "0000000103010204014386e4ac0b01000102000022010203020203ff0000000000000000006f38e884725a116c9c7fbf208e79fe8828a2595faf88d065e77c8cc2239327c5edb3a432268e583182af49447d8a07e3bd95bd0d56f35241523fbab100000000"
+            )
+        );
+
+        IController.PermitParams memory permit721Params =
+            _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(odosRepayAdapter), positionId);
+
+        vm.prank(user);
+        odosRepayAdapter.repayWithCollateral(
+            positionId, collateralAmount, 1 ether - maxDebtAmount, data, permit721Params
+        );
+
+        LoanPosition memory afterLoanPosition = loanPositionManager.getPosition(positionId);
+
+        assertEq(usdc.balanceOf(user), beforeUSDCBalance, "USDC_BALANCE");
+        assertLe(user.balance, beforeETHBalance, "NATIVE_BALANCE");
+        assertEq(beforeLoanPosition.expiredWith, afterLoanPosition.expiredWith, "POSITION_EXPIRE_EPOCH");
+        assertEq(
+            beforeLoanPosition.collateralAmount - usdc.amount(500),
+            afterLoanPosition.collateralAmount,
+            "POSITION_COLLATERAL_AMOUNT"
+        );
+        assertLe(afterLoanPosition.debtAmount, maxDebtAmount, "POSITION_DEBT_AMOUNT");
+        assertGe(afterLoanPosition.debtAmount, 0.7 ether, "POSITION_DEBT_AMOUNT");
+        assertEq(beforeLoanPosition.collateralToken, afterLoanPosition.collateralToken, "POSITION_COLLATERAL_TOKEN");
+        assertEq(beforeLoanPosition.debtToken, afterLoanPosition.debtToken, "POSITION_DEBT_TOKEN");
+    }
+
     function _buildERC20PermitParams(
         uint256 privateKey,
         AaveTokenSubstitute substitute,

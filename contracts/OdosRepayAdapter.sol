@@ -53,9 +53,10 @@ contract OdosRepayAdapter is IRepayAdapter, Controller, IPositionLocker {
         uint256 maxDebtAmount = position.debtAmount - minRepayAmount;
 
         _loanManager.withdrawToken(position.collateralToken, address(this), sellCollateralAmount);
-        uint256 repayDebtAmount =
+        (uint256 leftCollateralAmount, uint256 repayDebtAmount) =
             _swapCollateral(position.collateralToken, position.debtToken, sellCollateralAmount, swapData);
-        position.collateralAmount = position.collateralAmount - sellCollateralAmount;
+        _loanManager.depositToken(position.collateralToken, leftCollateralAmount);
+        position.collateralAmount = position.collateralAmount - sellCollateralAmount + leftCollateralAmount;
 
         (Coupon[] memory couponsToPay, Coupon[] memory couponsToRefund,,) = _loanManager.adjustPosition(
             positionId, position.collateralAmount, position.debtAmount - repayDebtAmount, position.expiredWith
@@ -83,7 +84,6 @@ contract OdosRepayAdapter is IRepayAdapter, Controller, IPositionLocker {
             positionId, position.collateralAmount, position.debtAmount, position.expiredWith
         );
         _loanManager.mintCoupons(leftCoupons, user, "");
-        _burnAllSubstitute(position.debtToken, user);
         _loanManager.settlePosition(positionId);
     }
 
@@ -103,17 +103,22 @@ contract OdosRepayAdapter is IRepayAdapter, Controller, IPositionLocker {
 
     function _swapCollateral(address inToken, address outToken, uint256 inAmount, bytes memory swapData)
         internal
-        returns (uint256 outAmount)
+        returns (uint256 leftInAmount, uint256 outAmount)
     {
         ISubstitute(inToken).burn(inAmount, address(this));
-        IERC20(ISubstitute(inToken).underlyingToken()).approve(_odosRouter, inAmount);
 
+        address inTokenUnderlying = ISubstitute(inToken).underlyingToken();
         address outTokenUnderlying = ISubstitute(outToken).underlyingToken();
 
+        IERC20(inTokenUnderlying).approve(_odosRouter, inAmount);
         (bool success, bytes memory result) = _odosRouter.call(swapData);
         if (!success) revert CollateralSwapFailed(string(result));
 
         outAmount = IERC20(outTokenUnderlying).balanceOf(address(this));
+        leftInAmount = IERC20(inTokenUnderlying).balanceOf(address(this));
+
+        IERC20(inTokenUnderlying).approve(inToken, leftInAmount);
+        ISubstitute(inToken).mint(leftInAmount, address(this));
 
         IERC20(outTokenUnderlying).approve(outToken, outAmount);
         ISubstitute(outToken).mint(outAmount, address(this));
