@@ -74,7 +74,7 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
     }
 
     function burnableAmount() external view returns (uint256) {
-        return IERC20(underlyingToken).balanceOf(address(aToken));
+        return type(uint256).max;
     }
 
     function setTreasury(address newTreasury) external onlyOwner {
