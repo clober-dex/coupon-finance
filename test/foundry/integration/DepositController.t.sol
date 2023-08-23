@@ -78,8 +78,12 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         wrapped1155Factory = IWrapped1155Factory(Constants.WRAPPED1155_FACTORY);
         cloberMarketFactory = CloberMarketFactory(Constants.CLOBER_FACTORY);
 
-        wausdc = new AaveTokenSubstitute( Constants.USDC,  Constants.AAVE_V3_POOL,  address (this),  address (this));
-        waweth = new AaveTokenSubstitute( Constants.WETH,  Constants.AAVE_V3_POOL,  address (this),  address (this));
+        wausdc = new AaveTokenSubstitute(
+            Constants.WETH, Constants.USDC, Constants.AAVE_V3_POOL, address(this), address(this)
+        );
+        waweth = new AaveTokenSubstitute(
+            Constants.WETH, Constants.WETH, Constants.AAVE_V3_POOL, address(this), address(this)
+        );
 
         usdc.approve(address(wausdc), usdc.amount(1_000));
         wausdc.mint(usdc.amount(1_000), address(this));

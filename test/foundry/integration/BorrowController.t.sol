@@ -91,8 +91,12 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         wrapped1155Factory = IWrapped1155Factory(Constants.WRAPPED1155_FACTORY);
         cloberMarketFactory = CloberMarketFactory(Constants.CLOBER_FACTORY);
 
-        wausdc = new AaveTokenSubstitute( Constants.USDC,  Constants.AAVE_V3_POOL,  address (this),  address (this));
-        waweth = new AaveTokenSubstitute( Constants.WETH,  Constants.AAVE_V3_POOL,  address (this),  address (this));
+        wausdc = new AaveTokenSubstitute(
+            Constants.WETH, Constants.USDC, Constants.AAVE_V3_POOL, address (this), address (this)
+        );
+        waweth = new AaveTokenSubstitute(
+            Constants.WETH, Constants.WETH, Constants.AAVE_V3_POOL, address (this), address (this)
+        );
 
         usdc.approve(address(wausdc), usdc.amount(3_000));
         wausdc.mint(usdc.amount(3_000), address(this));
@@ -217,7 +221,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
     ) internal returns (uint256 positionId) {
         positionId = loanPositionManager.nextId();
         IController.PermitParams memory permitParams = _buildERC20PermitParams(
-            1, AaveTokenSubstitute(collateralToken), address(borrowController), collateralAmount
+            1, AaveTokenSubstitute(payable(collateralToken)), address(borrowController), collateralAmount
         );
         vm.prank(borrower);
         borrowController.borrow(
