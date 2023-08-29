@@ -160,8 +160,11 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
             assets[2] = address(0);
 
             uint256[] memory prices = ICouponOracle(oracle).getAssetsPrices(assets);
-            // @dev `decimal` is always less than or equal to 18
-            minDebtAmount = (minDebtValueInEth * prices[2]) / 10 ** (18 - debtDecimal) / prices[1];
+            minDebtAmount = (
+                debtDecimal > 18
+                    ? (minDebtValueInEth * prices[2]) * 10 ** (debtDecimal - 18)
+                    : (minDebtValueInEth * prices[2]) / 10 ** (18 - debtDecimal)
+            ) / prices[1];
             if (debtDecimal > collateralDecimal) {
                 collateralPriceWithPrecisionComplement = prices[0] * 10 ** (debtDecimal - collateralDecimal);
                 debtPriceWithPrecisionComplement = prices[1];
@@ -324,11 +327,10 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
         uint32 liquidationTargetLtv
     ) external onlyOwner {
         bytes32 pairId = _buildLoanPairId(collateral, debt);
-        uint32 debtDecimals = IERC20Metadata(debt).decimals();
-        if (_loanConfiguration[pairId].liquidationThreshold > 0 || debtDecimals > 18) revert InvalidPair();
+        if (_loanConfiguration[pairId].liquidationThreshold > 0) revert InvalidPair();
         _loanConfiguration[pairId] = LoanConfiguration({
             collateralDecimal: IERC20Metadata(collateral).decimals(),
-            debtDecimal: debtDecimals,
+            debtDecimal: IERC20Metadata(debt).decimals(),
             liquidationThreshold: liquidationThreshold,
             liquidationFee: liquidationFee,
             liquidationProtocolFee: liquidationProtocolFee,
