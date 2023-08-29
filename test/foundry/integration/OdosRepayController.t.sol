@@ -63,7 +63,7 @@ contract OdosRepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiv
     AaveTokenSubstitute public wausdc;
     AaveTokenSubstitute public waweth;
     address public user;
-    IController.PermitParams public emptyPermitParams;
+    IController.ERC20PermitParams public emptyPermitParams;
 
     CouponKey[] public couponKeys;
     address[] public wrappedCoupons;
@@ -229,7 +229,7 @@ contract OdosRepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         uint8 loanEpochs
     ) internal returns (uint256 positionId) {
         positionId = loanPositionManager.nextId();
-        IController.PermitParams memory permitParams = _buildERC20PermitParams(
+        IController.ERC20PermitParams memory permitParams = _buildERC20PermitParams(
             1, AaveTokenSubstitute(collateralToken), address(borrowController), collateralAmount
         );
         vm.prank(borrower);
@@ -283,7 +283,7 @@ contract OdosRepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiv
             )
         );
 
-        IController.PermitParams memory permit721Params =
+        IController.ERC721PermitParams memory permit721Params =
             _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(odosRepayAdapter), positionId);
 
         vm.prank(user);
@@ -323,7 +323,7 @@ contract OdosRepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiv
             )
         );
 
-        IController.PermitParams memory permit721Params =
+        IController.ERC721PermitParams memory permit721Params =
             _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(odosRepayAdapter), positionId);
 
         vm.prank(user);
@@ -363,7 +363,7 @@ contract OdosRepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiv
             )
         );
 
-        IController.PermitParams memory permit721Params =
+        IController.ERC721PermitParams memory permit721Params =
             _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(odosRepayAdapter), positionId);
 
         vm.prank(user);
@@ -391,7 +391,7 @@ contract OdosRepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         AaveTokenSubstitute substitute,
         address spender,
         uint256 amount
-    ) internal view returns (IController.PermitParams memory) {
+    ) internal view returns (IController.ERC20PermitParams memory) {
         IERC20Permit token = IERC20Permit(substitute.underlyingToken());
         address owner = vm.addr(privateKey);
         bytes32 structHash = keccak256(
@@ -399,19 +399,19 @@ contract OdosRepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         );
         bytes32 hash = ECDSA.toTypedDataHash(token.DOMAIN_SEPARATOR(), structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, hash);
-        return IController.PermitParams(block.timestamp + 1, v, r, s);
+        return IController.ERC20PermitParams(amount, block.timestamp + 1, v, r, s);
     }
 
     function _buildERC721PermitParams(uint256 privateKey, IERC721Permit token, address spender, uint256 tokenId)
         internal
         view
-        returns (IController.PermitParams memory)
+        returns (IController.ERC721PermitParams memory)
     {
         bytes32 structHash =
             keccak256(abi.encode(token.PERMIT_TYPEHASH(), spender, tokenId, token.nonces(tokenId), block.timestamp + 1));
         bytes32 hash = ECDSA.toTypedDataHash(token.DOMAIN_SEPARATOR(), structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, hash);
-        return IController.PermitParams(block.timestamp + 1, v, r, s);
+        return IController.ERC721PermitParams(block.timestamp + 1, v, r, s);
     }
 
     function assertEq(Epoch e1, Epoch e2, string memory err) internal {

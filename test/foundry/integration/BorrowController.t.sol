@@ -61,7 +61,8 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
     AaveTokenSubstitute public wausdc;
     AaveTokenSubstitute public waweth;
     address public user;
-    IController.PermitParams public emptyPermitParams;
+    IController.ERC20PermitParams public emptyERC20PermitParams;
+    IController.ERC721PermitParams public emptyERC721PermitParams;
 
     CouponKey[] public couponKeys;
     address[] public wrappedCoupons;
@@ -216,7 +217,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         uint8 loanEpochs
     ) internal returns (uint256 positionId) {
         positionId = loanPositionManager.nextId();
-        IController.PermitParams memory permitParams = _buildERC20PermitParams(
+        IController.ERC20PermitParams memory permitParams = _buildERC20PermitParams(
             1, AaveTokenSubstitute(collateralToken), address(borrowController), collateralAmount
         );
         vm.prank(borrower);
@@ -254,7 +255,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         uint256 beforeUSDCBalance = usdc.balanceOf(user);
         uint256 beforeETHBalance = user.balance;
         LoanPosition memory beforeLoanPosition = loanPositionManager.getPosition(positionId);
-        IController.PermitParams memory permitParams =
+        IController.ERC721PermitParams memory permitParams =
             _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(borrowController), positionId);
         vm.prank(user);
         borrowController.borrowMore(positionId, 0.5 ether, type(uint256).max, permitParams);
@@ -280,9 +281,9 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         uint256 beforeETHBalance = user.balance;
         LoanPosition memory beforeLoanPosition = loanPositionManager.getPosition(positionId);
         uint256 collateralAmount = usdc.amount(123);
-        IController.PermitParams memory permit721Params =
+        IController.ERC721PermitParams memory permit721Params =
             _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(borrowController), positionId);
-        IController.PermitParams memory permit20Params =
+        IController.ERC20PermitParams memory permit20Params =
             _buildERC20PermitParams(1, wausdc, address(borrowController), collateralAmount);
         vm.prank(user);
         borrowController.addCollateral(positionId, collateralAmount, permit721Params, permit20Params);
@@ -308,7 +309,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         uint256 beforeETHBalance = user.balance;
         LoanPosition memory beforeLoanPosition = loanPositionManager.getPosition(positionId);
         uint256 collateralAmount = usdc.amount(123);
-        IController.PermitParams memory permit721Params =
+        IController.ERC721PermitParams memory permit721Params =
             _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(borrowController), positionId);
         vm.prank(user);
         borrowController.removeCollateral(positionId, collateralAmount, permit721Params);
@@ -335,12 +336,12 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         LoanPosition memory beforeLoanPosition = loanPositionManager.getPosition(positionId);
         uint8 epochs = 3;
         uint256 maxPayInterest = 0.04 ether * uint256(epochs);
-        IController.PermitParams memory permit721Params =
+        IController.ERC721PermitParams memory permit721Params =
             _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(borrowController), positionId);
         vm.startPrank(user);
         weth.approve(address(borrowController), maxPayInterest);
         borrowController.extendLoanDuration{value: maxPayInterest}(
-            positionId, epochs, maxPayInterest, permit721Params, emptyPermitParams
+            positionId, epochs, maxPayInterest, permit721Params, emptyERC20PermitParams
         );
         vm.stopPrank();
         LoanPosition memory afterLoanPosition = loanPositionManager.getPosition(positionId);
@@ -363,7 +364,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         LoanPosition memory beforeLoanPosition = loanPositionManager.getPosition(positionId);
         uint8 epochs = 3;
         uint256 minEarnInterest = 0.02 ether * epochs - 0.01 ether;
-        IController.PermitParams memory permit721Params =
+        IController.ERC721PermitParams memory permit721Params =
             _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(borrowController), positionId);
         vm.prank(user);
         borrowController.shortenLoanDuration(positionId, epochs, minEarnInterest, permit721Params);
@@ -386,9 +387,9 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         uint256 beforeETHBalance = user.balance;
         LoanPosition memory beforeLoanPosition = loanPositionManager.getPosition(positionId);
         uint256 repayAmount = 0.3 ether;
-        IController.PermitParams memory permit721Params =
+        IController.ERC721PermitParams memory permit721Params =
             _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(borrowController), positionId);
-        IController.PermitParams memory permit20Params =
+        IController.ERC20PermitParams memory permit20Params =
             _buildERC20PermitParams(1, waweth, address(borrowController), repayAmount);
         vm.prank(user);
         borrowController.repay{value: repayAmount}(positionId, repayAmount, 0, permit721Params, permit20Params);
@@ -410,9 +411,9 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         uint256 positionId = _initialBorrow(user, address(wausdc), address(waweth), usdc.amount(200_000), 70 ether, 2);
 
         uint256 repayAmount = 60 ether;
-        IController.PermitParams memory permit721Params =
+        IController.ERC721PermitParams memory permit721Params =
             _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(borrowController), positionId);
-        IController.PermitParams memory permit20Params =
+        IController.ERC20PermitParams memory permit20Params =
             _buildERC20PermitParams(1, waweth, address(borrowController), repayAmount);
         vm.prank(user);
         borrowController.repay{value: repayAmount}(positionId, repayAmount, 0, permit721Params, permit20Params);
@@ -455,7 +456,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         AaveTokenSubstitute substitute,
         address spender,
         uint256 amount
-    ) internal view returns (IController.PermitParams memory) {
+    ) internal view returns (IController.ERC20PermitParams memory) {
         IERC20Permit token = IERC20Permit(substitute.underlyingToken());
         address owner = vm.addr(privateKey);
         bytes32 structHash = keccak256(
@@ -463,19 +464,19 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         );
         bytes32 hash = ECDSA.toTypedDataHash(token.DOMAIN_SEPARATOR(), structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, hash);
-        return IController.PermitParams(block.timestamp + 1, v, r, s);
+        return IController.ERC20PermitParams(amount, block.timestamp + 1, v, r, s);
     }
 
     function _buildERC721PermitParams(uint256 privateKey, IERC721Permit token, address spender, uint256 tokenId)
         internal
         view
-        returns (IController.PermitParams memory)
+        returns (IController.ERC721PermitParams memory)
     {
         bytes32 structHash =
             keccak256(abi.encode(token.PERMIT_TYPEHASH(), spender, tokenId, token.nonces(tokenId), block.timestamp + 1));
         bytes32 hash = ECDSA.toTypedDataHash(token.DOMAIN_SEPARATOR(), structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, hash);
-        return IController.PermitParams(block.timestamp + 1, v, r, s);
+        return IController.ERC721PermitParams(block.timestamp + 1, v, r, s);
     }
 
     function assertEq(Epoch e1, Epoch e2, string memory err) internal {

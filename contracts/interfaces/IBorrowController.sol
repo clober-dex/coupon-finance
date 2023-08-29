@@ -15,46 +15,46 @@ interface IBorrowController is IController {
         uint256 borrowAmount,
         uint256 maxPayInterest,
         uint8 loanEpochs,
-        PermitParams calldata collateralPermitParams
+        ERC20PermitParams calldata collateralPermitParams
     ) external payable;
 
     function borrowMore(
         uint256 positionId,
         uint256 amount,
         uint256 maxPayInterest,
-        PermitParams calldata positionPermitParams
+        ERC721PermitParams calldata positionPermitParams
     ) external;
 
     function addCollateral(
         uint256 positionId,
         uint256 amount,
-        PermitParams calldata positionPermitParams,
-        PermitParams calldata collateralPermitParams
+        ERC721PermitParams calldata positionPermitParams,
+        ERC20PermitParams calldata collateralPermitParams
     ) external payable;
 
-    function removeCollateral(uint256 positionId, uint256 amount, PermitParams calldata positionPermitParams)
+    function removeCollateral(uint256 positionId, uint256 amount, ERC721PermitParams calldata positionPermitParams)
         external;
 
     function extendLoanDuration(
         uint256 positionId,
         uint8 epochs,
         uint256 maxPayInterest,
-        PermitParams calldata positionPermitParams,
-        PermitParams calldata debtPermitParams
+        ERC721PermitParams calldata positionPermitParams,
+        ERC20PermitParams calldata debtPermitParams
     ) external payable;
 
     function shortenLoanDuration(
         uint256 positionId,
         uint8 epochs,
         uint256 minEarnInterest,
-        PermitParams calldata positionPermitParams
+        ERC721PermitParams calldata positionPermitParams
     ) external;
 
     function repay(
         uint256 positionId,
         uint256 amount,
         uint256 minEarnInterest,
-        PermitParams calldata positionPermitParams,
-        PermitParams calldata debtPermitParams
+        ERC721PermitParams calldata positionPermitParams,
+        ERC20PermitParams calldata debtPermitParams
     ) external payable;
 }
