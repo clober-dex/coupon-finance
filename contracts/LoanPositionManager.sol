@@ -161,6 +161,8 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
 
             uint256[] memory prices = ICouponOracle(oracle).getAssetsPrices(assets);
             minDebtAmount = minDebtValueInEth * prices[2];
+            collateralPriceWithPrecisionComplement = prices[0];
+            debtPriceWithPrecisionComplement = prices[1];
             if (debtDecimal > 18) {
                 minDebtAmount *= 10 ** (debtDecimal - 18);
             } else {
@@ -168,11 +170,9 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
             }
             minDebtAmount /= prices[1];
             if (debtDecimal > collateralDecimal) {
-                collateralPriceWithPrecisionComplement = prices[0] * 10 ** (debtDecimal - collateralDecimal);
-                debtPriceWithPrecisionComplement = prices[1];
+                collateralPriceWithPrecisionComplement *= 10 ** (debtDecimal - collateralDecimal);
             } else {
-                collateralPriceWithPrecisionComplement = prices[0];
-                debtPriceWithPrecisionComplement = prices[1] * 10 ** (collateralDecimal - debtDecimal);
+                debtPriceWithPrecisionComplement *= 10 ** (collateralDecimal - debtDecimal);
             }
         }
     }
