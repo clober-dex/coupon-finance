@@ -5,6 +5,8 @@ pragma solidity ^0.8.0;
 import {IController} from "./IController.sol";
 
 interface IDepositController is IController {
+    error NotExpired();
+
     function deposit(
         address token,
         uint256 amount,
