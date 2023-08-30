@@ -56,7 +56,8 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
     AaveTokenSubstitute public wausdc;
     AaveTokenSubstitute public waweth;
     address public user;
-    IController.PermitParams public emptyPermitParams;
+    IController.ERC20PermitParams public emptyERC20PermitParams;
+    IController.PermitSignature public emptyERC721PermitParams;
 
     CouponKey[] public couponKeys;
     address[] public wrappedCoupons;
@@ -217,7 +218,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
     function testDepositOverSlippage() public {
         uint256 amount = usdc.amount(10);
 
-        IController.PermitParams memory permitParams =
+        IController.ERC20PermitParams memory permitParams =
             _buildERC20PermitParams(1, IERC20Permit(Constants.USDC), address(depositController), amount);
         vm.expectRevert(abi.encodeWithSelector(IController.ControllerSlippage.selector));
         vm.prank(user);
@@ -227,7 +228,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
     function testDepositOverCloberMarket() public {
         uint256 amount = usdc.amount(7000);
 
-        IController.PermitParams memory permitParams =
+        IController.ERC20PermitParams memory permitParams =
             _buildERC20PermitParams(1, IERC20Permit(Constants.USDC), address(depositController), amount);
         vm.prank(user);
         depositController.deposit(address(wausdc), amount, 2, 0, permitParams);
@@ -243,7 +244,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         uint256 beforeBalance = user.balance;
 
         uint256 tokenId = bondPositionManager.nextId();
-        depositController.deposit{value: amount}(address(waweth), amount, 2, 0, emptyPermitParams);
+        depositController.deposit{value: amount}(address(waweth), amount, 2, 0, emptyERC20PermitParams);
 
         BondPosition memory position = bondPositionManager.getPosition(tokenId);
 
@@ -294,7 +295,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         beforeBalance = usdc.balanceOf(user);
         beforePosition = afterPosition;
 
-        depositController.withdraw(tokenId, beforePosition.amount, type(uint256).max, emptyPermitParams);
+        depositController.withdraw(tokenId, beforePosition.amount, type(uint256).max, emptyERC721PermitParams);
 
         afterPosition = bondPositionManager.getPosition(tokenId);
 
@@ -315,7 +316,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         vm.startPrank(user);
         uint256 amount = 10 ether;
         uint256 tokenId = bondPositionManager.nextId();
-        depositController.deposit{value: amount}(address(waweth), amount, 2, 0, emptyPermitParams);
+        depositController.deposit{value: amount}(address(waweth), amount, 2, 0, emptyERC20PermitParams);
 
         BondPosition memory beforePosition = bondPositionManager.getPosition(tokenId);
         uint256 beforeBalance = user.balance;
@@ -340,7 +341,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         beforeBalance = user.balance;
         beforePosition = afterPosition;
 
-        depositController.withdraw(tokenId, beforePosition.amount, type(uint256).max, emptyPermitParams);
+        depositController.withdraw(tokenId, beforePosition.amount, type(uint256).max, emptyERC721PermitParams);
 
         afterPosition = bondPositionManager.getPosition(tokenId);
 
@@ -395,7 +396,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         vm.startPrank(user);
         uint256 amount = 10 ether;
         uint256 tokenId = bondPositionManager.nextId();
-        depositController.deposit{value: amount}(address(waweth), amount, 1, 0, emptyPermitParams);
+        depositController.deposit{value: amount}(address(waweth), amount, 1, 0, emptyERC20PermitParams);
         vm.warp(EpochLibrary.current().add(1).startTime());
 
         BondPosition memory beforePosition = bondPositionManager.getPosition(tokenId);
@@ -422,7 +423,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
     function _buildERC20PermitParams(uint256 privateKey, IERC20Permit token, address spender, uint256 amount)
         internal
         view
-        returns (IController.PermitParams memory)
+        returns (IController.ERC20PermitParams memory)
     {
         address owner = vm.addr(privateKey);
         bytes32 structHash = keccak256(
@@ -430,19 +431,19 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         );
         bytes32 hash = ECDSA.toTypedDataHash(token.DOMAIN_SEPARATOR(), structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, hash);
-        return IController.PermitParams(block.timestamp + 1, v, r, s);
+        return IController.ERC20PermitParams(amount, IController.PermitSignature(block.timestamp + 1, v, r, s));
     }
 
     function _buildERC721PermitParams(uint256 privateKey, IERC721Permit token, address spender, uint256 tokenId)
         internal
         view
-        returns (IController.PermitParams memory)
+        returns (IController.PermitSignature memory)
     {
         bytes32 structHash =
             keccak256(abi.encode(token.PERMIT_TYPEHASH(), spender, tokenId, token.nonces(tokenId), block.timestamp + 1));
         bytes32 hash = ECDSA.toTypedDataHash(token.DOMAIN_SEPARATOR(), structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, hash);
-        return IController.PermitParams(block.timestamp + 1, v, r, s);
+        return IController.PermitSignature(block.timestamp + 1, v, r, s);
     }
 
     function assertEq(Epoch e1, Epoch e2, string memory err) internal {

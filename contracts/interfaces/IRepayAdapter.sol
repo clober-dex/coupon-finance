@@ -12,6 +12,6 @@ interface IRepayAdapter is IController {
         uint256 sellCollateralAmount,
         uint256 minRepayAmount,
         bytes memory swapData,
-        PermitParams calldata positionPermitParams
+        PermitSignature calldata positionPermitParams
     ) external;
 }
