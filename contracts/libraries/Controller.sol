@@ -143,15 +143,21 @@ abstract contract Controller is
         }
     }
 
-    function _permitERC20(address token, uint256 amount, PermitParams calldata p) internal {
-        if (p.deadline > 0) {
+    function _permitERC20(address token, ERC20PermitParams calldata p) internal {
+        if (p.signature.deadline > 0) {
             IERC20Permit(ISubstitute(token).underlyingToken()).permit(
-                msg.sender, address(this), amount, p.deadline, p.v, p.r, p.s
+                msg.sender,
+                address(this),
+                p.permitAmount,
+                p.signature.deadline,
+                p.signature.v,
+                p.signature.r,
+                p.signature.s
             );
         }
     }
 
-    function _permitERC721(IERC721Permit permitNFT, uint256 positionId, PermitParams calldata p) internal {
+    function _permitERC721(IERC721Permit permitNFT, uint256 positionId, PermitSignature calldata p) internal {
         if (p.deadline > 0) permitNFT.permit(address(this), positionId, p.deadline, p.v, p.r, p.s);
     }
 
@@ -205,9 +211,13 @@ abstract contract Controller is
         uint256 id = couponKey.toId();
         address wrappedCoupon = _wrapped1155Factory.getWrapped1155(address(_couponManager), id, metadata);
         CloberMarketFactory.MarketInfo memory marketInfo = _cloberMarketFactory.getMarketInfo(cloberMarket);
-        if (marketInfo.host == address(0)) revert InvalidMarket();
-        if (CloberOrderBook(cloberMarket).baseToken() != wrappedCoupon) revert InvalidMarket();
-        if (CloberOrderBook(cloberMarket).quoteToken() != couponKey.asset) revert InvalidMarket();
+        if (
+            (marketInfo.host == address(0)) || (CloberOrderBook(cloberMarket).baseToken() != wrappedCoupon)
+                || (CloberOrderBook(cloberMarket).quoteToken() != couponKey.asset)
+        ) {
+            revert InvalidMarket();
+        }
+
         _couponMarkets[id] = cloberMarket;
     }
 
