@@ -117,6 +117,7 @@ contract DepositController is IDepositController, Controller, IPositionLocker {
     {
         _permitERC721(_bondManager, positionId, positionPermitParams);
         BondPosition memory position = _bondManager.getPosition(positionId);
+        if (position.expiredWith >= EpochLibrary.current()) revert NotExpired();
         _bondManager.lock(abi.encode(positionId, msg.sender, abi.encode(0, position.expiredWith, 0, 0)));
         _burnAllSubstitute(position.asset, msg.sender);
     }
