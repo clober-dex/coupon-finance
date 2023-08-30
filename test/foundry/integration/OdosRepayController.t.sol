@@ -283,7 +283,7 @@ contract OdosRepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiv
             )
         );
 
-        IController.ERC721PermitParams memory permit721Params =
+        IController.PermitSignature memory permit721Params =
             _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(odosRepayAdapter), positionId);
 
         vm.prank(user);
@@ -323,7 +323,7 @@ contract OdosRepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiv
             )
         );
 
-        IController.ERC721PermitParams memory permit721Params =
+        IController.PermitSignature memory permit721Params =
             _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(odosRepayAdapter), positionId);
 
         vm.prank(user);
@@ -363,7 +363,7 @@ contract OdosRepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiv
             )
         );
 
-        IController.ERC721PermitParams memory permit721Params =
+        IController.PermitSignature memory permit721Params =
             _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(odosRepayAdapter), positionId);
 
         vm.prank(user);
@@ -399,19 +399,19 @@ contract OdosRepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         );
         bytes32 hash = ECDSA.toTypedDataHash(token.DOMAIN_SEPARATOR(), structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, hash);
-        return IController.ERC20PermitParams(amount, block.timestamp + 1, v, r, s);
+        return IController.ERC20PermitParams(amount, IController.PermitSignature(block.timestamp + 1, v, r, s));
     }
 
     function _buildERC721PermitParams(uint256 privateKey, IERC721Permit token, address spender, uint256 tokenId)
         internal
         view
-        returns (IController.ERC721PermitParams memory)
+        returns (IController.PermitSignature memory)
     {
         bytes32 structHash =
             keccak256(abi.encode(token.PERMIT_TYPEHASH(), spender, tokenId, token.nonces(tokenId), block.timestamp + 1));
         bytes32 hash = ECDSA.toTypedDataHash(token.DOMAIN_SEPARATOR(), structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, hash);
-        return IController.ERC721PermitParams(block.timestamp + 1, v, r, s);
+        return IController.PermitSignature(block.timestamp + 1, v, r, s);
     }
 
     function assertEq(Epoch e1, Epoch e2, string memory err) internal {

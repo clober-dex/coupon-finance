@@ -113,7 +113,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         uint256 positionId,
         uint256 amount,
         uint256 maxPayInterest,
-        ERC721PermitParams calldata positionPermitParams
+        PermitSignature calldata positionPermitParams
     ) external nonReentrant onlyPositionOwner(positionId) {
         _permitERC721(_loanManager, positionId, positionPermitParams);
         LoanPosition memory position = _loanManager.getPosition(positionId);
@@ -125,7 +125,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
     function addCollateral(
         uint256 positionId,
         uint256 amount,
-        ERC721PermitParams calldata positionPermitParams,
+        PermitSignature calldata positionPermitParams,
         ERC20PermitParams calldata collateralPermitParams
     ) external payable nonReentrant onlyPositionOwner(positionId) wrapETH {
         _permitERC721(_loanManager, positionId, positionPermitParams);
@@ -135,7 +135,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         _loanManager.lock(_encodeAdjustData(positionId, position, 0, 0));
     }
 
-    function removeCollateral(uint256 positionId, uint256 amount, ERC721PermitParams calldata positionPermitParams)
+    function removeCollateral(uint256 positionId, uint256 amount, PermitSignature calldata positionPermitParams)
         external
         nonReentrant
         onlyPositionOwner(positionId)
@@ -151,7 +151,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         uint256 positionId,
         uint8 epochs,
         uint256 maxPayInterest,
-        ERC721PermitParams calldata positionPermitParams,
+        PermitSignature calldata positionPermitParams,
         ERC20PermitParams calldata debtPermitParams
     ) external payable nonReentrant onlyPositionOwner(positionId) wrapETH {
         _permitERC721(_loanManager, positionId, positionPermitParams);
@@ -167,7 +167,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         uint256 positionId,
         uint8 epochs,
         uint256 minEarnInterest,
-        ERC721PermitParams calldata positionPermitParams
+        PermitSignature calldata positionPermitParams
     ) external nonReentrant onlyPositionOwner(positionId) {
         _permitERC721(_loanManager, positionId, positionPermitParams);
         LoanPosition memory position = _loanManager.getPosition(positionId);
@@ -181,7 +181,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         uint256 positionId,
         uint256 amount,
         uint256 minEarnInterest,
-        ERC721PermitParams calldata positionPermitParams,
+        PermitSignature calldata positionPermitParams,
         ERC20PermitParams calldata debtPermitParams
     ) external payable nonReentrant onlyPositionOwner(positionId) wrapETH {
         _permitERC721(_loanManager, positionId, positionPermitParams);

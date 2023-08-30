@@ -22,24 +22,24 @@ interface IBorrowController is IController {
         uint256 positionId,
         uint256 amount,
         uint256 maxPayInterest,
-        ERC721PermitParams calldata positionPermitParams
+        PermitSignature calldata positionPermitParams
     ) external;
 
     function addCollateral(
         uint256 positionId,
         uint256 amount,
-        ERC721PermitParams calldata positionPermitParams,
+        PermitSignature calldata positionPermitParams,
         ERC20PermitParams calldata collateralPermitParams
     ) external payable;
 
-    function removeCollateral(uint256 positionId, uint256 amount, ERC721PermitParams calldata positionPermitParams)
+    function removeCollateral(uint256 positionId, uint256 amount, PermitSignature calldata positionPermitParams)
         external;
 
     function extendLoanDuration(
         uint256 positionId,
         uint8 epochs,
         uint256 maxPayInterest,
-        ERC721PermitParams calldata positionPermitParams,
+        PermitSignature calldata positionPermitParams,
         ERC20PermitParams calldata debtPermitParams
     ) external payable;
 
@@ -47,14 +47,14 @@ interface IBorrowController is IController {
         uint256 positionId,
         uint8 epochs,
         uint256 minEarnInterest,
-        ERC721PermitParams calldata positionPermitParams
+        PermitSignature calldata positionPermitParams
     ) external;
 
     function repay(
         uint256 positionId,
         uint256 amount,
         uint256 minEarnInterest,
-        ERC721PermitParams calldata positionPermitParams,
+        PermitSignature calldata positionPermitParams,
         ERC20PermitParams calldata debtPermitParams
     ) external payable;
 }

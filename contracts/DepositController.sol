@@ -99,7 +99,7 @@ contract DepositController is IDepositController, Controller, IPositionLocker {
         uint256 positionId,
         uint256 withdrawAmount,
         uint256 maxPayInterest,
-        ERC721PermitParams calldata positionPermitParams
+        PermitSignature calldata positionPermitParams
     ) external nonReentrant onlyPositionOwner(positionId) {
         _permitERC721(_bondManager, positionId, positionPermitParams);
         BondPosition memory position = _bondManager.getPosition(positionId);
@@ -110,7 +110,7 @@ contract DepositController is IDepositController, Controller, IPositionLocker {
         _burnAllSubstitute(position.asset, msg.sender);
     }
 
-    function collect(uint256 positionId, ERC721PermitParams calldata positionPermitParams)
+    function collect(uint256 positionId, PermitSignature calldata positionPermitParams)
         external
         nonReentrant
         onlyPositionOwner(positionId)

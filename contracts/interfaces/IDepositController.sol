@@ -17,8 +17,8 @@ interface IDepositController is IController {
         uint256 positionId,
         uint256 withdrawAmount,
         uint256 maxPayInterest,
-        ERC721PermitParams calldata positionPermitParams
+        PermitSignature calldata positionPermitParams
     ) external;
 
-    function collect(uint256 positionId, ERC721PermitParams calldata positionPermitParams) external;
+    function collect(uint256 positionId, PermitSignature calldata positionPermitParams) external;
 }

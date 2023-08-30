@@ -57,7 +57,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
     AaveTokenSubstitute public waweth;
     address public user;
     IController.ERC20PermitParams public emptyERC20PermitParams;
-    IController.ERC721PermitParams public emptyERC721PermitParams;
+    IController.PermitSignature public emptyERC721PermitParams;
 
     CouponKey[] public couponKeys;
     address[] public wrappedCoupons;
@@ -316,7 +316,6 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         vm.startPrank(user);
         uint256 amount = 10 ether;
         uint256 tokenId = bondPositionManager.nextId();
-        IController.ERC20PermitParams memory emptyERC20PermitParams;
         depositController.deposit{value: amount}(address(waweth), amount, 2, 0, emptyERC20PermitParams);
 
         BondPosition memory beforePosition = bondPositionManager.getPosition(tokenId);
@@ -432,19 +431,19 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         );
         bytes32 hash = ECDSA.toTypedDataHash(token.DOMAIN_SEPARATOR(), structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, hash);
-        return IController.ERC20PermitParams(amount, block.timestamp + 1, v, r, s);
+        return IController.ERC20PermitParams(amount, IController.PermitSignature(block.timestamp + 1, v, r, s));
     }
 
     function _buildERC721PermitParams(uint256 privateKey, IERC721Permit token, address spender, uint256 tokenId)
         internal
         view
-        returns (IController.ERC721PermitParams memory)
+        returns (IController.PermitSignature memory)
     {
         bytes32 structHash =
             keccak256(abi.encode(token.PERMIT_TYPEHASH(), spender, tokenId, token.nonces(tokenId), block.timestamp + 1));
         bytes32 hash = ECDSA.toTypedDataHash(token.DOMAIN_SEPARATOR(), structHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, hash);
-        return IController.ERC721PermitParams(block.timestamp + 1, v, r, s);
+        return IController.PermitSignature(block.timestamp + 1, v, r, s);
     }
 
     function assertEq(Epoch e1, Epoch e2, string memory err) internal {
