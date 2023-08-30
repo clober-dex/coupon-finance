@@ -220,9 +220,13 @@ abstract contract Controller is
         uint256 id = couponKey.toId();
         address wrappedCoupon = _wrapped1155Factory.getWrapped1155(address(_couponManager), id, metadata);
         CloberMarketFactory.MarketInfo memory marketInfo = _cloberMarketFactory.getMarketInfo(cloberMarket);
-        if (marketInfo.host == address(0)) revert InvalidMarket();
-        if (CloberOrderBook(cloberMarket).baseToken() != wrappedCoupon) revert InvalidMarket();
-        if (CloberOrderBook(cloberMarket).quoteToken() != couponKey.asset) revert InvalidMarket();
+        if (
+            (marketInfo.host == address(0)) || (CloberOrderBook(cloberMarket).baseToken() != wrappedCoupon)
+                || (CloberOrderBook(cloberMarket).quoteToken() != couponKey.asset)
+        ) {
+            revert InvalidMarket();
+        }
+
         _couponMarkets[id] = cloberMarket;
     }
 
