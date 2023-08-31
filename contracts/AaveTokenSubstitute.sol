@@ -89,14 +89,20 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
         }
 
         if (underlyingToken == address(_weth)) {
-            _aaveV3Pool.withdraw(underlyingToken, amount, address(this));
+            if (amount > 0) {
+                _aaveV3Pool.withdraw(underlyingToken, amount, address(this));
+            }
             amount += underlyingAmount;
             _weth.withdraw(amount);
             (bool success,) = payable(to).call{value: amount}("");
             if (!success) revert ValueTransferFailed();
         } else {
-            _aaveV3Pool.withdraw(underlyingToken, amount, to);
-            IERC20(underlyingToken).safeTransfer(address(to), underlyingAmount);
+            if (amount > 0) {
+                _aaveV3Pool.withdraw(underlyingToken, amount, to);
+            }
+            if (underlyingAmount) {
+                IERC20(underlyingToken).safeTransfer(address(to), underlyingAmount);
+            }
         }
     }
 
