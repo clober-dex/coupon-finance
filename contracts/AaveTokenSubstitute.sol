@@ -74,6 +74,7 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
         uint256 underlyingAmount = IERC20(underlyingToken).balanceOf(address(this));
         if (amount <= underlyingAmount) {
             IERC20(underlyingToken).transfer(address(to), amount);
+            return;
         } else if (underlyingAmount > 0) {
             IERC20(underlyingToken).transfer(address(to), underlyingAmount);
             amount -= underlyingAmount;
