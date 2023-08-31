@@ -55,8 +55,9 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
 
     function mint(uint256 amount, address to) external {
         IERC20(underlyingToken).safeTransferFrom(msg.sender, address(this), amount);
-        IERC20(underlyingToken).approve(address(_aaveV3Pool), amount);
-        _aaveV3Pool.supply(underlyingToken, amount, address(this), 0);
+        uint256 supplyAmount = IERC20(underlyingToken).balanceOf(address(this));
+        IERC20(underlyingToken).approve(address(_aaveV3Pool), supplyAmount);
+        try _aaveV3Pool.supply(underlyingToken, supplyAmount, address(this), 0) {} catch {}
         _mint(to, amount);
     }
 
@@ -74,18 +75,28 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
     function burn(uint256 amount, address to) external {
         _burn(msg.sender, amount);
 
+        uint256 underlyingAmount = IERC20(underlyingToken).balanceOf(address(this));
         uint256 withdrawableAmount = IERC20(underlyingToken).balanceOf(address(aToken));
-        if (withdrawableAmount < amount) {
-            IERC20(aToken).safeTransfer(to, amount - withdrawableAmount);
-            amount = withdrawableAmount;
+        if (amount <= underlyingAmount) {
+            underlyingAmount = amount;
+            amount = 0;
+        } else {
+            amount -= underlyingAmount;
+            if (withdrawableAmount < amount) {
+                IERC20(aToken).safeTransfer(to, amount - withdrawableAmount);
+                amount = withdrawableAmount;
+            }
         }
+
         if (underlyingToken == address(_weth)) {
             _aaveV3Pool.withdraw(underlyingToken, amount, address(this));
+            amount += underlyingAmount;
             _weth.withdraw(amount);
             (bool success,) = payable(to).call{value: amount}("");
             if (!success) revert ValueTransferFailed();
         } else {
             _aaveV3Pool.withdraw(underlyingToken, amount, to);
+            IERC20(underlyingToken).safeTransfer(address(to), underlyingAmount);
         }
     }
 
