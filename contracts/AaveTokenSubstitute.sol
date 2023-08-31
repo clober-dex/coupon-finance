@@ -52,8 +52,9 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
 
     function mint(uint256 amount, address to) external {
         IERC20(underlyingToken).safeTransferFrom(msg.sender, address(this), amount);
-        IERC20(underlyingToken).approve(address(_aaveV3Pool), amount);
-        _aaveV3Pool.supply(underlyingToken, amount, address(this), 0);
+        uint256 supplyAmount = IERC20(underlyingToken).balanceOf(address(this));
+        IERC20(underlyingToken).approve(address(_aaveV3Pool), supplyAmount);
+        try _aaveV3Pool.supply(underlyingToken, supplyAmount, address(this), 0) {} catch {}
         _mint(to, amount);
     }
 
@@ -70,11 +71,18 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
 
     function burn(uint256 amount, address to) external {
         _burn(msg.sender, amount);
+        uint256 underlyingAmount = IERC20(underlyingToken).balanceOf(address(this));
+        if (amount <= underlyingAmount) {
+            IERC20(underlyingToken).transfer(address(to), amount);
+        } else if (underlyingAmount > 0) {
+            IERC20(underlyingToken).transfer(address(to), underlyingAmount);
+            amount -= underlyingAmount;
+        }
         _aaveV3Pool.withdraw(underlyingToken, amount, to);
     }
 
     function burnableAmount() external view returns (uint256) {
-        return IERC20(underlyingToken).balanceOf(address(aToken));
+        return IERC20(underlyingToken).balanceOf(address(aToken)) + IERC20(underlyingToken).balanceOf(address(this));
     }
 
     function setTreasury(address newTreasury) external onlyOwner {
