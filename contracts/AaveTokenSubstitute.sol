@@ -100,7 +100,7 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
             if (amount > 0) {
                 _aaveV3Pool.withdraw(underlyingToken, amount, to);
             }
-            if (underlyingAmount) {
+            if (underlyingAmount > 0) {
                 IERC20(underlyingToken).safeTransfer(address(to), underlyingAmount);
             }
         }
