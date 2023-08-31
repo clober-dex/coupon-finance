@@ -4,7 +4,7 @@ import fs from 'fs'
 import * as dotenv from 'dotenv'
 import readlineSync from 'readline-sync'
 import { HardhatConfig } from 'hardhat/types'
-import { arbitrum, hardhat, mainnet } from '@wagmi/chains'
+import { arbitrum, arbitrumGoerli, hardhat, mainnet } from '@wagmi/chains'
 
 import '@nomiclabs/hardhat-waffle'
 import '@typechain/hardhat'
@@ -97,6 +97,12 @@ const config: HardhatConfig = {
     outDir: 'typechain',
     target: 'ethers-v5',
   },
+  etherscan: {
+    apiKey: {
+      arbitrum: process.env.ARBISCAN_API_KEY,
+      arbitrumGoerli: process.env.ARBISCAN_API_KEY,
+    },
+  },
   defaultNetwork: 'hardhat',
   networks: {
     [arbitrum.id]: {
@@ -116,6 +122,26 @@ const config: HardhatConfig = {
         etherscan: {
           apiKey: process.env.ARBISCAN_API_KEY,
           apiUrl: 'https://api.arbiscan.io',
+        },
+      },
+    },
+    [arbitrumGoerli.id]: {
+      url: arbitrumGoerli.rpcUrls.default.http[0],
+      chainId: arbitrumGoerli.id,
+      accounts: process.env.TEST_NET_PRIVATE_KEY ? [process.env.TEST_NET_PRIVATE_KEY] : [],
+      gas: 'auto',
+      gasPrice: 'auto',
+      gasMultiplier: 1,
+      timeout: 3000000,
+      httpHeaders: {},
+      live: true,
+      saveDeployments: true,
+      tags: ['testnet', 'test'],
+      companionNetworks: {},
+      verify: {
+        etherscan: {
+          apiKey: process.env.ARBISCAN_API_KEY,
+          apiUrl: 'https://api.goerli.arbiscan.io',
         },
       },
     },
