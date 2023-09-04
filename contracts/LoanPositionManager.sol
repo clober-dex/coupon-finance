@@ -303,6 +303,8 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
                 }
             }
 
+            if (position.debtAmount == 0 && position.collateralAmount == 0) _burn(positionId);
+
             emit LiquidatePosition(positionId, msg.sender, liquidationAmount, repayAmount, protocolFeeAmount);
             emit UpdatePosition(positionId, position.collateralAmount, position.debtAmount, position.expiredWith);
         }
