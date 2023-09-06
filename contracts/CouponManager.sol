@@ -73,9 +73,9 @@ contract CouponManager is ERC1155Permit, ERC1155Supply, ICouponManager {
             uint256 id = couponKeys[i].toId();
             uint256 amount = balanceOf(msg.sender, id);
             if (amount == 0) continue;
+            ids[count] = id;
+            amounts[count] = amount;
             count++;
-            ids[i] = id;
-            amounts[i] = amount;
         }
         assembly {
             mstore(ids, count)
