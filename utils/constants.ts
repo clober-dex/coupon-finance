@@ -29,9 +29,9 @@ export const TREASURY: { [chainId: number]: string } = {
   [TESTNET_ID]: '0x000000000000000000000000000000000000dEaD',
 }
 
-export const COLLATERAL_REPAY_ROUTER: { [chainId: number]: string } = {
+export const REPAY_ROUTER: { [chainId: number]: string } = {
   [arbitrum.id]: '0xa669e7A0d4b3e4Fa48af2dE86BD4CD7126Be4e13',
-  [TESTNET_ID]: '0xaBBc5F99639c9B6bCb58544ddf04EFA6802F4064',
+  [TESTNET_ID]: '0x4b9AE05FbfEF6610c5D65B57e92c169b1A9d2Cfe',
 }
 
 const TOKEN_KEYS = {
