@@ -244,9 +244,8 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
                     );
                     repayAmount = newRepayAmount;
                 }
-
-                if (liquidationAmount > position.collateralAmount) liquidationAmount = position.collateralAmount;
             }
+            if (liquidationAmount > position.collateralAmount) liquidationAmount = position.collateralAmount;
             protocolFeeAmount = (liquidationAmount * loanConfig.liquidationProtocolFee) / _RATE_PRECISION;
         }
     }
