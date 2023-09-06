@@ -33,10 +33,12 @@ task('substitute:aave:deploy')
     )
     if ((await hre.ethers.provider.getCode(computedAddress)) !== '0x') {
       console.log('Contract already deployed:', computedAddress)
-      return
+    } else {
+      const receipt = await waitForTx(
+        singletonFactory.deploy(initCode, hre.ethers.constants.HashZero, { gasLimit: 5000000 }),
+      )
+      console.log(`Deployed AaveTokenSubstitute(${computedAddress}) at tx`, receipt.transactionHash)
     }
-    const receipt = await waitForTx(singletonFactory.deploy(initCode, hre.ethers.constants.HashZero))
-    console.log(`Deployed AaveTokenSubstitute(${computedAddress}) at tx`, receipt.transactionHash)
     await verify(computedAddress, constructorArgs)
   })
 
