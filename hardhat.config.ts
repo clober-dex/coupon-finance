@@ -141,7 +141,7 @@ const config: HardhatConfig = {
       verify: {
         etherscan: {
           apiKey: process.env.ARBISCAN_API_KEY,
-          apiUrl: 'https://api.goerli.arbiscan.io',
+          apiUrl: 'https://api-goerli.arbiscan.io',
         },
       },
     },
