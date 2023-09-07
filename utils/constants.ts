@@ -31,6 +31,7 @@ export const TREASURY: { [chainId: number]: string } = {
 
 export const REPAY_ROUTER: { [chainId: number]: string } = {
   [arbitrum.id]: '0xa669e7A0d4b3e4Fa48af2dE86BD4CD7126Be4e13',
+  [arbitrumGoerli.id]: '0xbe83C53499C676dAB038db0E2CAd3E69a3d5CdFC',
   [TESTNET_ID]: '0x4b9AE05FbfEF6610c5D65B57e92c169b1A9d2Cfe',
 }
 
