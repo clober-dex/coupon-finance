@@ -270,7 +270,7 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
             (liquidationAmount, repayAmount, protocolFeeAmount) =
                 _getLiquidationAmount(position, maxRepayAmount > 0 ? maxRepayAmount : type(uint256).max);
 
-            if (liquidationAmount == 0 && repayAmount == 0) revert UnableToLiquidate();
+            if (liquidationAmount == 0) revert UnableToLiquidate();
 
             Epoch currentEpoch = EpochLibrary.current();
             uint256 epochLength = position.expiredWith >= currentEpoch ? position.expiredWith.sub(currentEpoch) + 1 : 0;
