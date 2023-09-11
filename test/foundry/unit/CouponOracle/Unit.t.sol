@@ -4,14 +4,14 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 
-import {ICouponOracle} from "../../../../contracts/interfaces/ICouponOracle.sol";
+import {ICouponOracleTypes, ICouponOracle} from "../../../../contracts/interfaces/ICouponOracle.sol";
 import {CouponOracle} from "../../../../contracts/CouponOracle.sol";
 import {ForkUtils, Utils} from "../../Utils.sol";
 import {Constants} from "../../Constants.sol";
 import {MockFallbackOracle} from "./MockFallbackOracle.sol";
 import {InvalidPriceFeed} from "./InvalidPriceFeed.sol";
 
-contract CouponOracleUnitTest is Test {
+contract CouponOracleUnitTest is Test, ICouponOracleTypes {
     InvalidPriceFeed public invalidPriceFeed;
     MockFallbackOracle public mockFallbackOracle;
     CouponOracle public couponOracle;
@@ -28,6 +28,8 @@ contract CouponOracleUnitTest is Test {
     function testSetFeeds() public {
         assertEq(couponOracle.getFeed(Constants.USDC), address(0), "FEED_NOT_SET");
 
+        vm.expectEmit(true, true, true, true);
+        emit SetFeed(Constants.USDC, Constants.USDC_CHAINLINK_FEED);
         couponOracle.setFeeds(Utils.toArr(Constants.USDC), Utils.toArr(Constants.USDC_CHAINLINK_FEED));
 
         assertEq(couponOracle.getFeed(Constants.USDC), Constants.USDC_CHAINLINK_FEED, "FEED_SET");
@@ -40,7 +42,7 @@ contract CouponOracleUnitTest is Test {
     }
 
     function testSetFeedsLengthMismatch() public {
-        vm.expectRevert(abi.encodeWithSelector(ICouponOracle.LengthMismatch.selector));
+        vm.expectRevert(abi.encodeWithSelector(LengthMismatch.selector));
         couponOracle.setFeeds(
             Utils.toArr(Constants.USDC), Utils.toArr(Constants.USDC_CHAINLINK_FEED, Constants.USDC_CHAINLINK_FEED)
         );
@@ -48,19 +50,21 @@ contract CouponOracleUnitTest is Test {
 
     function testSetFeedsInvalidDecimals() public {
         invalidPriceFeed.setDecimals(18);
-        vm.expectRevert(abi.encodeWithSelector(ICouponOracle.InvalidDecimals.selector));
+        vm.expectRevert(abi.encodeWithSelector(InvalidDecimals.selector));
         couponOracle.setFeeds(Utils.toArr(Constants.USDC), Utils.toArr(address(invalidPriceFeed)));
     }
 
     function testSetFeedsAlreadySet() public {
         couponOracle.setFeeds(Utils.toArr(Constants.USDC), Utils.toArr(Constants.USDC_CHAINLINK_FEED));
-        vm.expectRevert(abi.encodeWithSelector(ICouponOracle.AssetFeedAlreadySet.selector));
+        vm.expectRevert(abi.encodeWithSelector(AssetFeedAlreadySet.selector));
         couponOracle.setFeeds(Utils.toArr(Constants.USDC), Utils.toArr(Constants.USDC_CHAINLINK_FEED));
     }
 
     function testSetFallbackOracle() public {
         assertEq(couponOracle.fallbackOracle(), address(0), "FALLBACK_ORACLE_NOT_SET");
 
+        vm.expectEmit(true, true, true, true);
+        emit SetFallbackOracle(address(mockFallbackOracle));
         couponOracle.setFallbackOracle(address(mockFallbackOracle));
 
         assertEq(couponOracle.fallbackOracle(), address(mockFallbackOracle), "FALLBACK_ORACLE_SET");

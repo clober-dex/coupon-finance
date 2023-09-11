@@ -2,11 +2,16 @@
 
 pragma solidity ^0.8.0;
 
-interface ICouponOracle {
+interface ICouponOracleTypes {
     error LengthMismatch();
     error InvalidDecimals();
     error AssetFeedAlreadySet();
 
+    event SetFallbackOracle(address indexed newFallbackOracle);
+    event SetFeed(address indexed asset, address indexed feed);
+}
+
+interface ICouponOracle is ICouponOracleTypes {
     function decimals() external view returns (uint8);
 
     function fallbackOracle() external view returns (address);

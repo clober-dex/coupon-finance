@@ -38,6 +38,7 @@ contract CouponOracle is ICouponOracle, Ownable {
 
     function setFallbackOracle(address newFallbackOracle) external onlyOwner {
         fallbackOracle = newFallbackOracle;
+        emit SetFallbackOracle(newFallbackOracle);
     }
 
     function setFeeds(address[] memory assets, address[] memory feeds) external onlyOwner {
@@ -47,6 +48,7 @@ contract CouponOracle is ICouponOracle, Ownable {
                 if (AggregatorV3Interface(feeds[i]).decimals() != 8) revert InvalidDecimals();
                 if (getFeed[assets[i]] != address(0)) revert AssetFeedAlreadySet();
                 getFeed[assets[i]] = feeds[i];
+                emit SetFeed(assets[i], feeds[i]);
             }
         }
     }
