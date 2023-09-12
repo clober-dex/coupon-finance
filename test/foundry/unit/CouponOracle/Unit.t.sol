@@ -130,6 +130,14 @@ contract CouponOracleUnitTest is Test, ICouponOracleTypes {
         assertEq(couponOracle.getAssetPrice(Constants.USDC), mockFallbackOracle.FALLBACK_PRICE(), "FALLBACK_PRICE_1");
     }
 
+    function testGetPriceWhenTimeout() public {
+        couponOracle.setFallbackOracle(address(mockFallbackOracle));
+
+        vm.warp(block.timestamp + 3600);
+
+        assertEq(couponOracle.getAssetPrice(Constants.USDC), mockFallbackOracle.FALLBACK_PRICE(), "FALLBACK_PRICE_0");
+    }
+
     function testGetPriceWhenFeedAndFallbackNotSet() public {
         vm.expectRevert();
         couponOracle.getAssetPrice(Constants.WBTC);

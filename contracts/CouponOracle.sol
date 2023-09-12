@@ -10,6 +10,7 @@ import {ICouponOracle} from "./interfaces/ICouponOracle.sol";
 import {IFallbackOracle} from "./interfaces/IFallbackOracle.sol";
 
 contract CouponOracle is ICouponOracle, Ownable {
+    uint256 private constant _TIME_OUT = 3600;
     address public override sequencerOracle;
     uint256 public override gracePeriod;
     address public override fallbackOracle;
@@ -33,9 +34,10 @@ contract CouponOracle is ICouponOracle, Ownable {
             try AggregatorV3Interface(feed).latestRoundData() returns (
                 uint80 roundId, int256 answer, uint256, /* startedAt */ uint256 updatedAt, uint80 /* answeredInRound */
             ) {
-                // Sanity Check and Sequencer Check
+                // Check Sanity, Staleness and the Sequencer
                 if (
-                    roundId != 0 && answer >= 0 && updatedAt != 0 && updatedAt <= block.timestamp && _isSequencerValid()
+                    roundId != 0 && answer >= 0 && updatedAt != 0 && updatedAt <= block.timestamp
+                        && block.timestamp <= updatedAt + _TIME_OUT && _isSequencerValid()
                 ) {
                     return uint256(answer);
                 }
