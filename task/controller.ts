@@ -2,7 +2,7 @@ import { task } from 'hardhat/config'
 import { AAVE_SUBSTITUTES } from '../utils/constants'
 import { hardhat } from '@wagmi/chains'
 import { getDeployedContract, waitForTx } from '../utils/contract'
-import { BorrowController, LoanPositionManager, OdosRepayAdapter } from '../typechain'
+import { BorrowController, LoanPositionManager, RepayAdapter } from '../typechain'
 
 task('borrow-controller:set-allowances').setAction(async (taskArgs, hre) => {
   const controller = await getDeployedContract<BorrowController>('BorrowController')
@@ -21,8 +21,8 @@ task('borrow-controller:set-allowances').setAction(async (taskArgs, hre) => {
   }
 })
 
-task('odos-adapter:set-allowances').setAction(async (taskArgs, hre) => {
-  const adapter = await getDeployedContract<OdosRepayAdapter>('OdosRepayAdapter')
+task('repay-adapter:set-allowances').setAction(async (taskArgs, hre) => {
+  const adapter = await getDeployedContract<RepayAdapter>('RepayAdapter')
   const loanManager = await getDeployedContract<LoanPositionManager>('LoanPositionManager')
   const chainId = hre.network.config.chainId ?? hardhat.id
   const tokenNames = Object.keys(AAVE_SUBSTITUTES[chainId])
