@@ -13,9 +13,9 @@ import {Controller} from "./libraries/Controller.sol";
 import {IPositionLocker} from "./interfaces/IPositionLocker.sol";
 import {IRepayAdapter} from "./interfaces/IRepayAdapter.sol";
 
-contract OdosRepayAdapter is IRepayAdapter, Controller, IPositionLocker {
+contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
     ILoanPositionManager private immutable _loanManager;
-    address private immutable _odosRouter;
+    address private immutable _router;
 
     modifier onlyPositionOwner(uint256 positionId) {
         if (_loanManager.ownerOf(positionId) != msg.sender) revert InvalidAccess();
@@ -28,10 +28,10 @@ contract OdosRepayAdapter is IRepayAdapter, Controller, IPositionLocker {
         address couponManager,
         address weth,
         address loanManager,
-        address odosRouter
+        address router
     ) Controller(wrapped1155Factory, cloberMarketFactory, couponManager, weth) {
         _loanManager = ILoanPositionManager(loanManager);
-        _odosRouter = odosRouter;
+        _router = router;
     }
 
     function positionLockAcquired(bytes memory data) external returns (bytes memory) {
@@ -102,8 +102,8 @@ contract OdosRepayAdapter is IRepayAdapter, Controller, IPositionLocker {
         address outToken = ISubstitute(debt).underlyingToken();
 
         ISubstitute(collateral).burn(inAmount, address(this));
-        IERC20(inToken).approve(_odosRouter, inAmount);
-        (bool success, bytes memory result) = _odosRouter.call(swapData);
+        IERC20(inToken).approve(_router, inAmount);
+        (bool success, bytes memory result) = _router.call(swapData);
         if (!success) revert CollateralSwapFailed(string(result));
 
         outAmount = IERC20(outToken).balanceOf(address(this));

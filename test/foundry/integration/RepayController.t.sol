@@ -30,7 +30,7 @@ import {IWrapped1155Factory} from "../../../contracts/external/wrapped1155/IWrap
 import {CloberMarketFactory} from "../../../contracts/external/clober/CloberMarketFactory.sol";
 import {CloberMarketSwapCallbackReceiver} from "../../../contracts/external/clober/CloberMarketSwapCallbackReceiver.sol";
 import {CloberOrderBook} from "../../../contracts/external/clober/CloberOrderBook.sol";
-import {OdosRepayAdapter} from "../../../contracts/OdosRepayAdapter.sol";
+import {RepayAdapter} from "../../../contracts/RepayAdapter.sol";
 import {BorrowController} from "../../../contracts/BorrowController.sol";
 import {IRepayAdapter} from "../../../contracts/interfaces/IRepayAdapter.sol";
 import {CouponManager} from "../../../contracts/CouponManager.sol";
@@ -40,7 +40,7 @@ import {AssetPool} from "../../../contracts/AssetPool.sol";
 import {CouponOracle} from "../../../contracts/CouponOracle.sol";
 import {AaveTokenSubstitute} from "../../../contracts/AaveTokenSubstitute.sol";
 
-contract OdosRepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiver, ERC1155Holder {
+contract RepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiver, ERC1155Holder {
     using Strings for *;
     using ERC20Utils for IERC20;
     using CouponKeyLibrary for CouponKey;
@@ -51,7 +51,7 @@ contract OdosRepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
 
     IAssetPool public assetPool;
-    OdosRepayAdapter public odosRepayAdapter;
+    RepayAdapter public repayAdapter;
     BorrowController public borrowController;
     ILoanPositionManager public loanPositionManager;
     IWrapped1155Factory public wrapped1155Factory;
@@ -131,7 +131,7 @@ contract OdosRepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiv
             Constants.WETH,
             address(loanPositionManager)
         );
-        odosRepayAdapter = new OdosRepayAdapter(
+        repayAdapter = new RepayAdapter(
             Constants.WRAPPED1155_FACTORY,
             Constants.CLOBER_FACTORY,
             address(couponManager),
@@ -141,8 +141,8 @@ contract OdosRepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         );
         borrowController.setCollateralAllowance(address(wausdc));
         borrowController.setCollateralAllowance(address(waweth));
-        odosRepayAdapter.setCollateralAllowance(address(wausdc));
-        odosRepayAdapter.setCollateralAllowance(address(waweth));
+        repayAdapter.setCollateralAllowance(address(wausdc));
+        repayAdapter.setCollateralAllowance(address(waweth));
 
         wausdc.transfer(address(assetPool), usdc.amount(1_000));
         waweth.transfer(address(assetPool), 1_000 ether);
@@ -179,7 +179,7 @@ contract OdosRepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiv
                 1e10,
                 1001 * 1e15
             );
-            odosRepayAdapter.setCouponMarket(couponKeys[i], market);
+            repayAdapter.setCouponMarket(couponKeys[i], market);
             borrowController.setCouponMarket(couponKeys[i], market);
         }
         _marketMake();
@@ -192,7 +192,7 @@ contract OdosRepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiv
     function _marketMake() internal {
         for (uint256 i = 0; i < wrappedCoupons.length; ++i) {
             CouponKey memory key = couponKeys[i];
-            CloberOrderBook market = CloberOrderBook(odosRepayAdapter.getCouponMarket(key));
+            CloberOrderBook market = CloberOrderBook(repayAdapter.getCouponMarket(key));
             (uint16 bidIndex,) = market.priceToIndex(1e18 / 100 * 2, false); // 2%
             (uint16 askIndex,) = market.priceToIndex(1e18 / 100 * 4, false); // 4%
             CloberOrderBook(market).limitOrder(
@@ -278,18 +278,16 @@ contract OdosRepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         bytes memory data = fromHex(
             string.concat(
                 "83bd37f90001af88d065e77c8cc2239327c5edb3a432268e5831000182af49447d8a07e3bd95bd0d56f35241523fbab1041dcd65000803c174ee39d2c08007ae1400017e3e803E966291EE9aA69e6FADa116cD07462E5D00000001",
-                this.remove0x(Strings.toHexString(address(odosRepayAdapter))),
+                this.remove0x(Strings.toHexString(address(repayAdapter))),
                 "0000000103010204014386e4ac0b01000102000022010203020203ff0000000000000000006f38e884725a116c9c7fbf208e79fe8828a2595faf88d065e77c8cc2239327c5edb3a432268e583182af49447d8a07e3bd95bd0d56f35241523fbab100000000"
             )
         );
 
         IController.PermitSignature memory permit721Params =
-            _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(odosRepayAdapter), positionId);
+            _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(repayAdapter), positionId);
 
         vm.prank(user);
-        odosRepayAdapter.repayWithCollateral(
-            positionId, collateralAmount, 1 ether - maxDebtAmount, data, permit721Params
-        );
+        repayAdapter.repayWithCollateral(positionId, collateralAmount, 1 ether - maxDebtAmount, data, permit721Params);
 
         LoanPosition memory afterLoanPosition = loanPositionManager.getPosition(positionId);
 
@@ -318,18 +316,16 @@ contract OdosRepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         bytes memory data = fromHex(
             string.concat(
                 "83bd37f90001af88d065e77c8cc2239327c5edb3a432268e5831000182af49447d8a07e3bd95bd0d56f35241523fbab1041dcd65000803c174ee39d2c08007ae1400017e3e803E966291EE9aA69e6FADa116cD07462E5D00000001",
-                this.remove0x(Strings.toHexString(address(odosRepayAdapter))),
+                this.remove0x(Strings.toHexString(address(repayAdapter))),
                 "0000000103010204014386e4ac0b01000102000022010203020203ff0000000000000000006f38e884725a116c9c7fbf208e79fe8828a2595faf88d065e77c8cc2239327c5edb3a432268e583182af49447d8a07e3bd95bd0d56f35241523fbab100000000"
             )
         );
 
         IController.PermitSignature memory permit721Params =
-            _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(odosRepayAdapter), positionId);
+            _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(repayAdapter), positionId);
 
         vm.prank(user);
-        odosRepayAdapter.repayWithCollateral(
-            positionId, collateralAmount, 1 ether - maxDebtAmount, data, permit721Params
-        );
+        repayAdapter.repayWithCollateral(positionId, collateralAmount, 1 ether - maxDebtAmount, data, permit721Params);
 
         LoanPosition memory afterLoanPosition = loanPositionManager.getPosition(positionId);
 
@@ -358,18 +354,16 @@ contract OdosRepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         bytes memory data = fromHex(
             string.concat(
                 "83bd37f90001af88d065e77c8cc2239327c5edb3a432268e5831000182af49447d8a07e3bd95bd0d56f35241523fbab1041dcd65000803c174ee39d2c08007ae1400017e3e803E966291EE9aA69e6FADa116cD07462E5D00000001",
-                this.remove0x(Strings.toHexString(address(odosRepayAdapter))),
+                this.remove0x(Strings.toHexString(address(repayAdapter))),
                 "0000000103010204014386e4ac0b01000102000022010203020203ff0000000000000000006f38e884725a116c9c7fbf208e79fe8828a2595faf88d065e77c8cc2239327c5edb3a432268e583182af49447d8a07e3bd95bd0d56f35241523fbab100000000"
             )
         );
 
         IController.PermitSignature memory permit721Params =
-            _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(odosRepayAdapter), positionId);
+            _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(repayAdapter), positionId);
 
         vm.prank(user);
-        odosRepayAdapter.repayWithCollateral(
-            positionId, collateralAmount, 0.2 ether - maxDebtAmount, data, permit721Params
-        );
+        repayAdapter.repayWithCollateral(positionId, collateralAmount, 0.2 ether - maxDebtAmount, data, permit721Params);
 
         LoanPosition memory afterLoanPosition = loanPositionManager.getPosition(positionId);
 
