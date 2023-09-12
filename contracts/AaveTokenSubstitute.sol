@@ -61,6 +61,7 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
     function mintableAmount() external view returns (uint256) {
         DataTypes.ReserveConfigurationMap memory configuration =
             _aaveV3Pool.getReserveData(underlyingToken).configuration;
+        if (configuration.getFrozen()) return 0;
         return configuration.getSupplyCap() * 10 ** (configuration.getDecimals());
     }
 
@@ -83,6 +84,9 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
     }
 
     function burnableAmount() external view returns (uint256) {
+        DataTypes.ReserveConfigurationMap memory configuration =
+            _aaveV3Pool.getReserveData(underlyingToken).configuration;
+        if (configuration.getFrozen()) return 0;
         return IERC20(underlyingToken).balanceOf(address(aToken)) + IERC20(underlyingToken).balanceOf(address(this));
     }
 
