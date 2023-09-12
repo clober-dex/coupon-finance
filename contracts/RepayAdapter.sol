@@ -105,6 +105,7 @@ contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
         IERC20(inToken).approve(_router, inAmount);
         (bool success, bytes memory result) = _router.call(swapData);
         if (!success) revert CollateralSwapFailed(string(result));
+        IERC20(inToken).approve(_router, 0);
 
         outAmount = IERC20(outToken).balanceOf(address(this));
         leftInAmount = IERC20(inToken).balanceOf(address(this));
