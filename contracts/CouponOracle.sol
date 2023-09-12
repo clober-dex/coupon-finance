@@ -10,8 +10,17 @@ import {ICouponOracle} from "./interfaces/ICouponOracle.sol";
 import {IFallbackOracle} from "./interfaces/IFallbackOracle.sol";
 
 contract CouponOracle is ICouponOracle, Ownable {
+    address public override sequencerOracle;
+    uint256 public override gracePeriod;
     address public override fallbackOracle;
     mapping(address => address) public override getFeed;
+
+    constructor(address sequencerOracle_, uint256 gracePeriod_) {
+        sequencerOracle = sequencerOracle_;
+        emit SetSequencerOracle(sequencerOracle_);
+        gracePeriod = gracePeriod_;
+        emit SetGracePeriod(gracePeriod_);
+    }
 
     function decimals() external pure returns (uint8) {
         return 8;
@@ -21,8 +30,16 @@ contract CouponOracle is ICouponOracle, Ownable {
         address feed = getFeed[asset];
 
         if (feed != address(0)) {
-            (, int256 price,,,) = AggregatorV3Interface(feed).latestRoundData();
-            if (price > 0) return uint256(price);
+            try AggregatorV3Interface(feed).latestRoundData() returns (
+                uint80 roundId, int256 answer, uint256, /* startedAt */ uint256 updatedAt, uint80 /* answeredInRound */
+            ) {
+                // Sanity Check and Sequencer Check
+                if (
+                    roundId != 0 && answer >= 0 && updatedAt != 0 && updatedAt <= block.timestamp && _isSequencerValid()
+                ) {
+                    return uint256(answer);
+                }
+            } catch {}
         }
         return IFallbackOracle(fallbackOracle).getAssetPrice(asset);
     }
@@ -34,6 +51,10 @@ contract CouponOracle is ICouponOracle, Ownable {
                 prices[i] = getAssetPrice(assets[i]);
             }
         }
+    }
+
+    function isSequencerValid() external view returns (bool) {
+        return _isSequencerValid();
     }
 
     function setFallbackOracle(address newFallbackOracle) external onlyOwner {
@@ -51,5 +72,20 @@ contract CouponOracle is ICouponOracle, Ownable {
                 emit SetFeed(assets[i], feeds[i]);
             }
         }
+    }
+
+    function setSequencerOracle(address newSequencerOracle) external onlyOwner {
+        sequencerOracle = newSequencerOracle;
+        emit SetSequencerOracle(newSequencerOracle);
+    }
+
+    function setGracePeriod(uint256 newGracePeriod) external onlyOwner {
+        gracePeriod = newGracePeriod;
+        emit SetGracePeriod(newGracePeriod);
+    }
+
+    function _isSequencerValid() internal view returns (bool) {
+        (, int256 answer,, uint256 updatedAt,) = AggregatorV3Interface(sequencerOracle).latestRoundData();
+        return answer == 0 && block.timestamp - updatedAt > gracePeriod;
     }
 }

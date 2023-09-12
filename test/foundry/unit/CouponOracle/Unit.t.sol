@@ -21,7 +21,7 @@ contract CouponOracleUnitTest is Test, ICouponOracleTypes {
 
         invalidPriceFeed = new InvalidPriceFeed();
         mockFallbackOracle = new MockFallbackOracle();
-        couponOracle = new CouponOracle();
+        couponOracle = new CouponOracle(Constants.CHAINLINK_SEQUENCER_ORACLE, 3600);
         couponOracle.setFeeds(Utils.toArr(Constants.WETH), Utils.toArr(Constants.ETH_CHAINLINK_FEED));
     }
 
@@ -76,6 +76,34 @@ contract CouponOracleUnitTest is Test, ICouponOracleTypes {
         couponOracle.setFallbackOracle(address(mockFallbackOracle));
     }
 
+    function testSetSequencerOracle() public {
+        vm.expectEmit(true, true, true, true);
+        emit SetSequencerOracle(address(123));
+        couponOracle.setSequencerOracle(address(123));
+
+        assertEq(couponOracle.sequencerOracle(), address(123), "SEQUENCER_ORACLE_SET");
+    }
+
+    function testSetSequencerOracleOwnership() public {
+        vm.prank(address(0x123));
+        vm.expectRevert("Ownable: caller is not the owner");
+        couponOracle.setSequencerOracle(address(123));
+    }
+
+    function testSetGracePeriod() public {
+        vm.expectEmit(true, true, true, true);
+        emit SetGracePeriod(1800);
+        couponOracle.setGracePeriod(1800);
+
+        assertEq(couponOracle.gracePeriod(), 1800, "GRACE_PERIOD_SET");
+    }
+
+    function testSetGracePeriodOwnership() public {
+        vm.prank(address(0x123));
+        vm.expectRevert("Ownable: caller is not the owner");
+        couponOracle.setGracePeriod(1800);
+    }
+
     function testGetPrice() public {
         uint256 price = couponOracle.getAssetPrice(Constants.WETH);
         assertEq(price, 184466348000, "PRICE");
@@ -105,5 +133,13 @@ contract CouponOracleUnitTest is Test, ICouponOracleTypes {
     function testGetPriceWhenFeedAndFallbackNotSet() public {
         vm.expectRevert();
         couponOracle.getAssetPrice(Constants.WBTC);
+    }
+
+    function testIsSequencerValid() public {
+        assertTrue(couponOracle.isSequencerValid(), "BEFORE_IS_SEQUENCER_VALID");
+
+        couponOracle.setGracePeriod(type(uint256).max);
+
+        assertFalse(couponOracle.isSequencerValid(), "AFTER_IS_SEQUENCER_VALID");
     }
 }

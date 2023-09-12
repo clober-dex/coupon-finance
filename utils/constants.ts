@@ -34,6 +34,16 @@ export const COLLATERAL_REPAY_ROUTER: { [chainId: number]: string } = {
   [TESTNET_ID]: '0xaBBc5F99639c9B6bCb58544ddf04EFA6802F4064',
 }
 
+export const CHAINLINK_SEQUENCER_ORACLE: { [chainId: number]: string } = {
+  [arbitrum.id]: '0xFdB631F5EE196F0ed6FAa767959853A9F217697D',
+  [TESTNET_ID]: '0xFdB631F5EE196F0ed6FAa767959853A9F217697D',
+}
+
+export const SEQUENCER_GRACE_PERIOD: { [chainId: number]: number } = {
+  [arbitrum.id]: 3600,
+  [TESTNET_ID]: 3600,
+}
+
 const TOKEN_KEYS = {
   WETH: 'WETH',
   USDC: 'USDC',

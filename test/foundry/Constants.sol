@@ -7,6 +7,7 @@ library Constants {
     address internal constant TREASURY = address(0xc0f1);
     address internal constant USER1 = address(0x1);
     address internal constant USER2 = address(0x2);
+    address internal constant CHAINLINK_SEQUENCER_ORACLE = 0xFdB631F5EE196F0ed6FAa767959853A9F217697D;
     address internal constant WETH = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
     address internal constant WBTC = 0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f;
     address internal constant USDC = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831;
