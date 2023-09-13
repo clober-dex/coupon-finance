@@ -163,7 +163,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
     ) external payable nonReentrant onlyPositionOwner(positionId) wrapETH {
         _permitERC721(_loanManager, positionId, positionPermitParams);
         LoanPosition memory position = _loanManager.getPosition(positionId);
-        _permitERC20(position.collateralToken, debtPermitParams);
+        _permitERC20(position.debtToken, debtPermitParams);
         position.expiredWith = position.expiredWith.add(epochs);
 
         _loanManager.lock(_encodeAdjustData(positionId, position, maxPayInterest, 0));

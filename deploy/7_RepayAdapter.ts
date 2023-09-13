@@ -11,7 +11,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 
   const { deployer } = await getNamedAccounts()
 
-  if (await deployments.getOrNull('OdosRepayAdapter')) {
+  if (await deployments.getOrNull('RepayAdapter')) {
     return
   }
 
@@ -20,7 +20,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 
   const chainId = network.config.chainId || hardhat.id
 
-  await deploy('OdosRepayAdapter', {
+  await deploy('RepayAdapter', {
     from: deployer,
     args: [
       WRAPPED1155_FACTORY[chainId],
