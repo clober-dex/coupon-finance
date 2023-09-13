@@ -69,7 +69,7 @@ abstract contract Controller is
                 mstore(couponsToBuy, sub(mload(couponsToBuy), 1))
             }
             bytes memory data = abi.encode(
-                user, lastCoupon, couponsToBuy, new Coupon[](0), amountToPay, maxPayInterest, leftRequiredInterest
+                user, lastCoupon, couponsToBuy, couponsToSell, amountToPay, maxPayInterest, leftRequiredInterest
             );
             assembly {
                 mstore(couponsToBuy, add(mload(couponsToBuy), 1))
@@ -84,7 +84,7 @@ abstract contract Controller is
                 mstore(couponsToSell, sub(mload(couponsToSell), 1))
             }
             bytes memory data = abi.encode(
-                user, lastCoupon, new Coupon[](0), couponsToSell, amountToPay, maxPayInterest, leftRequiredInterest
+                user, lastCoupon, couponsToBuy, couponsToSell, amountToPay, maxPayInterest, leftRequiredInterest
             );
             assembly {
                 mstore(couponsToSell, add(mload(couponsToSell), 1))
