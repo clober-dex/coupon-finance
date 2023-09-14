@@ -1,7 +1,7 @@
 import { DeployFunction } from 'hardhat-deploy/types'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { hardhat } from '@wagmi/chains'
-import { CLOBER_FACTORY, COLLATERAL_REPAY_ROUTER, TOKENS, WRAPPED1155_FACTORY } from '../utils/constants'
+import { CLOBER_FACTORY, REPAY_ROUTER, TOKENS, WRAPPED1155_FACTORY } from '../utils/constants'
 import { getDeployedContract } from '../utils/contract'
 import { CouponManager, LoanPositionManager } from '../typechain'
 
@@ -28,7 +28,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
       couponManager.address,
       TOKENS[chainId].WETH,
       loanManager.address,
-      COLLATERAL_REPAY_ROUTER[chainId],
+      REPAY_ROUTER[chainId],
     ],
     log: true,
   })
