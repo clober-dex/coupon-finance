@@ -7,7 +7,9 @@ import "forge-std/Test.sol";
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+import {IWETH9} from "../../../contracts/external/weth/IWETH9.sol";
 import {IPool} from "../../../contracts/external/aave-v3/IPool.sol";
+import {IAaveTokenSubstitute} from "../../../contracts/interfaces/IAaveTokenSubstitute.sol";
 import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
 import {CouponKey, CouponKeyLibrary} from "../../../contracts/libraries/CouponKey.sol";
 import {Coupon, CouponLibrary} from "../../../contracts/libraries/Coupon.sol";
@@ -33,6 +35,7 @@ contract AaveTokenSubstituteUnitTest is Test, ERC1155Holder {
         vm.stopPrank();
 
         aaveTokenSubstitute = new AaveTokenSubstitute(
+            Constants.WETH,
             Constants.USDC,
             Constants.AAVE_V3_POOL,
             Constants.TREASURY,
@@ -80,7 +83,7 @@ contract AaveTokenSubstituteUnitTest is Test, ERC1155Holder {
     }
 
     function testBurnableAmount() public {
-        assertEq(aaveTokenSubstitute.burnableAmount(), 1092311053764, "BURNABLE_AMOUNT");
+        assertEq(aaveTokenSubstitute.burnableAmount(), type(uint256).max, "BURNABLE_AMOUNT");
     }
 
     function testBurn() public {
@@ -96,6 +99,54 @@ contract AaveTokenSubstituteUnitTest is Test, ERC1155Holder {
 
         assertEq(beforeTokenBalance + amount, usdc.balanceOf(address(this)), "USDC_BALANCE");
         assertEq(beforeATokenBalance, aUsdc.balanceOf(address(this)), "AUSDC_BALANCE");
+        assertEq(beforeSubstituteBalance, aaveTokenSubstitute.balanceOf(address(this)) + amount, "WAUSDC_BALANCE");
+    }
+
+    function testBurnETH() public {
+        aaveTokenSubstitute = new AaveTokenSubstitute(
+            Constants.WETH,
+            Constants.WETH,
+            Constants.AAVE_V3_POOL,
+            Constants.TREASURY,
+            address(this)
+        );
+        uint256 amount = 10 ether;
+        vm.deal(address(this), amount);
+        IWETH9(Constants.WETH).deposit{value: amount}();
+        IWETH9(Constants.WETH).approve(address(aaveTokenSubstitute), amount);
+        aaveTokenSubstitute.mint(amount, address(this));
+
+        vm.expectRevert(abi.encodeWithSelector(IAaveTokenSubstitute.ValueTransferFailed.selector));
+        aaveTokenSubstitute.burn(amount, address(this));
+
+        uint256 beforeTokenBalance = Constants.USER1.balance;
+        uint256 beforeATokenBalance = aUsdc.balanceOf(Constants.USER1);
+        uint256 beforeSubstituteBalance = aaveTokenSubstitute.balanceOf(address(this));
+
+        aaveTokenSubstitute.burn(amount, Constants.USER1);
+
+        assertEq(beforeTokenBalance + amount, Constants.USER1.balance, "ETH_BALANCE");
+        assertEq(beforeATokenBalance, aUsdc.balanceOf(Constants.USER1), "AETH_BALANCE");
+        assertEq(beforeSubstituteBalance, aaveTokenSubstitute.balanceOf(address(this)) + amount, "WAETH_BALANCE");
+    }
+
+    function testBurnWhenAmountExceedsWithdrawableAmount() public {
+        uint256 amount = usdc.amount(1_000);
+        IERC20(usdc).approve(address(aaveTokenSubstitute), amount);
+        aaveTokenSubstitute.mint(amount, address(this));
+
+        uint256 withdrawableAmount = usdc.balanceOf(address(aUsdc));
+        vm.prank(address(aUsdc));
+        usdc.transfer(Constants.USER2, withdrawableAmount - amount / 2);
+
+        uint256 beforeTokenBalance = usdc.balanceOf(address(this));
+        uint256 beforeATokenBalance = aUsdc.balanceOf(address(this));
+        uint256 beforeSubstituteBalance = aaveTokenSubstitute.balanceOf(address(this));
+
+        aaveTokenSubstitute.burn(amount, address(this));
+
+        assertEq(beforeTokenBalance + amount / 2, usdc.balanceOf(address(this)), "USDC_BALANCE");
+        assertEq(beforeATokenBalance + amount / 2, aUsdc.balanceOf(address(this)), "AUSDC_BALANCE");
         assertEq(beforeSubstituteBalance, aaveTokenSubstitute.balanceOf(address(this)) + amount, "WAUSDC_BALANCE");
     }
 
