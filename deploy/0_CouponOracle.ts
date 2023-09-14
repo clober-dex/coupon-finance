@@ -1,6 +1,6 @@
 import { DeployFunction } from 'hardhat-deploy/types'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import { CHAINLINK_SEQUENCER_ORACLE, SEQUENCER_GRACE_PERIOD } from '../utils/constants'
+import { CHAINLINK_SEQUENCER_ORACLE, ORACLE_TIMEOUT, SEQUENCER_GRACE_PERIOD } from '../utils/constants'
 import { hardhat } from '@wagmi/chains'
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -16,7 +16,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 
   await deploy('CouponOracle', {
     from: deployer,
-    args: [CHAINLINK_SEQUENCER_ORACLE[chainId], SEQUENCER_GRACE_PERIOD[chainId]],
+    args: [CHAINLINK_SEQUENCER_ORACLE[chainId], ORACLE_TIMEOUT[chainId], SEQUENCER_GRACE_PERIOD[chainId]],
     log: true,
   })
 }
