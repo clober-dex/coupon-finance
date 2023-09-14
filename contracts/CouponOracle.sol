@@ -11,16 +11,17 @@ import {IFallbackOracle} from "./interfaces/IFallbackOracle.sol";
 
 contract CouponOracle is ICouponOracle, Ownable {
     uint256 private constant _TIME_OUT = 3600;
+    uint256 private constant _MAX_GRACE_PERIOD = 1 days;
+    uint256 private constant _MIN_GRACE_PERIOD = 1 minutes;
+
     address public override sequencerOracle;
     uint256 public override gracePeriod;
     address public override fallbackOracle;
     mapping(address => address) public override getFeed;
 
     constructor(address sequencerOracle_, uint256 gracePeriod_) {
-        sequencerOracle = sequencerOracle_;
-        emit SetSequencerOracle(sequencerOracle_);
-        gracePeriod = gracePeriod_;
-        emit SetGracePeriod(gracePeriod_);
+        _setSequencerOracle(sequencerOracle_);
+        _setGracePeriod(gracePeriod_);
     }
 
     function decimals() external pure returns (uint8) {
@@ -77,11 +78,20 @@ contract CouponOracle is ICouponOracle, Ownable {
     }
 
     function setSequencerOracle(address newSequencerOracle) external onlyOwner {
+        _setSequencerOracle(newSequencerOracle);
+    }
+
+    function _setSequencerOracle(address newSequencerOracle) internal {
         sequencerOracle = newSequencerOracle;
         emit SetSequencerOracle(newSequencerOracle);
     }
 
     function setGracePeriod(uint256 newGracePeriod) external onlyOwner {
+        _setGracePeriod(newGracePeriod);
+    }
+
+    function _setGracePeriod(uint256 newGracePeriod) internal {
+        if (newGracePeriod < _MIN_GRACE_PERIOD || newGracePeriod > _MAX_GRACE_PERIOD) revert InvalidGracePeriod();
         gracePeriod = newGracePeriod;
         emit SetGracePeriod(newGracePeriod);
     }

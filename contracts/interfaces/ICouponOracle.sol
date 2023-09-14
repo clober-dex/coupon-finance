@@ -6,6 +6,7 @@ interface ICouponOracleTypes {
     error LengthMismatch();
     error InvalidDecimals();
     error AssetFeedAlreadySet();
+    error InvalidGracePeriod();
 
     event SetSequencerOracle(address indexed newSequencerOracle);
     event SetGracePeriod(uint256 newGracePeriod);
