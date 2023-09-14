@@ -5,6 +5,8 @@ pragma solidity ^0.8.0;
 import {ISubstitute} from "./ISubstitute.sol";
 
 interface IAaveTokenSubstitute is ISubstitute {
+    error ValueTransferFailed();
+
     function aToken() external view returns (address);
 
     function mintByAToken(uint256 amount, address to) external;
