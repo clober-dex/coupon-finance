@@ -15,7 +15,6 @@ interface IController {
         bytes32 s;
     }
 
-    error ValueTransferFailed();
     error InvalidAccess();
     error InvalidMarket();
     error ControllerSlippage();

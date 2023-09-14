@@ -20,7 +20,6 @@ import {CouponKey, CouponKeyLibrary} from "./CouponKey.sol";
 import {Wrapped1155MetadataBuilder} from "./Wrapped1155MetadataBuilder.sol";
 import {IERC721Permit} from "../interfaces/IERC721Permit.sol";
 import {ISubstitute} from "../interfaces/ISubstitute.sol";
-import {IAaveTokenSubstitute} from "../interfaces/IAaveTokenSubstitute.sol";
 import {IController} from "../interfaces/IController.sol";
 import {ReentrancyGuard} from "./ReentrancyGuard.sol";
 
@@ -165,21 +164,7 @@ abstract contract Controller is
     function _burnAllSubstitute(address substitute, address to) internal {
         uint256 leftAmount = IERC20(substitute).balanceOf(address(this));
         if (leftAmount == 0) return;
-
-        address underlyingToken = ISubstitute(substitute).underlyingToken();
-        uint256 burnableAmount = ISubstitute(substitute).burnableAmount();
-        if (burnableAmount < leftAmount) {
-            IAaveTokenSubstitute(substitute).burnToAToken(leftAmount - burnableAmount, to);
-            leftAmount = burnableAmount;
-        }
-        if (underlyingToken == address(_weth)) {
-            ISubstitute(substitute).burn(leftAmount, address(this));
-            _weth.withdraw(leftAmount);
-            (bool success,) = payable(to).call{value: leftAmount}("");
-            if (!success) revert ValueTransferFailed();
-        } else {
-            ISubstitute(substitute).burn(leftAmount, to);
-        }
+        ISubstitute(substitute).burn(leftAmount, to);
     }
 
     function _ensureBalance(address token, address user, uint256 amount) internal {

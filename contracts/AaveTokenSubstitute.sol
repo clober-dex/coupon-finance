@@ -10,6 +10,7 @@ import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20P
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
+import {IWETH9} from "./external/weth/IWETH9.sol";
 import {IPool} from "./external/aave-v3/IPool.sol";
 import {DataTypes} from "./external/aave-v3/DataTypes.sol";
 import {ReserveConfiguration} from "./external/aave-v3/ReserveConfiguration.sol";
@@ -19,6 +20,7 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
     using SafeERC20 for IERC20;
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
 
+    IWETH9 private immutable _weth;
     IPool private immutable _aaveV3Pool;
     uint8 private immutable _decimals;
     address public immutable override aToken;
@@ -26,13 +28,14 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
 
     address public override treasury;
 
-    constructor(address asset_, address aaveV3Pool_, address treasury_, address owner_)
+    constructor(address weth_, address asset_, address aaveV3Pool_, address treasury_, address owner_)
         ERC20Permit(string.concat("Wrapped Aave ", IERC20Metadata(asset_).name()))
         ERC20(
             string.concat("Wrapped Aave ", IERC20Metadata(asset_).name()),
             string.concat("Wa", IERC20Metadata(asset_).symbol())
         )
     {
+        _weth = IWETH9(weth_);
         _aaveV3Pool = IPool(aaveV3Pool_);
         aToken = _aaveV3Pool.getReserveData(asset_).aTokenAddress;
         _decimals = IERC20Metadata(asset_).decimals();
@@ -71,19 +74,40 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
 
     function burn(uint256 amount, address to) external {
         _burn(msg.sender, amount);
+
         uint256 underlyingAmount = IERC20(underlyingToken).balanceOf(address(this));
         if (amount <= underlyingAmount) {
-            IERC20(underlyingToken).safeTransfer(address(to), amount);
-            return;
-        } else if (underlyingAmount > 0) {
-            IERC20(underlyingToken).safeTransfer(address(to), underlyingAmount);
+            underlyingAmount = amount;
+            amount = 0;
+        } else {
             amount -= underlyingAmount;
+            uint256 withdrawableAmount = IERC20(underlyingToken).balanceOf(address(aToken));
+            if (withdrawableAmount < amount) {
+                IERC20(aToken).safeTransfer(to, amount - withdrawableAmount);
+                amount = withdrawableAmount;
+            }
         }
-        _aaveV3Pool.withdraw(underlyingToken, amount, to);
+
+        if (underlyingToken == address(_weth)) {
+            if (amount > 0) {
+                _aaveV3Pool.withdraw(underlyingToken, amount, address(this));
+            }
+            amount += underlyingAmount;
+            _weth.withdraw(amount);
+            (bool success,) = payable(to).call{value: amount}("");
+            if (!success) revert ValueTransferFailed();
+        } else {
+            if (amount > 0) {
+                _aaveV3Pool.withdraw(underlyingToken, amount, to);
+            }
+            if (underlyingAmount > 0) {
+                IERC20(underlyingToken).safeTransfer(address(to), underlyingAmount);
+            }
+        }
     }
 
-    function burnableAmount() external view returns (uint256) {
-        return IERC20(underlyingToken).balanceOf(address(aToken)) + IERC20(underlyingToken).balanceOf(address(this));
+    function burnableAmount() external pure returns (uint256) {
+        return type(uint256).max;
     }
 
     function setTreasury(address newTreasury) external onlyOwner {
@@ -92,6 +116,8 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
 
     function claim() external {
         uint256 adminYield = IERC20(aToken).balanceOf(address(this)) - totalSupply() - 1;
-        if (adminYield > 0) IERC20(aToken).transfer(treasury, adminYield);
+        if (adminYield > 0) IERC20(aToken).safeTransfer(treasury, adminYield);
     }
+
+    receive() external payable {}
 }
