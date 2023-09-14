@@ -10,17 +10,20 @@ import {ICouponOracle} from "./interfaces/ICouponOracle.sol";
 import {IFallbackOracle} from "./interfaces/IFallbackOracle.sol";
 
 contract CouponOracle is ICouponOracle, Ownable {
-    uint256 private constant _TIME_OUT = 3600;
+    uint256 private constant _MAX_TIMEOUT = 1 days;
+    uint256 private constant _MIN_TIMEOUT = 1 minutes;
     uint256 private constant _MAX_GRACE_PERIOD = 1 days;
     uint256 private constant _MIN_GRACE_PERIOD = 1 minutes;
 
+    uint256 public override timeout;
     address public override sequencerOracle;
     uint256 public override gracePeriod;
     address public override fallbackOracle;
     mapping(address => address) public override getFeed;
 
-    constructor(address sequencerOracle_, uint256 gracePeriod_) {
+    constructor(address sequencerOracle_, uint256 timeout_, uint256 gracePeriod_) {
         _setSequencerOracle(sequencerOracle_);
+        _setTimeout(timeout_);
         _setGracePeriod(gracePeriod_);
     }
 
@@ -38,7 +41,7 @@ contract CouponOracle is ICouponOracle, Ownable {
                 // Check Sanity, Staleness and the Sequencer
                 if (
                     roundId != 0 && answer >= 0 && updatedAt != 0 && updatedAt <= block.timestamp
-                        && block.timestamp <= updatedAt + _TIME_OUT && _isSequencerValid()
+                        && block.timestamp <= updatedAt + timeout && _isSequencerValid()
                 ) {
                     return uint256(answer);
                 }
@@ -84,6 +87,16 @@ contract CouponOracle is ICouponOracle, Ownable {
     function _setSequencerOracle(address newSequencerOracle) internal {
         sequencerOracle = newSequencerOracle;
         emit SetSequencerOracle(newSequencerOracle);
+    }
+
+    function setTimeout(uint256 newTimeout) external onlyOwner {
+        _setTimeout(newTimeout);
+    }
+
+    function _setTimeout(uint256 newTimeout) internal {
+        if (newTimeout < _MIN_TIMEOUT || newTimeout > _MAX_TIMEOUT) revert InvalidTimeout();
+        timeout = newTimeout;
+        emit SetTimeout(newTimeout);
     }
 
     function setGracePeriod(uint256 newGracePeriod) external onlyOwner {

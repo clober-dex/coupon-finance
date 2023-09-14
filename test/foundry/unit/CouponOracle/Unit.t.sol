@@ -21,7 +21,7 @@ contract CouponOracleUnitTest is Test, ICouponOracleTypes {
 
         invalidPriceFeed = new InvalidPriceFeed();
         mockFallbackOracle = new MockFallbackOracle();
-        couponOracle = new CouponOracle(Constants.CHAINLINK_SEQUENCER_ORACLE, 3600);
+        couponOracle = new CouponOracle(Constants.CHAINLINK_SEQUENCER_ORACLE, 3600, 3600);
         couponOracle.setFeeds(Utils.toArr(Constants.WETH), Utils.toArr(Constants.ETH_CHAINLINK_FEED));
     }
 
@@ -109,6 +109,27 @@ contract CouponOracleUnitTest is Test, ICouponOracleTypes {
         vm.prank(address(0x123));
         vm.expectRevert("Ownable: caller is not the owner");
         couponOracle.setGracePeriod(1800);
+    }
+
+    function testSetTimeout() public {
+        vm.expectEmit(true, true, true, true);
+        emit SetTimeout(1800);
+        couponOracle.setTimeout(1800);
+
+        assertEq(couponOracle.timeout(), 1800, "TIMEOUT_SET");
+    }
+
+    function testSetTimeoutInvalidValue() public {
+        vm.expectRevert(abi.encodeWithSelector(InvalidTimeout.selector));
+        couponOracle.setTimeout(1 minutes - 1);
+        vm.expectRevert(abi.encodeWithSelector(InvalidTimeout.selector));
+        couponOracle.setTimeout(1 days + 1);
+    }
+
+    function testSetTimeoutOwnership() public {
+        vm.prank(address(0x123));
+        vm.expectRevert("Ownable: caller is not the owner");
+        couponOracle.setTimeout(1800);
     }
 
     function testGetPrice() public {

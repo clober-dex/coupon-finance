@@ -6,6 +6,7 @@ import {Constants} from "../Constants.sol";
 import {ICouponOracle} from "../../../contracts/interfaces/ICouponOracle.sol";
 
 contract MockOracle is ICouponOracle {
+    uint256 public override timeout;
     uint256 public override gracePeriod;
     address public override sequencerOracle;
     address private _weth;
@@ -55,6 +56,8 @@ contract MockOracle is ICouponOracle {
     function setFeeds(address[] memory, address[] memory) external {}
 
     function setSequencerOracle(address) external {}
+
+    function setTimeout(uint256) external {}
 
     function setGracePeriod(uint256) external {}
 }
