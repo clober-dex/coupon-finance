@@ -68,7 +68,7 @@ abstract contract Controller is
                 mstore(couponsToBuy, sub(mload(couponsToBuy), 1))
             }
             bytes memory data = abi.encode(
-                user, lastCoupon, couponsToBuy, new Coupon[](0), amountToPay, maxPayInterest, leftRequiredInterest
+                user, lastCoupon, couponsToBuy, couponsToSell, amountToPay, maxPayInterest, leftRequiredInterest
             );
             assembly {
                 mstore(couponsToBuy, add(mload(couponsToBuy), 1))
@@ -83,7 +83,7 @@ abstract contract Controller is
                 mstore(couponsToSell, sub(mload(couponsToSell), 1))
             }
             bytes memory data = abi.encode(
-                user, lastCoupon, new Coupon[](0), couponsToSell, amountToPay, maxPayInterest, leftRequiredInterest
+                user, lastCoupon, couponsToBuy, couponsToSell, amountToPay, maxPayInterest, leftRequiredInterest
             );
             assembly {
                 mstore(couponsToSell, add(mload(couponsToSell), 1))
@@ -145,7 +145,7 @@ abstract contract Controller is
 
     function _permitERC20(address token, ERC20PermitParams calldata p) internal {
         if (p.signature.deadline > 0) {
-            IERC20Permit(ISubstitute(token).underlyingToken()).permit(
+            try IERC20Permit(ISubstitute(token).underlyingToken()).permit(
                 msg.sender,
                 address(this),
                 p.permitAmount,
@@ -153,12 +153,12 @@ abstract contract Controller is
                 p.signature.v,
                 p.signature.r,
                 p.signature.s
-            );
+            ) {} catch {}
         }
     }
 
     function _permitERC721(IERC721Permit permitNFT, uint256 positionId, PermitSignature calldata p) internal {
-        if (p.deadline > 0) permitNFT.permit(address(this), positionId, p.deadline, p.v, p.r, p.s);
+        if (p.deadline > 0) try permitNFT.permit(address(this), positionId, p.deadline, p.v, p.r, p.s) {} catch {}
     }
 
     function _burnAllSubstitute(address substitute, address to) internal {
