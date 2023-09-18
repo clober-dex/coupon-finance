@@ -190,13 +190,17 @@ contract AaveTokenSubstituteUnitTest is Test, ERC1155Holder {
     }
 
     function testBurnWhenAmountExceedsWithdrawableAmount() public {
-        uint256 amount = usdc.amount(1_000);
+        uint256 amount = usdc.amount(50_000_000);
+
         IERC20(usdc).approve(address(aaveTokenSubstitute), amount);
         aaveTokenSubstitute.mint(amount, address(this));
 
         uint256 withdrawableAmount = usdc.balanceOf(address(aUsdc));
         vm.prank(address(aUsdc));
-        usdc.transfer(Constants.USER2, withdrawableAmount - amount / 2);
+        usdc.transfer(Constants.USER2, withdrawableAmount - amount / 3);
+
+        uint256 expectedWithdrawUnderlyingAmount =
+            usdc.balanceOf(address(aUsdc)) + usdc.balanceOf(address(aaveTokenSubstitute));
 
         uint256 beforeTokenBalance = usdc.balanceOf(address(this));
         uint256 beforeATokenBalance = aUsdc.balanceOf(address(this));
@@ -204,8 +208,12 @@ contract AaveTokenSubstituteUnitTest is Test, ERC1155Holder {
 
         aaveTokenSubstitute.burn(amount, address(this));
 
-        assertEq(beforeTokenBalance + amount / 2, usdc.balanceOf(address(this)), "USDC_BALANCE");
-        assertEq(beforeATokenBalance + amount / 2, aUsdc.balanceOf(address(this)), "AUSDC_BALANCE");
+        assertEq(beforeTokenBalance + expectedWithdrawUnderlyingAmount, usdc.balanceOf(address(this)), "USDC_BALANCE");
+        assertEq(
+            beforeATokenBalance + amount - expectedWithdrawUnderlyingAmount,
+            aUsdc.balanceOf(address(this)),
+            "AUSDC_BALANCE"
+        );
         assertEq(beforeSubstituteBalance, aaveTokenSubstitute.balanceOf(address(this)) + amount, "WAUSDC_BALANCE");
     }
 
