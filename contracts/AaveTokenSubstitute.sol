@@ -23,7 +23,7 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
     using SafeERC20 for IERC20;
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
 
-    uint256 public constant BUFFER = 10 ** 24; // 0.1%
+    uint256 public constant SUPPLY_BUFFER = 10 ** 24; // 0.1%
 
     IWETH9 private immutable _weth;
     IPool private immutable _aaveV3Pool;
@@ -71,7 +71,7 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
         } else {
             supplyCap = supplyCap * (10 ** IERC20Metadata(underlyingToken).decimals())
                 - (IAToken(aToken).scaledTotalSupply() + uint256(reserveData.accruedToTreasury)).rayMul(
-                    reserveData.liquidityIndex + BUFFER
+                    reserveData.liquidityIndex + SUPPLY_BUFFER
                 );
         }
 

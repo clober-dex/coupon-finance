@@ -102,7 +102,7 @@ contract AaveTokenSubstituteUnitTest is Test, ERC1155Holder {
         DataTypes.ReserveData memory reserveData = IPool(Constants.AAVE_V3_POOL).getReserveData(Constants.USDC);
         uint256 supplyCap = configuration.getSupplyCap() * (10 ** IERC20Metadata(Constants.USDC).decimals())
             - (IAToken(aaveTokenSubstitute.aToken()).scaledTotalSupply() + uint256(reserveData.accruedToTreasury)).rayMul(
-                reserveData.liquidityIndex + aaveTokenSubstitute.BUFFER()
+                reserveData.liquidityIndex + aaveTokenSubstitute.SUPPLY_BUFFER()
             );
 
         uint256 beforeTokenBalance = usdc.balanceOf(address(aaveTokenSubstitute));
@@ -167,6 +167,26 @@ contract AaveTokenSubstituteUnitTest is Test, ERC1155Holder {
         assertEq(beforeTokenBalance + amount, Constants.USER1.balance, "ETH_BALANCE");
         assertEq(beforeATokenBalance, aUsdc.balanceOf(Constants.USER1), "AETH_BALANCE");
         assertEq(beforeSubstituteBalance, aaveTokenSubstitute.balanceOf(address(this)) + amount, "WAETH_BALANCE");
+    }
+
+    function testBurnWhenSupplyOverSupplyCap() public {
+        uint256 amount = usdc.amount(50_000_000);
+        uint256 withdrawAmount = usdc.amount(20_000_000);
+
+        IERC20(usdc).approve(address(aaveTokenSubstitute), amount);
+        aaveTokenSubstitute.mint(amount, address(this));
+
+        uint256 beforeTokenBalance = usdc.balanceOf(address(this));
+        uint256 beforeATokenBalance = aUsdc.balanceOf(address(this));
+        uint256 beforeSubstituteBalance = aaveTokenSubstitute.balanceOf(address(this));
+
+        aaveTokenSubstitute.burn(withdrawAmount, address(this));
+
+        assertEq(beforeTokenBalance + withdrawAmount, usdc.balanceOf(address(this)), "USDC_BALANCE");
+        assertEq(beforeATokenBalance, aUsdc.balanceOf(address(this)), "AUSDC_BALANCE");
+        assertEq(
+            beforeSubstituteBalance, aaveTokenSubstitute.balanceOf(address(this)) + withdrawAmount, "WAUSDC_BALANCE"
+        );
     }
 
     function testBurnWhenAmountExceedsWithdrawableAmount() public {
