@@ -85,41 +85,42 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
         _burn(msg.sender, amount);
 
         uint256 underlyingAmount = IERC20(underlyingToken).balanceOf(address(this));
+        DataTypes.ReserveConfigurationMap memory configuration =
+            _aaveV3Pool.getReserveData(underlyingToken).configuration;
+
         if (amount <= underlyingAmount) {
             underlyingAmount = amount;
-            amount = 0;
-        } else {
-            amount -= underlyingAmount;
+        } else if (configuration.getActive() && !configuration.getPaused()) {
             uint256 withdrawableAmount = IERC20(underlyingToken).balanceOf(address(aToken));
-            if (withdrawableAmount < amount) {
-                IERC20(aToken).safeTransfer(to, amount - withdrawableAmount);
-                amount = withdrawableAmount;
+            if (withdrawableAmount + underlyingAmount < amount) {
+                if (withdrawableAmount > 0) {
+                    _aaveV3Pool.withdraw(underlyingToken, withdrawableAmount, address(this));
+                    underlyingAmount += withdrawableAmount;
+                }
+            } else {
+                _aaveV3Pool.withdraw(underlyingToken, amount - underlyingAmount, address(this));
+                underlyingAmount = amount;
             }
         }
 
-        if (underlyingToken == address(_weth)) {
-            if (amount > 0) {
-                _aaveV3Pool.withdraw(underlyingToken, amount, address(this));
-            }
-            amount += underlyingAmount;
-            _weth.withdraw(amount);
-            (bool success,) = payable(to).call{value: amount}("");
-            if (!success) revert ValueTransferFailed();
-        } else {
-            if (amount > 0) {
-                _aaveV3Pool.withdraw(underlyingToken, amount, to);
-            }
-            if (underlyingAmount > 0) {
+        if (underlyingAmount > 0) {
+            if (underlyingToken == address(_weth)) {
+                _weth.withdraw(underlyingAmount);
+                (bool success,) = payable(to).call{value: amount}("");
+                if (!success) revert ValueTransferFailed();
+            } else {
                 IERC20(underlyingToken).safeTransfer(address(to), underlyingAmount);
             }
+            amount -= underlyingAmount;
+        }
+
+        if (amount > 0) {
+            IERC20(aToken).safeTransfer(address(to), amount);
         }
     }
 
-    function burnableAmount() external view returns (uint256) {
-        DataTypes.ReserveConfigurationMap memory configuration =
-            _aaveV3Pool.getReserveData(underlyingToken).configuration;
-        if (configuration.getFrozen()) return 0;
-        return IERC20(underlyingToken).balanceOf(address(aToken)) + IERC20(underlyingToken).balanceOf(address(this));
+    function burnableAmount() external pure returns (uint256) {
+        return type(uint256).max;
     }
 
     function setTreasury(address newTreasury) external onlyOwner {
