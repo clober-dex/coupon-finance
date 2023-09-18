@@ -11,14 +11,19 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 import {IWETH9} from "./external/weth/IWETH9.sol";
+import {IAToken} from "./external/aave-v3/IAToken.sol";
 import {IPool} from "./external/aave-v3/IPool.sol";
 import {DataTypes} from "./external/aave-v3/DataTypes.sol";
 import {ReserveConfiguration} from "./external/aave-v3/ReserveConfiguration.sol";
 import {IAaveTokenSubstitute} from "./interfaces/IAaveTokenSubstitute.sol";
+import {WadRayMath} from "./libraries/WadRayMath.sol";
 
 contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
+    using WadRayMath for uint256;
     using SafeERC20 for IERC20;
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
+
+    uint256 public constant BUFFER = 10 ** 24; // 0.1%
 
     IWETH9 private immutable _weth;
     IPool private immutable _aaveV3Pool;
@@ -59,8 +64,16 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
         DataTypes.ReserveConfigurationMap memory configuration =
             _aaveV3Pool.getReserveData(underlyingToken).configuration;
 
-        uint256 supplyCap = configuration.getSupplyCap() * (10 ** IERC20Metadata(underlyingToken).decimals())
-            - IERC20(underlyingToken).balanceOf(address(aToken));
+        DataTypes.ReserveData memory reserveData = _aaveV3Pool.getReserveData(underlyingToken);
+        uint256 supplyCap = configuration.getSupplyCap();
+        if (supplyCap == 0) {
+            supplyCap = type(uint256).max;
+        } else {
+            supplyCap = supplyCap * (10 ** IERC20Metadata(underlyingToken).decimals())
+                - (IAToken(aToken).scaledTotalSupply() + uint256(reserveData.accruedToTreasury)).rayMul(
+                    reserveData.liquidityIndex + BUFFER
+                );
+        }
 
         _mint(to, amount);
         if (!configuration.getActive() || configuration.getPaused()) {
@@ -91,7 +104,7 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
         if (amount <= underlyingAmount) {
             underlyingAmount = amount;
         } else if (configuration.getActive() && !configuration.getPaused()) {
-            uint256 withdrawableAmount = IERC20(underlyingToken).balanceOf(address(aToken));
+            uint256 withdrawableAmount = IERC20(underlyingToken).balanceOf(aToken);
             if (withdrawableAmount + underlyingAmount < amount) {
                 if (withdrawableAmount > 0) {
                     _aaveV3Pool.withdraw(underlyingToken, withdrawableAmount, address(this));

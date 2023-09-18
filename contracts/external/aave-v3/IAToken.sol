@@ -3,13 +3,14 @@
 pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IScaledBalanceToken} from "./IScaledBalanceToken.sol";
 
 /**
  * @title IAToken
  * @author Aave
  * @notice Defines the basic interface for an AToken.
  */
-interface IAToken is IERC20 {
+interface IAToken is IERC20, IScaledBalanceToken {
     /**
      * @notice Returns the address of the underlying asset of this aToken (E.g. WETH for aWETH)
      * @return The address of the underlying asset
