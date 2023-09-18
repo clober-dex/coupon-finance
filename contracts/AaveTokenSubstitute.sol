@@ -56,16 +56,24 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
     function mint(uint256 amount, address to) external {
         IERC20(underlyingToken).safeTransferFrom(msg.sender, address(this), amount);
         uint256 supplyAmount = IERC20(underlyingToken).balanceOf(address(this));
-        IERC20(underlyingToken).approve(address(_aaveV3Pool), supplyAmount);
-        try _aaveV3Pool.supply(underlyingToken, supplyAmount, address(this), 0) {} catch {}
-        _mint(to, amount);
-    }
-
-    function mintableAmount() external view returns (uint256) {
         DataTypes.ReserveConfigurationMap memory configuration =
             _aaveV3Pool.getReserveData(underlyingToken).configuration;
-        if (configuration.getFrozen()) return 0;
-        return configuration.getSupplyCap() * 10 ** (configuration.getDecimals());
+
+        uint256 supplyCap = configuration.getSupplyCap() * (10 ** IERC20Metadata(underlyingToken).decimals())
+            - IERC20(underlyingToken).balanceOf(address(aToken));
+
+        _mint(to, amount);
+        if (!configuration.getActive() || configuration.getPaused()) {
+            return;
+        } else if (supplyAmount > supplyCap) {
+            supplyAmount = supplyCap;
+        }
+        IERC20(underlyingToken).approve(address(_aaveV3Pool), supplyAmount);
+        try _aaveV3Pool.supply(underlyingToken, supplyAmount, address(this), 0) {} catch {}
+    }
+
+    function mintableAmount() external pure returns (uint256) {
+        return type(uint256).max;
     }
 
     function burnToAToken(uint256 amount, address to) external {

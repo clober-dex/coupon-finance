@@ -79,7 +79,7 @@ contract AaveTokenSubstituteUnitTest is Test, ERC1155Holder {
     }
 
     function testMintableAmount() public {
-        assertEq(aaveTokenSubstitute.mintableAmount(), 41000000000000, "MINTABLE_AMOUNT");
+        assertEq(aaveTokenSubstitute.mintableAmount(), type(uint256).max, "MINTABLE_AMOUNT");
     }
 
     function testBurnableAmount() public {
