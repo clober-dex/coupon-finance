@@ -329,8 +329,14 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
         uint32 liquidationProtocolFee,
         uint32 liquidationTargetLtv
     ) external onlyOwner {
+        if (
+            liquidationThreshold >= _RATE_PRECISION || liquidationFee + liquidationTargetLtv >= _RATE_PRECISION
+                || liquidationTargetLtv >= liquidationThreshold
+        ) revert InvalidConfiguration();
+
         bytes32 pairId = _buildLoanPairId(collateral, debt);
         if (_loanConfiguration[pairId].liquidationThreshold > 0) revert InvalidPair();
+
         _loanConfiguration[pairId] = LoanConfiguration({
             collateralDecimal: IERC20Metadata(collateral).decimals(),
             debtDecimal: IERC20Metadata(debt).decimals(),

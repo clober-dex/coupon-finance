@@ -43,6 +43,7 @@ interface ILoanPositionManagerTypes is IPositionManagerTypes {
     error UnpaidDebt();
     error LiquidationThreshold();
     error InvalidPair();
+    error InvalidConfiguration();
     error UnableToLiquidate();
 }
 
