@@ -40,7 +40,7 @@ contract CouponOracle is ICouponOracle, Ownable {
             ) {
                 // Check Sanity, Staleness and the Sequencer
                 if (
-                    roundId != 0 && answer >= 0 && updatedAt != 0 && updatedAt <= block.timestamp
+                    roundId != 0 && answer >= 0 && updatedAt <= block.timestamp
                         && block.timestamp <= updatedAt + timeout && _isSequencerValid()
                 ) {
                     return uint256(answer);
