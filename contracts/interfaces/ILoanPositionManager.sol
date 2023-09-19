@@ -70,12 +70,7 @@ interface ILoanPositionManager is ILoanPositionManagerTypes, IPositionManager {
 
     function adjustPosition(uint256 positionId, uint256 collateralAmount, uint256 debtAmount, Epoch expiredWith)
         external
-        returns (
-            Coupon[] memory couponsToPay,
-            Coupon[] memory couponsToRefund,
-            int256 collateralDelta,
-            int256 debtDelta
-        );
+        returns (Coupon[] memory couponsToMint, Coupon[] memory couponsToBurn, int256 collateralDelta, int256 debtDelta);
 
     function liquidate(uint256 positionId, uint256 maxRepayAmount)
         external

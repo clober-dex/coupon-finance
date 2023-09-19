@@ -53,7 +53,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         (position.collateralAmount, position.debtAmount, position.expiredWith, maxPayInterest, minEarnInterest) =
             abi.decode(data, (uint256, uint256, Epoch, uint256, uint256));
 
-        (Coupon[] memory couponsToBurn, Coupon[] memory couponsToMint, int256 collateralDelta, int256 debtDelta) =
+        (Coupon[] memory couponsToMint, Coupon[] memory couponsToBurn, int256 collateralDelta, int256 debtDelta) =
         _loanManager.adjustPosition(positionId, position.collateralAmount, position.debtAmount, position.expiredWith);
         if (collateralDelta < 0) {
             _loanManager.withdrawToken(position.collateralToken, address(this), uint256(-collateralDelta));

@@ -52,7 +52,7 @@ contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
         }
 
         // @dev We know that couponsToBurn.length == 0
-        (Coupon[] memory couponsToBurn, Coupon[] memory couponsToMint,,) = _loanManager.adjustPosition(
+        (Coupon[] memory couponsToMint, Coupon[] memory couponsToBurn,,) = _loanManager.adjustPosition(
             positionId, position.collateralAmount, position.debtAmount - repayDebtAmount, position.expiredWith
         );
         if (couponsToMint.length > 0) {
@@ -74,7 +74,7 @@ contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
         position.debtAmount = position.debtAmount - depositDebtTokenAmount;
         if (maxDebtAmount < position.debtAmount) revert ControllerSlippage();
 
-        (, Coupon[] memory leftCoupons,,) = _loanManager.adjustPosition(
+        (Coupon[] memory leftCoupons,,,) = _loanManager.adjustPosition(
             positionId, position.collateralAmount, position.debtAmount, position.expiredWith
         );
         _loanManager.mintCoupons(leftCoupons, user, "");
