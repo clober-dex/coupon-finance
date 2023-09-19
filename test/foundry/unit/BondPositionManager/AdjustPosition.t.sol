@@ -72,9 +72,7 @@ contract BondPositionManagerAdjustPositionUnitTest is Test, IBondPositionManager
         coupons[2] = CouponLibrary.from(address(usdc), startEpoch.add(3), usdc.amount(170));
         coupons[3] = CouponLibrary.from(address(usdc), startEpoch.add(4), usdc.amount(170));
         coupons[4] = CouponLibrary.from(address(usdc), startEpoch.add(5), usdc.amount(170));
-        vm.expectCall(
-            address(couponManager), abi.encodeCall(ICouponManager.mintBatch, (address(this), coupons, new bytes(0))), 1
-        );
+        vm.expectCall(address(couponManager), abi.encodeCall(ICouponManager.mintBatch, (address(this), coupons, "")), 1);
         vm.expectCall(
             address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(helper), new Coupon[](0))), 0
         );
@@ -101,9 +99,7 @@ contract BondPositionManagerAdjustPositionUnitTest is Test, IBondPositionManager
         Coupon[] memory couponsToBurn = new Coupon[](1);
         couponsToBurn[0] = CouponLibrary.from(address(usdc), startEpoch.add(2), initialAmount);
         vm.expectCall(
-            address(couponManager),
-            abi.encodeCall(ICouponManager.mintBatch, (address(this), couponsToMint, new bytes(0))),
-            1
+            address(couponManager), abi.encodeCall(ICouponManager.mintBatch, (address(this), couponsToMint, "")), 1
         );
         vm.expectCall(
             address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(helper), couponsToBurn)), 1
@@ -134,9 +130,7 @@ contract BondPositionManagerAdjustPositionUnitTest is Test, IBondPositionManager
         couponsToBurn[0] = CouponLibrary.from(address(usdc), startEpoch.add(1), decreaseAmount);
         couponsToBurn[1] = CouponLibrary.from(address(usdc), startEpoch.add(2), decreaseAmount);
         vm.expectCall(
-            address(couponManager),
-            abi.encodeCall(ICouponManager.mintBatch, (address(this), couponsToMint, new bytes(0))),
-            1
+            address(couponManager), abi.encodeCall(ICouponManager.mintBatch, (address(this), couponsToMint, "")), 1
         );
         vm.expectCall(
             address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(helper), couponsToBurn)), 1
@@ -166,9 +160,7 @@ contract BondPositionManagerAdjustPositionUnitTest is Test, IBondPositionManager
         coupons[1] = CouponLibrary.from(address(usdc), startEpoch.add(2), initialAmount);
 
         vm.expectCall(
-            address(couponManager),
-            abi.encodeCall(ICouponManager.mintBatch, (address(this), new Coupon[](0), new bytes(0))),
-            0
+            address(couponManager), abi.encodeCall(ICouponManager.mintBatch, (address(this), new Coupon[](0), "")), 0
         );
         vm.expectCall(address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(helper), coupons)), 1);
         vm.expectCall(
@@ -191,9 +183,7 @@ contract BondPositionManagerAdjustPositionUnitTest is Test, IBondPositionManager
         coupons[0] = CouponLibrary.from(address(usdc), startEpoch.add(1), initialAmount);
         coupons[1] = CouponLibrary.from(address(usdc), startEpoch.add(2), initialAmount);
         vm.expectCall(
-            address(couponManager),
-            abi.encodeCall(ICouponManager.mintBatch, (address(this), new Coupon[](0), new bytes(0))),
-            0
+            address(couponManager), abi.encodeCall(ICouponManager.mintBatch, (address(this), new Coupon[](0), "")), 0
         );
         vm.expectCall(address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(helper), coupons)), 1);
         vm.expectCall(

@@ -84,7 +84,7 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
     }
 
     function _mintCoupons(address to, Coupon[] memory coupons) internal {
-        couponManager.mintBatch(to, coupons, new bytes(0));
+        couponManager.mintBatch(to, coupons, "");
     }
 
     function testAdjustPositionIncreaseDebtAndEpochs() public {
@@ -125,9 +125,7 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
         vm.expectEmit(true, true, true, true);
         emit UpdatePosition(tokenId, initialCollateralAmount, debtAmount, epoch);
         vm.expectCall(
-            address(couponManager),
-            abi.encodeCall(ICouponManager.mintBatch, (address(helper), couponsToRefund, new bytes(0))),
-            1
+            address(couponManager), abi.encodeCall(ICouponManager.mintBatch, (address(helper), couponsToRefund, "")), 1
         );
         vm.expectCall(
             address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(helper), couponsToPay)), 1
@@ -163,9 +161,7 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
             address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(helper), couponsToPay)), 1
         );
         vm.expectCall(
-            address(couponManager),
-            abi.encodeCall(ICouponManager.mintBatch, (address(helper), couponsToRefund, new bytes(0))),
-            1
+            address(couponManager), abi.encodeCall(ICouponManager.mintBatch, (address(helper), couponsToRefund, "")), 1
         );
         helper.adjustPosition(tokenId, initialCollateralAmount, debtAmount, epoch);
 
@@ -191,9 +187,7 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
         vm.expectEmit(true, true, true, true);
         emit UpdatePosition(tokenId, initialCollateralAmount, debtAmount, epoch);
         vm.expectCall(
-            address(couponManager),
-            abi.encodeCall(ICouponManager.mintBatch, (address(helper), couponsToRefund, new bytes(0))),
-            1
+            address(couponManager), abi.encodeCall(ICouponManager.mintBatch, (address(helper), couponsToRefund, "")), 1
         );
         helper.adjustPosition(tokenId, initialCollateralAmount, debtAmount, epoch);
 
@@ -220,9 +214,7 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
         vm.expectEmit(true, true, true, true);
         emit UpdatePosition(tokenId, initialCollateralAmount, debtAmount, epoch);
         vm.expectCall(
-            address(couponManager),
-            abi.encodeCall(ICouponManager.mintBatch, (address(helper), couponsToRefund, new bytes(0))),
-            1
+            address(couponManager), abi.encodeCall(ICouponManager.mintBatch, (address(helper), couponsToRefund, "")), 1
         );
         helper.adjustPosition(tokenId, initialCollateralAmount, debtAmount, epoch);
 

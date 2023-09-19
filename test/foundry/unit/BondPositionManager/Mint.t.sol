@@ -56,9 +56,7 @@ contract BondPositionManagerMintUnitTest is Test, IBondPositionManagerTypes {
         coupons[0] = CouponLibrary.from(address(usdc), startEpoch, amount);
         coupons[1] = CouponLibrary.from(address(usdc), startEpoch.add(1), amount);
         vm.expectCall(
-            address(couponManager),
-            abi.encodeCall(ICouponManager.mintBatch, (Constants.USER1, coupons, new bytes(0))),
-            1
+            address(couponManager), abi.encodeCall(ICouponManager.mintBatch, (Constants.USER1, coupons, "")), 1
         );
         vm.expectEmit(true, true, true, true);
         emit UpdatePosition(nextId, amount, expectedExpiredWith);

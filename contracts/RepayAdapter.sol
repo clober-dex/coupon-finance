@@ -56,7 +56,7 @@ contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
             positionId, position.collateralAmount, position.debtAmount - repayDebtAmount, position.expiredWith
         );
         if (couponsToMint.length > 0) {
-            _loanManager.mintCoupons(couponsToMint, address(this), new bytes(0));
+            _loanManager.mintCoupons(couponsToMint, address(this), "");
             _wrapCoupons(couponsToMint);
         }
 
