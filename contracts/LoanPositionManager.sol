@@ -27,12 +27,13 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
     uint256 private constant _RATE_PRECISION = 10 ** 6;
 
     address public immutable override oracle;
-    address public immutable override treasury;
     uint256 public immutable override minDebtValueInEth;
 
     mapping(address user => mapping(uint256 couponId => uint256)) private _couponOwed;
     mapping(bytes32 => LoanConfiguration) private _loanConfiguration;
     mapping(uint256 id => LoanPosition) private _positionMap;
+
+    address public override treasury;
 
     constructor(
         address couponManager_,
@@ -43,8 +44,9 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
         string memory baseURI_
     ) PositionManager(couponManager_, assetPool_, baseURI_, "Loan Position", "LP") {
         oracle = oracle_;
-        treasury = treasury_;
         minDebtValueInEth = minDebtValueInEth_;
+        treasury = treasury_;
+        emit SetTreasury(treasury_);
     }
 
     function getPosition(uint256 positionId) external view returns (LoanPosition memory) {
@@ -342,6 +344,11 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
         emit SetLoanConfiguration(
             collateral, debt, liquidationThreshold, liquidationFee, liquidationProtocolFee, liquidationTargetLtv
         );
+    }
+
+    function setTreasury(address newTreasury) external onlyOwner {
+        treasury = newTreasury;
+        emit SetTreasury(newTreasury);
     }
 
     function nonces(uint256 positionId) external view returns (uint256) {

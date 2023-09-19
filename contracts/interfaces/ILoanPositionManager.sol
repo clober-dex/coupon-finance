@@ -36,6 +36,7 @@ interface ILoanPositionManagerTypes is IPositionManagerTypes {
         uint256 repayAmount,
         uint256 protocolFeeAmount
     );
+    event SetTreasury(address indexed newTreasury);
 
     error AlreadyExpired();
     error TooSmallDebt();
@@ -91,4 +92,6 @@ interface ILoanPositionManager is ILoanPositionManagerTypes, IPositionManager {
         uint32 liquidationProtocolFee,
         uint32 liquidationTargetLtv
     ) external;
+
+    function setTreasury(address newTreasury) external;
 }

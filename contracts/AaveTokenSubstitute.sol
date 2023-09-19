@@ -45,8 +45,9 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
         aToken = _aaveV3Pool.getReserveData(asset_).aTokenAddress;
         _decimals = IERC20Metadata(asset_).decimals();
         underlyingToken = asset_;
-        treasury = treasury_;
         _transferOwnership(owner_);
+        treasury = treasury_;
+        emit SetTreasury(treasury_);
     }
 
     function decimals() public view override returns (uint8) {
@@ -142,11 +143,13 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
 
     function setTreasury(address newTreasury) external onlyOwner {
         treasury = newTreasury;
+        emit SetTreasury(newTreasury);
     }
 
     function claim() external {
         uint256 adminYield = IERC20(aToken).balanceOf(address(this)) - totalSupply() - 1;
         if (adminYield > 0) IERC20(aToken).safeTransfer(treasury, adminYield);
+        emit Claim(treasury, adminYield);
     }
 
     receive() external payable {}
