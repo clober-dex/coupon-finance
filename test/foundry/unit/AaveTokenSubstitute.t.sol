@@ -6,6 +6,7 @@ import "forge-std/Test.sol";
 
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import {IWETH9} from "../../../contracts/external/weth/IWETH9.sol";
 import {IPool} from "../../../contracts/external/aave-v3/IPool.sol";
@@ -17,10 +18,16 @@ import {Epoch, EpochLibrary} from "../../../contracts/libraries/Epoch.sol";
 import {CouponManager} from "../../../contracts/CouponManager.sol";
 import {AaveTokenSubstitute} from "../../../contracts/AaveTokenSubstitute.sol";
 import {Constants} from "../Constants.sol";
+import {IAToken} from "../../../contracts/external/aave-v3/IAToken.sol";
+import {DataTypes} from "../../../contracts/external/aave-v3/DataTypes.sol";
+import {ReserveConfiguration} from "../../../contracts/external/aave-v3/ReserveConfiguration.sol";
+import {WadRayMath} from "../../../contracts/libraries/WadRayMath.sol";
 import {ForkUtils, ERC20Utils, Utils} from "../Utils.sol";
 
 contract AaveTokenSubstituteUnitTest is Test, ERC1155Holder {
     using ERC20Utils for IERC20;
+    using WadRayMath for uint256;
+    using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
 
     AaveTokenSubstitute public aaveTokenSubstitute;
     IERC20 public usdc;
@@ -30,8 +37,17 @@ contract AaveTokenSubstituteUnitTest is Test, ERC1155Holder {
         ForkUtils.fork(vm, Constants.FORK_BLOCK_NUMBER);
 
         usdc = IERC20(Constants.USDC);
+
+        vm.startPrank(Constants.USDC_MINTER);
+        Constants.USDC.call(
+            abi.encodePacked(
+                bytes4(keccak256("mint(address,uint256)")), abi.encode(address(this), usdc.amount(23_000_000))
+            )
+        );
+        vm.stopPrank();
+
         vm.startPrank(Constants.USDC_WHALE);
-        usdc.transfer(address(this), usdc.amount(1_000_000));
+        usdc.transfer(address(this), usdc.amount(34_000_000));
         vm.stopPrank();
 
         aaveTokenSubstitute = new AaveTokenSubstitute(
@@ -52,14 +68,14 @@ contract AaveTokenSubstituteUnitTest is Test, ERC1155Holder {
         uint256 amount = usdc.amount(1_000);
 
         uint256 beforeTokenBalance = usdc.balanceOf(address(this));
-        uint256 beforeATokenBalance = aUsdc.balanceOf(address(this));
+        uint256 beforeATokenBalance = aUsdc.balanceOf(address(aaveTokenSubstitute));
         uint256 beforeSubstituteBalance = aaveTokenSubstitute.balanceOf(address(this));
 
         IERC20(usdc).approve(address(aaveTokenSubstitute), amount);
         aaveTokenSubstitute.mint(amount, address(this));
 
         assertEq(beforeTokenBalance, usdc.balanceOf(address(this)) + amount, "USDC_BALANCE");
-        assertEq(beforeATokenBalance, aUsdc.balanceOf(address(this)), "AUSDC_BALANCE");
+        assertEq(beforeATokenBalance + amount, aUsdc.balanceOf(address(aaveTokenSubstitute)), "AUSDC_BALANCE");
         assertEq(beforeSubstituteBalance + amount, aaveTokenSubstitute.balanceOf(address(this)), "WAUSDC_BALANCE");
     }
 
@@ -78,8 +94,31 @@ contract AaveTokenSubstituteUnitTest is Test, ERC1155Holder {
         assertEq(beforeSubstituteBalance + amount, aaveTokenSubstitute.balanceOf(address(this)), "WAUSDC_BALANCE");
     }
 
+    function testMintOverSupplyCap() public {
+        uint256 amount = usdc.amount(50_000_000);
+
+        DataTypes.ReserveConfigurationMap memory configuration =
+            IPool(Constants.AAVE_V3_POOL).getReserveData(Constants.USDC).configuration;
+        DataTypes.ReserveData memory reserveData = IPool(Constants.AAVE_V3_POOL).getReserveData(Constants.USDC);
+        uint256 supplyCap = configuration.getSupplyCap() * (10 ** IERC20Metadata(Constants.USDC).decimals())
+            - (IAToken(aaveTokenSubstitute.aToken()).scaledTotalSupply() + uint256(reserveData.accruedToTreasury)).rayMul(
+                reserveData.liquidityIndex + aaveTokenSubstitute.SUPPLY_BUFFER()
+            );
+
+        uint256 beforeTokenBalance = usdc.balanceOf(address(aaveTokenSubstitute));
+        uint256 beforeATokenBalance = aUsdc.balanceOf(address(aaveTokenSubstitute));
+        uint256 beforeSubstituteBalance = aaveTokenSubstitute.balanceOf(address(this));
+
+        IERC20(usdc).approve(address(aaveTokenSubstitute), amount);
+        aaveTokenSubstitute.mint(amount, address(this));
+
+        assertEq(beforeTokenBalance + amount - supplyCap, usdc.balanceOf(address(aaveTokenSubstitute)), "USDC_BALANCE");
+        assertEq(beforeATokenBalance + supplyCap, aUsdc.balanceOf(address(aaveTokenSubstitute)), "AUSDC_BALANCE");
+        assertEq(beforeSubstituteBalance + amount, aaveTokenSubstitute.balanceOf(address(this)), "WAUSDC_BALANCE");
+    }
+
     function testMintableAmount() public {
-        assertEq(aaveTokenSubstitute.mintableAmount(), 41000000000000, "MINTABLE_AMOUNT");
+        assertEq(aaveTokenSubstitute.mintableAmount(), type(uint256).max, "MINTABLE_AMOUNT");
     }
 
     function testBurnableAmount() public {
@@ -130,14 +169,38 @@ contract AaveTokenSubstituteUnitTest is Test, ERC1155Holder {
         assertEq(beforeSubstituteBalance, aaveTokenSubstitute.balanceOf(address(this)) + amount, "WAETH_BALANCE");
     }
 
+    function testBurnWhenSupplyOverSupplyCap() public {
+        uint256 amount = usdc.amount(50_000_000);
+        uint256 withdrawAmount = usdc.amount(20_000_000);
+
+        IERC20(usdc).approve(address(aaveTokenSubstitute), amount);
+        aaveTokenSubstitute.mint(amount, address(this));
+
+        uint256 beforeTokenBalance = usdc.balanceOf(address(this));
+        uint256 beforeATokenBalance = aUsdc.balanceOf(address(this));
+        uint256 beforeSubstituteBalance = aaveTokenSubstitute.balanceOf(address(this));
+
+        aaveTokenSubstitute.burn(withdrawAmount, address(this));
+
+        assertEq(beforeTokenBalance + withdrawAmount, usdc.balanceOf(address(this)), "USDC_BALANCE");
+        assertEq(beforeATokenBalance, aUsdc.balanceOf(address(this)), "AUSDC_BALANCE");
+        assertEq(
+            beforeSubstituteBalance, aaveTokenSubstitute.balanceOf(address(this)) + withdrawAmount, "WAUSDC_BALANCE"
+        );
+    }
+
     function testBurnWhenAmountExceedsWithdrawableAmount() public {
-        uint256 amount = usdc.amount(1_000);
+        uint256 amount = usdc.amount(50_000_000);
+
         IERC20(usdc).approve(address(aaveTokenSubstitute), amount);
         aaveTokenSubstitute.mint(amount, address(this));
 
         uint256 withdrawableAmount = usdc.balanceOf(address(aUsdc));
         vm.prank(address(aUsdc));
-        usdc.transfer(Constants.USER2, withdrawableAmount - amount / 2);
+        usdc.transfer(Constants.USER2, withdrawableAmount - amount / 3);
+
+        uint256 expectedWithdrawUnderlyingAmount =
+            usdc.balanceOf(address(aUsdc)) + usdc.balanceOf(address(aaveTokenSubstitute));
 
         uint256 beforeTokenBalance = usdc.balanceOf(address(this));
         uint256 beforeATokenBalance = aUsdc.balanceOf(address(this));
@@ -145,8 +208,12 @@ contract AaveTokenSubstituteUnitTest is Test, ERC1155Holder {
 
         aaveTokenSubstitute.burn(amount, address(this));
 
-        assertEq(beforeTokenBalance + amount / 2, usdc.balanceOf(address(this)), "USDC_BALANCE");
-        assertEq(beforeATokenBalance + amount / 2, aUsdc.balanceOf(address(this)), "AUSDC_BALANCE");
+        assertEq(beforeTokenBalance + expectedWithdrawUnderlyingAmount, usdc.balanceOf(address(this)), "USDC_BALANCE");
+        assertEq(
+            beforeATokenBalance + amount - expectedWithdrawUnderlyingAmount,
+            aUsdc.balanceOf(address(this)),
+            "AUSDC_BALANCE"
+        );
         assertEq(beforeSubstituteBalance, aaveTokenSubstitute.balanceOf(address(this)) + amount, "WAUSDC_BALANCE");
     }
 

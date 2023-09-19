@@ -11,14 +11,19 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 import {IWETH9} from "./external/weth/IWETH9.sol";
+import {IAToken} from "./external/aave-v3/IAToken.sol";
 import {IPool} from "./external/aave-v3/IPool.sol";
 import {DataTypes} from "./external/aave-v3/DataTypes.sol";
 import {ReserveConfiguration} from "./external/aave-v3/ReserveConfiguration.sol";
 import {IAaveTokenSubstitute} from "./interfaces/IAaveTokenSubstitute.sol";
+import {WadRayMath} from "./libraries/WadRayMath.sol";
 
 contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
+    using WadRayMath for uint256;
     using SafeERC20 for IERC20;
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
+
+    uint256 public constant SUPPLY_BUFFER = 10 ** 24; // 0.1%
 
     IWETH9 private immutable _weth;
     IPool private immutable _aaveV3Pool;
@@ -56,15 +61,34 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
     function mint(uint256 amount, address to) external {
         IERC20(underlyingToken).safeTransferFrom(msg.sender, address(this), amount);
         uint256 supplyAmount = IERC20(underlyingToken).balanceOf(address(this));
-        IERC20(underlyingToken).approve(address(_aaveV3Pool), supplyAmount);
-        try _aaveV3Pool.supply(underlyingToken, supplyAmount, address(this), 0) {} catch {}
-        _mint(to, amount);
-    }
-
-    function mintableAmount() external view returns (uint256) {
         DataTypes.ReserveConfigurationMap memory configuration =
             _aaveV3Pool.getReserveData(underlyingToken).configuration;
-        return configuration.getSupplyCap() * 10 ** (configuration.getDecimals());
+
+        DataTypes.ReserveData memory reserveData = _aaveV3Pool.getReserveData(underlyingToken);
+        uint256 supplyCap = configuration.getSupplyCap();
+        if (supplyCap == 0) {
+            supplyCap = type(uint256).max;
+        } else {
+            uint256 existingSupply = (IAToken(aToken).scaledTotalSupply() + uint256(reserveData.accruedToTreasury))
+                .rayMul(reserveData.liquidityIndex + SUPPLY_BUFFER);
+            supplyCap *= 10 ** IERC20Metadata(underlyingToken).decimals();
+            unchecked {
+                supplyCap = supplyCap <= existingSupply ? 0 : supplyCap - existingSupply;
+            }
+        }
+
+        _mint(to, amount);
+        if (!configuration.getActive() || configuration.getPaused()) {
+            return;
+        } else if (supplyAmount > supplyCap) {
+            supplyAmount = supplyCap;
+        }
+        IERC20(underlyingToken).approve(address(_aaveV3Pool), supplyAmount);
+        try _aaveV3Pool.supply(underlyingToken, supplyAmount, address(this), 0) {} catch {}
+    }
+
+    function mintableAmount() external pure returns (uint256) {
+        return type(uint256).max;
     }
 
     function burnToAToken(uint256 amount, address to) external {
@@ -73,35 +97,41 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
     }
 
     function burn(uint256 amount, address to) external {
-        _burn(msg.sender, amount);
+        unchecked {
+            _burn(msg.sender, amount);
 
-        uint256 underlyingAmount = IERC20(underlyingToken).balanceOf(address(this));
-        if (amount <= underlyingAmount) {
-            underlyingAmount = amount;
-            amount = 0;
-        } else {
-            amount -= underlyingAmount;
-            uint256 withdrawableAmount = IERC20(underlyingToken).balanceOf(address(aToken));
-            if (withdrawableAmount < amount) {
-                IERC20(aToken).safeTransfer(to, amount - withdrawableAmount);
-                amount = withdrawableAmount;
-            }
-        }
+            uint256 underlyingAmount = IERC20(underlyingToken).balanceOf(address(this));
+            DataTypes.ReserveConfigurationMap memory configuration =
+                _aaveV3Pool.getReserveData(underlyingToken).configuration;
 
-        if (underlyingToken == address(_weth)) {
-            if (amount > 0) {
-                _aaveV3Pool.withdraw(underlyingToken, amount, address(this));
+            if (amount <= underlyingAmount) {
+                underlyingAmount = amount;
+            } else if (configuration.getActive() && !configuration.getPaused()) {
+                uint256 withdrawableAmount = IERC20(underlyingToken).balanceOf(aToken);
+                if (withdrawableAmount + underlyingAmount < amount) {
+                    if (withdrawableAmount > 0) {
+                        _aaveV3Pool.withdraw(underlyingToken, withdrawableAmount, address(this));
+                        underlyingAmount += withdrawableAmount;
+                    }
+                } else {
+                    _aaveV3Pool.withdraw(underlyingToken, amount - underlyingAmount, address(this));
+                    underlyingAmount = amount;
+                }
             }
-            amount += underlyingAmount;
-            _weth.withdraw(amount);
-            (bool success,) = payable(to).call{value: amount}("");
-            if (!success) revert ValueTransferFailed();
-        } else {
-            if (amount > 0) {
-                _aaveV3Pool.withdraw(underlyingToken, amount, to);
-            }
+
             if (underlyingAmount > 0) {
-                IERC20(underlyingToken).safeTransfer(address(to), underlyingAmount);
+                if (underlyingToken == address(_weth)) {
+                    _weth.withdraw(underlyingAmount);
+                    (bool success,) = payable(to).call{value: amount}("");
+                    if (!success) revert ValueTransferFailed();
+                } else {
+                    IERC20(underlyingToken).safeTransfer(address(to), underlyingAmount);
+                }
+                amount -= underlyingAmount;
+            }
+
+            if (amount > 0) {
+                IERC20(aToken).safeTransfer(address(to), amount);
             }
         }
     }

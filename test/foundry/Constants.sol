@@ -11,6 +11,7 @@ library Constants {
     address internal constant WETH = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
     address internal constant WBTC = 0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f;
     address internal constant USDC = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831;
+    address internal constant USDC_MINTER = 0xE7Ed1fa7f45D05C508232aa32649D89b73b8bA48;
     address internal constant USDC_WHALE = 0xB38e8c17e38363aF6EbdCb3dAE12e0243582891D;
     address internal constant AAVE_V3_POOL = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
     address internal constant AAVE_ORACLE = 0xb56c2F0B653B2e0b10C9b928C8580Ac5Df02C7C7;
