@@ -35,6 +35,21 @@ export const REPAY_ROUTER: { [chainId: number]: string } = {
   [TESTNET_ID]: '0x4b9AE05FbfEF6610c5D65B57e92c169b1A9d2Cfe',
 }
 
+export const CHAINLINK_SEQUENCER_ORACLE: { [chainId: number]: string } = {
+  [arbitrum.id]: '0xFdB631F5EE196F0ed6FAa767959853A9F217697D',
+  [TESTNET_ID]: '0xFdB631F5EE196F0ed6FAa767959853A9F217697D',
+}
+
+export const ORACLE_TIMEOUT: { [chainId: number]: number } = {
+  [arbitrum.id]: 3600,
+  [TESTNET_ID]: 3600,
+}
+
+export const SEQUENCER_GRACE_PERIOD: { [chainId: number]: number } = {
+  [arbitrum.id]: 3600,
+  [TESTNET_ID]: 3600,
+}
+
 const TOKEN_KEYS = {
   WETH: 'WETH',
   USDC: 'USDC',
