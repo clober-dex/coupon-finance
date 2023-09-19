@@ -69,10 +69,12 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
         if (supplyCap == 0) {
             supplyCap = type(uint256).max;
         } else {
-            supplyCap = supplyCap * (10 ** IERC20Metadata(underlyingToken).decimals())
-                - (IAToken(aToken).scaledTotalSupply() + uint256(reserveData.accruedToTreasury)).rayMul(
-                    reserveData.liquidityIndex + SUPPLY_BUFFER
-                );
+            uint256 existingSupply = (IAToken(aToken).scaledTotalSupply() + uint256(reserveData.accruedToTreasury))
+                .rayMul(reserveData.liquidityIndex + SUPPLY_BUFFER);
+            supplyCap *= 10 ** IERC20Metadata(underlyingToken).decimals();
+            unchecked {
+                supplyCap = supplyCap <= existingSupply ? 0 : supplyCap - existingSupply;
+            }
         }
 
         _mint(to, amount);
@@ -95,40 +97,42 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
     }
 
     function burn(uint256 amount, address to) external {
-        _burn(msg.sender, amount);
+        unchecked {
+            _burn(msg.sender, amount);
 
-        uint256 underlyingAmount = IERC20(underlyingToken).balanceOf(address(this));
-        DataTypes.ReserveConfigurationMap memory configuration =
-            _aaveV3Pool.getReserveData(underlyingToken).configuration;
+            uint256 underlyingAmount = IERC20(underlyingToken).balanceOf(address(this));
+            DataTypes.ReserveConfigurationMap memory configuration =
+                _aaveV3Pool.getReserveData(underlyingToken).configuration;
 
-        if (amount <= underlyingAmount) {
-            underlyingAmount = amount;
-        } else if (configuration.getActive() && !configuration.getPaused()) {
-            uint256 withdrawableAmount = IERC20(underlyingToken).balanceOf(aToken);
-            if (withdrawableAmount + underlyingAmount < amount) {
-                if (withdrawableAmount > 0) {
-                    _aaveV3Pool.withdraw(underlyingToken, withdrawableAmount, address(this));
-                    underlyingAmount += withdrawableAmount;
-                }
-            } else {
-                _aaveV3Pool.withdraw(underlyingToken, amount - underlyingAmount, address(this));
+            if (amount <= underlyingAmount) {
                 underlyingAmount = amount;
+            } else if (configuration.getActive() && !configuration.getPaused()) {
+                uint256 withdrawableAmount = IERC20(underlyingToken).balanceOf(aToken);
+                if (withdrawableAmount + underlyingAmount < amount) {
+                    if (withdrawableAmount > 0) {
+                        _aaveV3Pool.withdraw(underlyingToken, withdrawableAmount, address(this));
+                        underlyingAmount += withdrawableAmount;
+                    }
+                } else {
+                    _aaveV3Pool.withdraw(underlyingToken, amount - underlyingAmount, address(this));
+                    underlyingAmount = amount;
+                }
             }
-        }
 
-        if (underlyingAmount > 0) {
-            if (underlyingToken == address(_weth)) {
-                _weth.withdraw(underlyingAmount);
-                (bool success,) = payable(to).call{value: amount}("");
-                if (!success) revert ValueTransferFailed();
-            } else {
-                IERC20(underlyingToken).safeTransfer(address(to), underlyingAmount);
+            if (underlyingAmount > 0) {
+                if (underlyingToken == address(_weth)) {
+                    _weth.withdraw(underlyingAmount);
+                    (bool success,) = payable(to).call{value: amount}("");
+                    if (!success) revert ValueTransferFailed();
+                } else {
+                    IERC20(underlyingToken).safeTransfer(address(to), underlyingAmount);
+                }
+                amount -= underlyingAmount;
             }
-            amount -= underlyingAmount;
-        }
 
-        if (amount > 0) {
-            IERC20(aToken).safeTransfer(address(to), amount);
+            if (amount > 0) {
+                IERC20(aToken).safeTransfer(address(to), amount);
+            }
         }
     }
 
