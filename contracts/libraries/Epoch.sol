@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: -
 // License: https://license.clober.io/LICENSE.pdf
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.19;
 
 type Epoch is uint8;
 
