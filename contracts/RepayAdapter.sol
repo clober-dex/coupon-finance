@@ -12,8 +12,11 @@ import {Coupon} from "./libraries/Coupon.sol";
 import {Controller} from "./libraries/Controller.sol";
 import {IPositionLocker} from "./interfaces/IPositionLocker.sol";
 import {IRepayAdapter} from "./interfaces/IRepayAdapter.sol";
+import {Epoch, EpochLibrary} from "./libraries/Epoch.sol";
 
 contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
+    using EpochLibrary for Epoch;
+
     ILoanPositionManager private immutable _loanManager;
     address private immutable _router;
 
@@ -52,8 +55,12 @@ contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
         }
 
         // @dev We know that couponsToBurn.length == 0
+        uint256 remainingDebt = position.debtAmount - repayDebtAmount;
         (Coupon[] memory couponsToMint, Coupon[] memory couponsToBurn,,) = _loanManager.adjustPosition(
-            positionId, position.collateralAmount, position.debtAmount - repayDebtAmount, position.expiredWith
+            positionId,
+            position.collateralAmount,
+            remainingDebt,
+            remainingDebt == 0 ? EpochLibrary.lastExpiredEpoch() : position.expiredWith
         );
         if (couponsToMint.length > 0) {
             _loanManager.mintCoupons(couponsToMint, address(this), "");

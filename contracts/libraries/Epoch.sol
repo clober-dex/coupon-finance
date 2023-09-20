@@ -5,7 +5,7 @@ pragma solidity ^0.8.19;
 
 type Epoch is uint8;
 
-using {gt as >, gte as >=, lt as <, lte as <=, eq as ==} for Epoch global;
+using {gt as >, gte as >=, lt as <, lte as <=, eq as ==, ne as !=} for Epoch global;
 
 function gt(Epoch a, Epoch b) pure returns (bool) {
     return Epoch.unwrap(a) > Epoch.unwrap(b);
@@ -25,6 +25,10 @@ function lte(Epoch a, Epoch b) pure returns (bool) {
 
 function eq(Epoch a, Epoch b) pure returns (bool) {
     return Epoch.unwrap(a) == Epoch.unwrap(b);
+}
+
+function ne(Epoch a, Epoch b) pure returns (bool) {
+    return Epoch.unwrap(a) != Epoch.unwrap(b);
 }
 
 library EpochLibrary {

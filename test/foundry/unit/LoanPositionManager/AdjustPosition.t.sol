@@ -268,7 +268,7 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
 
     function testAdjustPositionDecreaseDebtToTooSmallAmount() public {
         Epoch epoch = startEpoch.add(2);
-        vm.expectRevert(abi.encodeWithSelector(TooSmallDebt.selector));
+        vm.expectRevert(abi.encodeWithSelector(TooSmallDebtLeft.selector));
         helper.adjustPosition(tokenId, initialCollateralAmount, 1, epoch);
     }
 
