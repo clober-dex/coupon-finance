@@ -134,8 +134,8 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
             Constants.WETH,
             address(loanPositionManager)
         );
-        borrowController.setCollateralAllowance(address(wausdc));
-        borrowController.setCollateralAllowance(address(waweth));
+        borrowController.giveLoanManagerAllowance(address(wausdc));
+        borrowController.giveLoanManagerAllowance(address(waweth));
 
         wausdc.transfer(address(assetPool), usdc.amount(1_000));
         waweth.transfer(address(assetPool), 1_000 ether);

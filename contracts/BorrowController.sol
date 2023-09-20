@@ -212,7 +212,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         return abi.encode(id, msg.sender, data);
     }
 
-    function setCollateralAllowance(address collateralToken) external onlyOwner {
-        IERC20(collateralToken).approve(address(_loanManager), type(uint256).max);
+    function giveLoanManagerAllowance(address token) external onlyOwner {
+        IERC20(token).approve(address(_loanManager), type(uint256).max);
     }
 }

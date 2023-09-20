@@ -57,4 +57,6 @@ interface IBorrowController is IController {
         PermitSignature calldata positionPermitParams,
         ERC20PermitParams calldata debtPermitParams
     ) external payable;
+
+    function giveLoanManagerAllowance(address token) external;
 }
