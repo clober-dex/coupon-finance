@@ -221,6 +221,14 @@ abstract contract Controller is
         }
 
         _couponMarkets[id] = cloberMarket;
+        emit SetCouponMarket(couponKey.asset, couponKey.epoch, cloberMarket);
+    }
+
+    function manager() public view virtual returns (address);
+
+    function giveManagerAllowance(address token) external onlyOwner {
+        IERC20(token).approve(manager(), type(uint256).max);
+        emit SetManagerAllowance(token);
     }
 
     receive() external payable {}

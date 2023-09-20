@@ -143,10 +143,10 @@ contract RepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiver, 
             address(loanPositionManager),
             Constants.ODOS_V2_SWAP_ROUTER
         );
-        borrowController.giveLoanManagerAllowance(address(wausdc));
-        borrowController.giveLoanManagerAllowance(address(waweth));
-        repayAdapter.giveLoanManagerAllowance(address(wausdc));
-        repayAdapter.giveLoanManagerAllowance(address(waweth));
+        borrowController.giveManagerAllowance(address(wausdc));
+        borrowController.giveManagerAllowance(address(waweth));
+        repayAdapter.giveManagerAllowance(address(wausdc));
+        repayAdapter.giveManagerAllowance(address(waweth));
 
         wausdc.transfer(address(assetPool), usdc.amount(1_000));
         waweth.transfer(address(assetPool), 1_000 ether);
