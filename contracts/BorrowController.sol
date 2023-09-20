@@ -212,7 +212,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         return abi.encode(id, msg.sender, data);
     }
 
-    function giveLoanManagerAllowance(address token) external onlyOwner {
-        IERC20(token).approve(address(_loanManager), type(uint256).max);
+    function manager() public view override returns (address) {
+        return address(_loanManager);
     }
 }
