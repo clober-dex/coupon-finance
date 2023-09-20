@@ -7,7 +7,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 import {CloberMarketSwapCallbackReceiver} from "../external/clober/CloberMarketSwapCallbackReceiver.sol";
 import {CloberMarketFactory} from "../external/clober/CloberMarketFactory.sol";
@@ -27,7 +27,7 @@ abstract contract Controller is
     IController,
     ERC1155Holder,
     CloberMarketSwapCallbackReceiver,
-    Ownable,
+    Ownable2Step,
     ReentrancyGuard
 {
     using SafeERC20 for IERC20;

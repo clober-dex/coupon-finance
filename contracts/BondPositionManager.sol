@@ -3,7 +3,7 @@
 
 pragma solidity ^0.8.0;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 import {IBondPositionManager} from "./interfaces/IBondPositionManager.sol";
 import {IPositionManager} from "./interfaces/IPositionManager.sol";
@@ -12,7 +12,7 @@ import {Coupon, CouponLibrary} from "./libraries/Coupon.sol";
 import {Epoch, EpochLibrary} from "./libraries/Epoch.sol";
 import {PositionManager} from "./libraries/PositionManager.sol";
 
-contract BondPositionManager is IBondPositionManager, PositionManager, Ownable {
+contract BondPositionManager is IBondPositionManager, PositionManager, Ownable2Step {
     using EpochLibrary for Epoch;
     using BondPositionLibrary for BondPosition;
     using CouponLibrary for Coupon;

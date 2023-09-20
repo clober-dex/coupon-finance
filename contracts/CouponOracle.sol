@@ -3,13 +3,13 @@
 
 pragma solidity ^0.8.0;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 import {AggregatorV3Interface} from "./external/chainlink/AggregatorV3Interface.sol";
 import {ICouponOracle} from "./interfaces/ICouponOracle.sol";
 import {IFallbackOracle} from "./interfaces/IFallbackOracle.sol";
 
-contract CouponOracle is ICouponOracle, Ownable {
+contract CouponOracle is ICouponOracle, Ownable2Step {
     uint256 private constant _MAX_TIMEOUT = 1 days;
     uint256 private constant _MIN_TIMEOUT = 1 minutes;
     uint256 private constant _MAX_GRACE_PERIOD = 1 days;

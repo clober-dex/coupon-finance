@@ -8,7 +8,7 @@ import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IER
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 import {IWETH9} from "./external/weth/IWETH9.sol";
 import {IAToken} from "./external/aave-v3/IAToken.sol";
@@ -18,7 +18,7 @@ import {ReserveConfiguration} from "./external/aave-v3/ReserveConfiguration.sol"
 import {IAaveTokenSubstitute} from "./interfaces/IAaveTokenSubstitute.sol";
 import {WadRayMath} from "./libraries/WadRayMath.sol";
 
-contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable {
+contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable2Step {
     using WadRayMath for uint256;
     using SafeERC20 for IERC20;
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
