@@ -56,7 +56,7 @@ contract DepositController is IDepositController, Controller, IPositionLocker {
             _bondManager.adjustPosition(positionId, position.amount, position.expiredWith);
         if (amountDelta < 0) _bondManager.withdrawToken(position.asset, address(this), uint256(-amountDelta));
         if (couponsToMint.length > 0) {
-            _bondManager.mintCoupons(couponsToMint, address(this), new bytes(0));
+            _bondManager.mintCoupons(couponsToMint, address(this), "");
             _wrapCoupons(couponsToMint);
         }
 

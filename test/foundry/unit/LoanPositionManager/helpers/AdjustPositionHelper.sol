@@ -54,11 +54,11 @@ contract LoanPositionAdjustPositionHelper is IPositionLocker, ERC1155Holder {
             loanPositionManager.burnCoupons(couponsToPay);
         }
         if (couponsToRefund.length > 0) {
-            loanPositionManager.mintCoupons(couponsToRefund, address(this), new bytes(0));
+            loanPositionManager.mintCoupons(couponsToRefund, address(this), "");
         }
 
         loanPositionManager.settlePosition(params.positionId);
 
-        return new bytes(0);
+        return "";
     }
 }

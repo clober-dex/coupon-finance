@@ -38,7 +38,7 @@ contract CouponManagerUnitTest is Test, ERC1155Holder {
         coupons[0] = CouponLibrary.from(Constants.USDC, Epoch.wrap(20), 100);
         coupons[1] = CouponLibrary.from(Constants.USDC, Epoch.wrap(20).add(1), 70);
 
-        couponManager.mintBatch(Constants.USER1, coupons, new bytes(0));
+        couponManager.mintBatch(Constants.USER1, coupons, "");
 
         assertEq(couponManager.totalSupply(coupons[0].id()), 100, "TOTAL_SUPPLY_0");
         assertEq(couponManager.totalSupply(coupons[1].id()), 70, "TOTAL_SUPPLY_1");
@@ -63,17 +63,17 @@ contract CouponManagerUnitTest is Test, ERC1155Holder {
 
         vm.expectRevert(abi.encodeWithSelector(ICouponManager.InvalidAccess.selector));
         vm.prank(address(0x123));
-        couponManager.mintBatch(Constants.USER1, coupons, new bytes(0));
+        couponManager.mintBatch(Constants.USER1, coupons, "");
     }
 
     function testSafeBatchTransferFrom() public {
         Coupon[] memory coupons = new Coupon[](2);
         coupons[0] = CouponLibrary.from(Constants.USDC, startEpoch, 100);
         coupons[1] = CouponLibrary.from(Constants.USDC, startEpoch.add(1), 70);
-        couponManager.mintBatch(Constants.USER1, coupons, new bytes(0));
+        couponManager.mintBatch(Constants.USER1, coupons, "");
 
         vm.prank(Constants.USER1);
-        couponManager.safeBatchTransferFrom(Constants.USER1, Constants.USER2, coupons, new bytes(0));
+        couponManager.safeBatchTransferFrom(Constants.USER1, Constants.USER2, coupons, "");
 
         assertEq(couponManager.balanceOf(Constants.USER1, coupons[0].id()), 0, "BALANCE_USER1_0");
         assertEq(couponManager.balanceOf(Constants.USER1, coupons[1].id()), 0, "BALANCE_USER1_1");
@@ -86,7 +86,7 @@ contract CouponManagerUnitTest is Test, ERC1155Holder {
         coupons[0] = CouponLibrary.from(Constants.USDC, startEpoch, 100);
         coupons[1] = CouponLibrary.from(Constants.USDC, startEpoch.add(1), 70);
 
-        couponManager.mintBatch(Constants.USER1, coupons, new bytes(0));
+        couponManager.mintBatch(Constants.USER1, coupons, "");
 
         vm.warp(EpochLibrary.current().add(1).startTime());
 
@@ -109,7 +109,7 @@ contract CouponManagerUnitTest is Test, ERC1155Holder {
         coupons[0] = CouponLibrary.from(Constants.USDC, startEpoch, 100);
         coupons[1] = CouponLibrary.from(Constants.USDC, startEpoch.add(1), 70);
 
-        couponManager.mintBatch(Constants.USER1, coupons, new bytes(0));
+        couponManager.mintBatch(Constants.USER1, coupons, "");
 
         Coupon[] memory couponsToBurn = new Coupon[](2);
         couponsToBurn[0] = CouponLibrary.from(Constants.USDC, startEpoch, 50);
@@ -127,7 +127,7 @@ contract CouponManagerUnitTest is Test, ERC1155Holder {
         coupons[0] = CouponLibrary.from(Constants.USDC, startEpoch, 100);
         coupons[1] = CouponLibrary.from(Constants.USDC, startEpoch.add(1), 70);
 
-        couponManager.mintBatch(Constants.USER1, coupons, new bytes(0));
+        couponManager.mintBatch(Constants.USER1, coupons, "");
 
         Coupon[] memory couponsToBurn = new Coupon[](2);
         couponsToBurn[0] = CouponLibrary.from(Constants.USDC, startEpoch, 50);

@@ -60,7 +60,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         }
         if (debtDelta > 0) _loanManager.withdrawToken(position.debtToken, address(this), uint256(debtDelta));
         if (couponsToMint.length > 0) {
-            _loanManager.mintCoupons(couponsToMint, address(this), new bytes(0));
+            _loanManager.mintCoupons(couponsToMint, address(this), "");
             _wrapCoupons(couponsToMint);
         }
 
