@@ -111,6 +111,7 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable2S
                 uint256(uint160(oldPosition.collateralToken)), collateralAmount, oldPosition.collateralAmount
             );
             debtDelta = -_accountDelta(uint256(uint160(oldPosition.debtToken)), oldPosition.debtAmount, debtAmount);
+            require(debtDelta != type(int256).min);
         }
     }
 
