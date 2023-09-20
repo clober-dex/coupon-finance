@@ -229,7 +229,7 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
 
                 if (newRepayAmount <= minDebtAmount) {
                     if (maxRepayAmount < newRepayAmount) revert TooSmallDebt();
-                } else if (repayAmount > newRepayAmount || newRepayAmount < minDebtAmount + repayAmount) {
+                } else if (newRepayAmount < minDebtAmount + repayAmount) {
                     if (maxRepayAmount < newRepayAmount) {
                         newRepayAmount = Math.min(maxRepayAmount, newRepayAmount - minDebtAmount);
                     }
