@@ -294,11 +294,12 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
                 for (uint256 i = 0; i < epochLength; ++i) {
                     coupons[i] = CouponLibrary.from(position.debtToken, currentEpoch.add(uint8(i)), repayAmount);
                 }
-                try ICouponManager(_couponManager).mintBatch(couponOwner, coupons, "") {}
-                catch {
+                if (couponOwner.code.length > 0) {
                     for (uint256 i = 0; i < epochLength; ++i) {
                         _couponOwed[couponOwner][coupons[i].id()] += coupons[i].amount;
                     }
+                } else {
+                    ICouponManager(_couponManager).mintBatch(couponOwner, coupons, "");
                 }
             }
 
