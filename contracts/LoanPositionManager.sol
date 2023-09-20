@@ -94,7 +94,7 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable2S
             if (oldPosition.debtAmount != debtAmount) revert AlreadyExpired();
         } else {
             if (oldPosition.expiredWith == Epoch.wrap(0)) oldPosition.expiredWith = lastExpiredEpoch;
-            if (debtAmount == 0 && lastExpiredEpoch != expiredWith) revert InvalidPositionEpoch();
+            if (debtAmount == 0 && lastExpiredEpoch != expiredWith) revert LoanPositionLibrary.InvalidPositionEpoch();
             _positionMap[positionId].debtAmount = debtAmount;
             _positionMap[positionId].expiredWith = expiredWith;
 
