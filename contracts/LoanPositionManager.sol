@@ -181,25 +181,6 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable2S
         }
     }
 
-    function getMinDebtAmount(address debtToken) external returns (uint256 minDebtAmount) {
-        unchecked {
-            address[] memory assets = new address[](2);
-            assets[0] = debtToken;
-            assets[1] = address(0);
-
-            uint256 debtDecimal = IERC20Metadata(debtToken).decimals();
-
-            uint256[] memory prices = ICouponOracle(oracle).getAssetsPrices(assets);
-            minDebtAmount = minDebtValueInEth * prices[1];
-            if (debtDecimal > 18) {
-                minDebtAmount *= 10 ** (debtDecimal - 18);
-            } else {
-                minDebtAmount /= 10 ** (18 - debtDecimal);
-            }
-            minDebtAmount /= prices[0];
-        }
-    }
-
     function _getLiquidationAmount(LoanPosition memory position, uint256 maxRepayAmount)
         private
         view

@@ -74,8 +74,6 @@ interface ILoanPositionManager is ILoanPositionManagerTypes, IPositionManager {
         external
         returns (Coupon[] memory couponsToMint, Coupon[] memory couponsToBurn, int256 collateralDelta, int256 debtDelta);
 
-    function getMinDebtAmount(address debtToken) external returns (uint256 minDebtAmount);
-
     function liquidate(uint256 positionId, uint256 maxRepayAmount)
         external
         returns (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount);
