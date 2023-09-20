@@ -79,7 +79,7 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
         external
         onlyByLocker
         modifyPosition(positionId)
-        returns (Coupon[] memory couponsToBurn, Coupon[] memory couponsToMint, int256 collateralDelta, int256 debtDelta)
+        returns (Coupon[] memory couponsToMint, Coupon[] memory couponsToBurn, int256 collateralDelta, int256 debtDelta)
     {
         if (!_isApprovedOrOwner(msg.sender, positionId)) revert InvalidAccess();
 
@@ -95,7 +95,7 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
             _positionMap[positionId].debtAmount = debtAmount;
             _positionMap[positionId].expiredWith = debtAmount == 0 ? lastExpiredEpoch : expiredWith;
 
-            (couponsToBurn, couponsToMint) = oldPosition.calculateCouponRequirement(_positionMap[positionId]);
+            (couponsToMint, couponsToBurn) = oldPosition.calculateCouponRequirement(_positionMap[positionId]);
         }
 
         unchecked {

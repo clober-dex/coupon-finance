@@ -31,7 +31,7 @@ library LoanPositionLibrary {
     function calculateCouponRequirement(LoanPosition memory oldPosition, LoanPosition memory newPosition)
         internal
         view
-        returns (Coupon[] memory, Coupon[] memory)
+        returns (Coupon[] memory mintCoupons, Coupon[] memory burnCoupons)
     {
         if (
             !(
@@ -45,10 +45,10 @@ library LoanPositionLibrary {
             revert InvalidPositionEpoch();
         }
 
-        uint256 burnCouponsLength = newPosition.expiredWith.sub(latestExpiredEpoch);
         uint256 mintCouponsLength = oldPosition.expiredWith.sub(latestExpiredEpoch);
+        uint256 burnCouponsLength = newPosition.expiredWith.sub(latestExpiredEpoch);
         unchecked {
-            uint256 minCount = Math.min(burnCouponsLength, mintCouponsLength);
+            uint256 minCount = Math.min(mintCouponsLength, burnCouponsLength);
             if (newPosition.debtAmount > oldPosition.debtAmount) {
                 mintCouponsLength -= minCount;
             } else if (newPosition.debtAmount < oldPosition.debtAmount) {
@@ -59,10 +59,10 @@ library LoanPositionLibrary {
             }
         }
 
-        Coupon[] memory burnCoupons = new Coupon[](burnCouponsLength);
-        Coupon[] memory mintCoupons = new Coupon[](mintCouponsLength);
-        burnCouponsLength = 0;
+        mintCoupons = new Coupon[](mintCouponsLength);
+        burnCoupons = new Coupon[](burnCouponsLength);
         mintCouponsLength = 0;
+        burnCouponsLength = 0;
         uint256 farthestExpiredEpochs = newPosition.expiredWith.max(oldPosition.expiredWith).sub(latestExpiredEpoch);
         unchecked {
             Epoch epoch = latestExpiredEpoch;
@@ -79,6 +79,5 @@ library LoanPositionLibrary {
                 }
             }
         }
-        return (burnCoupons, mintCoupons);
     }
 }

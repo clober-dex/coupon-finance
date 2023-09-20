@@ -33,7 +33,7 @@ contract LoanPositionAdjustPositionHelper is IPositionLocker, ERC1155Holder {
         require(msg.sender == address(loanPositionManager), "not loan position manager");
         AdjustPositionParams memory params = abi.decode(data, (AdjustPositionParams));
 
-        (Coupon[] memory couponsToPay, Coupon[] memory couponsToRefund, int256 collateralDelta, int256 debtDelta) =
+        (Coupon[] memory couponsToMint, Coupon[] memory couponsToBurn, int256 collateralDelta, int256 debtDelta) =
         loanPositionManager.adjustPosition(
             params.positionId, params.collateralAmount, params.debtAmount, params.expiredWith
         );
@@ -50,11 +50,11 @@ contract LoanPositionAdjustPositionHelper is IPositionLocker, ERC1155Holder {
             loanPositionManager.depositToken(position.debtToken, uint256(-debtDelta));
         }
 
-        if (couponsToPay.length > 0) {
-            loanPositionManager.burnCoupons(couponsToPay);
+        if (couponsToBurn.length > 0) {
+            loanPositionManager.burnCoupons(couponsToBurn);
         }
-        if (couponsToRefund.length > 0) {
-            loanPositionManager.mintCoupons(couponsToRefund, address(this), "");
+        if (couponsToMint.length > 0) {
+            loanPositionManager.mintCoupons(couponsToMint, address(this), "");
         }
 
         loanPositionManager.settlePosition(params.positionId);
