@@ -94,8 +94,9 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable2S
             if (oldPosition.debtAmount != debtAmount) revert AlreadyExpired();
         } else {
             if (oldPosition.expiredWith == Epoch.wrap(0)) oldPosition.expiredWith = lastExpiredEpoch;
+            if (debtAmount == 0 && lastExpiredEpoch != expiredWith) revert InvalidPositionEpoch();
             _positionMap[positionId].debtAmount = debtAmount;
-            _positionMap[positionId].expiredWith = debtAmount == 0 ? lastExpiredEpoch : expiredWith;
+            _positionMap[positionId].expiredWith = expiredWith;
 
             (couponsToMint, couponsToBurn) = oldPosition.calculateCouponRequirement(_positionMap[positionId]);
         }
@@ -129,7 +130,7 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable2S
             uint256 minDebtAmount
         ) = _calculatePricesAndMinDebtAmount(position.collateralToken, position.debtToken, loanConfig);
 
-        if (position.debtAmount > 0 && minDebtAmount > position.debtAmount) revert TooSmallDebt();
+        if (position.debtAmount > 0 && minDebtAmount > position.debtAmount) revert TooSmallDebtLeft();
         if (
             (position.collateralAmount * collateralPriceWithPrecisionComplement) * loanConfig.liquidationThreshold
                 < position.debtAmount * debtPriceWithPrecisionComplement * _RATE_PRECISION
@@ -198,7 +199,7 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable2S
                 if (maxRepayAmount >= position.debtAmount) {
                     repayAmount = position.debtAmount;
                 } else if (maxRepayAmount + minDebtAmount > position.debtAmount) {
-                    if (position.debtAmount < minDebtAmount) revert TooSmallDebt();
+                    if (position.debtAmount < minDebtAmount) revert TooSmallDebtLeft();
                     repayAmount = position.debtAmount - minDebtAmount;
                 } else {
                     repayAmount = maxRepayAmount;
@@ -231,7 +232,7 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable2S
                 uint256 newRepayAmount = position.debtAmount;
 
                 if (newRepayAmount <= minDebtAmount) {
-                    if (maxRepayAmount < newRepayAmount) revert TooSmallDebt();
+                    if (maxRepayAmount < newRepayAmount) revert TooSmallDebtLeft();
                 } else if (newRepayAmount < minDebtAmount + repayAmount) {
                     if (maxRepayAmount < newRepayAmount) {
                         newRepayAmount = Math.min(maxRepayAmount, newRepayAmount - minDebtAmount);

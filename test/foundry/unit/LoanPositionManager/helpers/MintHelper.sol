@@ -5,9 +5,12 @@ pragma solidity ^0.8.0;
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 
 import {IPositionLocker} from "../../../../../contracts/interfaces/IPositionLocker.sol";
+import {Epoch, EpochLibrary} from "../../../../../contracts/libraries/Epoch.sol";
 import "../../../../../contracts/LoanPositionManager.sol";
 
 contract LoanPositionMintHelper is IPositionLocker, ERC1155Holder {
+    using EpochLibrary for Epoch;
+
     ILoanPositionManager public immutable loanPositionManager;
 
     constructor(address loanPositionManager_) {
@@ -44,7 +47,10 @@ contract LoanPositionMintHelper is IPositionLocker, ERC1155Holder {
         uint256 positionId = loanPositionManager.mint(params.collateralToken, params.debtToken);
 
         (, Coupon[] memory couponsToBurn,,) = loanPositionManager.adjustPosition(
-            positionId, params.collateralAmount, params.debtAmount, params.expiredWith
+            positionId,
+            params.collateralAmount,
+            params.debtAmount,
+            params.debtAmount == 0 ? EpochLibrary.lastExpiredEpoch() : params.expiredWith
         );
 
         loanPositionManager.depositToken(params.collateralToken, params.collateralAmount);

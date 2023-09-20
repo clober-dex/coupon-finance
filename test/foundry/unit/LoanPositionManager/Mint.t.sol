@@ -103,7 +103,7 @@ contract LoanPositionManagerMintUnitTest is Test, ILoanPositionManagerTypes {
         coupons[1] = CouponLibrary.from(address(usdc), startEpoch.add(1), initialDebtAmount);
         _mintCoupons(address(helper), coupons);
 
-        vm.expectRevert(abi.encodeWithSelector(TooSmallDebt.selector));
+        vm.expectRevert(abi.encodeWithSelector(TooSmallDebtLeft.selector));
         helper.mint(address(weth), address(usdc), initialCollateralAmount, 1, startEpoch.add(1), Constants.USER1);
     }
 

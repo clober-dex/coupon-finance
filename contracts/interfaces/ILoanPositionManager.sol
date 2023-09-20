@@ -39,7 +39,7 @@ interface ILoanPositionManagerTypes is IPositionManagerTypes {
     event SetTreasury(address indexed newTreasury);
 
     error AlreadyExpired();
-    error TooSmallDebt();
+    error TooSmallDebtLeft();
     error InvalidAccess();
     error UnpaidDebt();
     error LiquidationThreshold();

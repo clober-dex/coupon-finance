@@ -236,10 +236,10 @@ contract LoanPositionManagerLiquidateUnitTest is Test, ILoanPositionManagerTypes
         if (epochEnds) vm.warp(loanPositionManager.getPosition(tokenId).expiredWith.endTime() + 1);
         oracle.setAssetPrice(address(weth), price);
 
-        vm.expectRevert(abi.encodeWithSelector(TooSmallDebt.selector));
+        vm.expectRevert(abi.encodeWithSelector(TooSmallDebtLeft.selector));
         loanPositionManager.getLiquidationStatus(tokenId, maxRepayAmount);
 
-        vm.expectRevert(abi.encodeWithSelector(TooSmallDebt.selector));
+        vm.expectRevert(abi.encodeWithSelector(TooSmallDebtLeft.selector));
         helper.liquidate(tokenId, maxRepayAmount);
     }
 
