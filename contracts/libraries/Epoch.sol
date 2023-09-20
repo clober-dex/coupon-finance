@@ -40,7 +40,7 @@ library EpochLibrary {
         uint8 currentEpoch = Epoch.unwrap(epoch);
         if (currentEpoch == 0) return 0;
         unchecked {
-            return _epochToTimestamp(currentEpoch - 1);
+            return _epochToTimestamp(currentEpoch - 1) + 1;
         }
     }
 
@@ -125,7 +125,7 @@ library EpochLibrary {
             }
             return (
                 (months & 0xffff) + 365 * (year - 1970) + (year - 1969) / 4 - (year - 1901) / 100 + (year - 1601) / 400
-            ) * SECONDS_PER_DAY;
+            ) * SECONDS_PER_DAY - 1;
         }
     }
 }
