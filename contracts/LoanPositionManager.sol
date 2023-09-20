@@ -4,7 +4,7 @@
 pragma solidity ^0.8.0;
 
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {IAssetPool} from "./interfaces/IAssetPool.sol";
@@ -18,7 +18,7 @@ import {Epoch, EpochLibrary} from "./libraries/Epoch.sol";
 import {LoanPosition, LoanPositionLibrary} from "./libraries/LoanPosition.sol";
 import {PositionManager} from "./libraries/PositionManager.sol";
 
-contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
+contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable2Step {
     using LoanPositionLibrary for LoanPosition;
     using CouponKeyLibrary for CouponKey;
     using CouponLibrary for Coupon;
