@@ -55,7 +55,8 @@ library BondPositionLibrary {
 
         mintCoupons = new Coupon[](mintCouponsLength);
         burnCoupons = new Coupon[](burnCouponsLength);
-        (mintCouponsLength, burnCouponsLength) = (0, 0);
+        mintCouponsLength = 0;
+        burnCouponsLength = 0;
         uint256 farthestExpiredEpochs = newPosition.expiredWith.max(oldPosition.expiredWith).sub(latestExpiredEpoch);
         unchecked {
             Epoch epoch = latestExpiredEpoch;

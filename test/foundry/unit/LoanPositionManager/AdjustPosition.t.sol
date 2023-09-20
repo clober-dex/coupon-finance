@@ -84,7 +84,7 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
     }
 
     function _mintCoupons(address to, Coupon[] memory coupons) internal {
-        couponManager.mintBatch(to, coupons, new bytes(0));
+        couponManager.mintBatch(to, coupons, "");
     }
 
     function testAdjustPositionIncreaseDebtAndEpochs() public {
@@ -92,15 +92,15 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
         uint256 debtAmount = initialDebtAmount + increaseAmount;
         Epoch epoch = startEpoch.add(4);
 
-        Coupon[] memory couponsToPay = new Coupon[](4);
-        couponsToPay[0] = CouponLibrary.from(address(usdc), startEpoch.add(1), increaseAmount);
-        couponsToPay[1] = CouponLibrary.from(address(usdc), startEpoch.add(2), increaseAmount);
-        couponsToPay[2] = CouponLibrary.from(address(usdc), startEpoch.add(3), debtAmount);
-        couponsToPay[3] = CouponLibrary.from(address(usdc), startEpoch.add(4), debtAmount);
+        Coupon[] memory couponsToBurn = new Coupon[](4);
+        couponsToBurn[0] = CouponLibrary.from(address(usdc), startEpoch.add(1), increaseAmount);
+        couponsToBurn[1] = CouponLibrary.from(address(usdc), startEpoch.add(2), increaseAmount);
+        couponsToBurn[2] = CouponLibrary.from(address(usdc), startEpoch.add(3), debtAmount);
+        couponsToBurn[3] = CouponLibrary.from(address(usdc), startEpoch.add(4), debtAmount);
         vm.expectEmit(true, true, true, true);
         emit UpdatePosition(tokenId, initialCollateralAmount, debtAmount, epoch);
         vm.expectCall(
-            address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(helper), couponsToPay)), 1
+            address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(helper), couponsToBurn)), 1
         );
         vm.expectCall(
             address(assetPool), abi.encodeCall(IAssetPool.withdraw, (address(usdc), increaseAmount, address(helper))), 1
@@ -118,19 +118,17 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
         uint256 debtAmount = initialDebtAmount + increaseAmount;
         Epoch epoch = startEpoch.add(1);
 
-        Coupon[] memory couponsToPay = new Coupon[](1);
-        couponsToPay[0] = CouponLibrary.from(address(usdc), startEpoch.add(1), increaseAmount);
-        Coupon[] memory couponsToRefund = new Coupon[](1);
-        couponsToRefund[0] = CouponLibrary.from(address(usdc), startEpoch.add(2), initialDebtAmount);
+        Coupon[] memory couponsToBurn = new Coupon[](1);
+        couponsToBurn[0] = CouponLibrary.from(address(usdc), startEpoch.add(1), increaseAmount);
+        Coupon[] memory couponsToMint = new Coupon[](1);
+        couponsToMint[0] = CouponLibrary.from(address(usdc), startEpoch.add(2), initialDebtAmount);
         vm.expectEmit(true, true, true, true);
         emit UpdatePosition(tokenId, initialCollateralAmount, debtAmount, epoch);
         vm.expectCall(
-            address(couponManager),
-            abi.encodeCall(ICouponManager.mintBatch, (address(helper), couponsToRefund, new bytes(0))),
-            1
+            address(couponManager), abi.encodeCall(ICouponManager.mintBatch, (address(helper), couponsToMint, "")), 1
         );
         vm.expectCall(
-            address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(helper), couponsToPay)), 1
+            address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(helper), couponsToBurn)), 1
         );
         vm.expectCall(
             address(assetPool), abi.encodeCall(IAssetPool.withdraw, (address(usdc), increaseAmount, address(helper))), 1
@@ -151,21 +149,19 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
         uint256 beforeDebtBalance = usdc.balanceOf(address(helper));
         uint256 beforePoolDebtBalance = usdc.balanceOf(address(assetPool));
 
-        Coupon[] memory couponsToPay = new Coupon[](2);
-        couponsToPay[0] = CouponLibrary.from(address(usdc), startEpoch.add(3), debtAmount);
-        couponsToPay[1] = CouponLibrary.from(address(usdc), startEpoch.add(4), debtAmount);
-        Coupon[] memory couponsToRefund = new Coupon[](2);
-        couponsToRefund[0] = CouponLibrary.from(address(usdc), startEpoch.add(1), decreaseAmount);
-        couponsToRefund[1] = CouponLibrary.from(address(usdc), startEpoch.add(2), decreaseAmount);
+        Coupon[] memory couponsToBurn = new Coupon[](2);
+        couponsToBurn[0] = CouponLibrary.from(address(usdc), startEpoch.add(3), debtAmount);
+        couponsToBurn[1] = CouponLibrary.from(address(usdc), startEpoch.add(4), debtAmount);
+        Coupon[] memory couponsToMint = new Coupon[](2);
+        couponsToMint[0] = CouponLibrary.from(address(usdc), startEpoch.add(1), decreaseAmount);
+        couponsToMint[1] = CouponLibrary.from(address(usdc), startEpoch.add(2), decreaseAmount);
         vm.expectEmit(true, true, true, true);
         emit UpdatePosition(tokenId, initialCollateralAmount, debtAmount, epoch);
         vm.expectCall(
-            address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(helper), couponsToPay)), 1
+            address(couponManager), abi.encodeCall(ICouponManager.burnBatch, (address(helper), couponsToBurn)), 1
         );
         vm.expectCall(
-            address(couponManager),
-            abi.encodeCall(ICouponManager.mintBatch, (address(helper), couponsToRefund, new bytes(0))),
-            1
+            address(couponManager), abi.encodeCall(ICouponManager.mintBatch, (address(helper), couponsToMint, "")), 1
         );
         helper.adjustPosition(tokenId, initialCollateralAmount, debtAmount, epoch);
 
@@ -185,15 +181,13 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
         uint256 beforeDebtBalance = usdc.balanceOf(address(helper));
         uint256 beforePoolDebtBalance = usdc.balanceOf(address(assetPool));
 
-        Coupon[] memory couponsToRefund = new Coupon[](2);
-        couponsToRefund[0] = CouponLibrary.from(address(usdc), startEpoch.add(1), decreaseAmount);
-        couponsToRefund[1] = CouponLibrary.from(address(usdc), startEpoch.add(2), initialDebtAmount);
+        Coupon[] memory couponsToMint = new Coupon[](2);
+        couponsToMint[0] = CouponLibrary.from(address(usdc), startEpoch.add(1), decreaseAmount);
+        couponsToMint[1] = CouponLibrary.from(address(usdc), startEpoch.add(2), initialDebtAmount);
         vm.expectEmit(true, true, true, true);
         emit UpdatePosition(tokenId, initialCollateralAmount, debtAmount, epoch);
         vm.expectCall(
-            address(couponManager),
-            abi.encodeCall(ICouponManager.mintBatch, (address(helper), couponsToRefund, new bytes(0))),
-            1
+            address(couponManager), abi.encodeCall(ICouponManager.mintBatch, (address(helper), couponsToMint, "")), 1
         );
         helper.adjustPosition(tokenId, initialCollateralAmount, debtAmount, epoch);
 
@@ -214,15 +208,13 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
         uint256 beforePoolDebtBalance = usdc.balanceOf(address(assetPool));
         uint256 beforeLoanPositionBalance = loanPositionManager.balanceOf(address(helper));
 
-        Coupon[] memory couponsToRefund = new Coupon[](2);
-        couponsToRefund[0] = CouponLibrary.from(address(usdc), startEpoch.add(1), decreaseAmount);
-        couponsToRefund[1] = CouponLibrary.from(address(usdc), startEpoch.add(2), decreaseAmount);
+        Coupon[] memory couponsToMint = new Coupon[](2);
+        couponsToMint[0] = CouponLibrary.from(address(usdc), startEpoch.add(1), decreaseAmount);
+        couponsToMint[1] = CouponLibrary.from(address(usdc), startEpoch.add(2), decreaseAmount);
         vm.expectEmit(true, true, true, true);
         emit UpdatePosition(tokenId, initialCollateralAmount, debtAmount, epoch);
         vm.expectCall(
-            address(couponManager),
-            abi.encodeCall(ICouponManager.mintBatch, (address(helper), couponsToRefund, new bytes(0))),
-            1
+            address(couponManager), abi.encodeCall(ICouponManager.mintBatch, (address(helper), couponsToMint, "")), 1
         );
         helper.adjustPosition(tokenId, initialCollateralAmount, debtAmount, epoch);
 

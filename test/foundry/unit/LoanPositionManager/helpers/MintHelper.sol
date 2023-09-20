@@ -43,14 +43,14 @@ contract LoanPositionMintHelper is IPositionLocker, ERC1155Holder {
 
         uint256 positionId = loanPositionManager.mint(params.collateralToken, params.debtToken);
 
-        (Coupon[] memory couponsToPay,,,) = loanPositionManager.adjustPosition(
+        (, Coupon[] memory couponsToBurn,,) = loanPositionManager.adjustPosition(
             positionId, params.collateralAmount, params.debtAmount, params.expiredWith
         );
 
         loanPositionManager.depositToken(params.collateralToken, params.collateralAmount);
         loanPositionManager.withdrawToken(params.debtToken, params.recipient, params.debtAmount);
-        if (couponsToPay.length > 0) {
-            loanPositionManager.burnCoupons(couponsToPay);
+        if (couponsToBurn.length > 0) {
+            loanPositionManager.burnCoupons(couponsToBurn);
         }
 
         loanPositionManager.settlePosition(positionId);

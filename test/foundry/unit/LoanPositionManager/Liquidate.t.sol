@@ -59,7 +59,7 @@ contract LoanPositionManagerLiquidateUnitTest is Test, ILoanPositionManagerTypes
     }
 
     function _mintCoupons(address to, Coupon[] memory coupons) internal {
-        couponManager.mintBatch(to, coupons, new bytes(0));
+        couponManager.mintBatch(to, coupons, "");
     }
 
     function _mintPosition(

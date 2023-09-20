@@ -14,4 +14,6 @@ interface IRepayAdapter is IController {
         bytes memory swapData,
         PermitSignature calldata positionPermitParams
     ) external;
+
+    function giveLoanManagerAllowance(address token) external;
 }

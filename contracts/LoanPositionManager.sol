@@ -81,7 +81,7 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
         external
         onlyByLocker
         modifyPosition(positionId)
-        returns (Coupon[] memory couponsToBurn, Coupon[] memory couponsToMint, int256 collateralDelta, int256 debtDelta)
+        returns (Coupon[] memory couponsToMint, Coupon[] memory couponsToBurn, int256 collateralDelta, int256 debtDelta)
     {
         if (!_isApprovedOrOwner(msg.sender, positionId)) revert InvalidAccess();
 
@@ -97,7 +97,7 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
             _positionMap[positionId].debtAmount = debtAmount;
             _positionMap[positionId].expiredWith = debtAmount == 0 ? lastExpiredEpoch : expiredWith;
 
-            (couponsToBurn, couponsToMint) = oldPosition.calculateCouponRequirement(_positionMap[positionId]);
+            (couponsToMint, couponsToBurn) = oldPosition.calculateCouponRequirement(_positionMap[positionId]);
         }
 
         unchecked {
@@ -231,7 +231,7 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
 
                 if (newRepayAmount <= minDebtAmount) {
                     if (maxRepayAmount < newRepayAmount) revert TooSmallDebt();
-                } else if (repayAmount > newRepayAmount || newRepayAmount < minDebtAmount + repayAmount) {
+                } else if (newRepayAmount < minDebtAmount + repayAmount) {
                     if (maxRepayAmount < newRepayAmount) {
                         newRepayAmount = Math.min(maxRepayAmount, newRepayAmount - minDebtAmount);
                     }
@@ -296,11 +296,12 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
                 for (uint256 i = 0; i < epochLength; ++i) {
                     coupons[i] = CouponLibrary.from(position.debtToken, currentEpoch.add(uint8(i)), repayAmount);
                 }
-                try ICouponManager(_couponManager).mintBatch(couponOwner, coupons, "") {}
-                catch {
+                if (couponOwner.code.length > 0) {
                     for (uint256 i = 0; i < epochLength; ++i) {
                         _couponOwed[couponOwner][coupons[i].id()] += coupons[i].amount;
                     }
+                } else {
+                    ICouponManager(_couponManager).mintBatch(couponOwner, coupons, "");
                 }
             }
 
@@ -331,8 +332,14 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable {
         uint32 liquidationProtocolFee,
         uint32 liquidationTargetLtv
     ) external onlyOwner {
+        if (
+            liquidationThreshold >= _RATE_PRECISION || liquidationFee + liquidationTargetLtv >= _RATE_PRECISION
+                || liquidationTargetLtv >= liquidationThreshold
+        ) revert InvalidConfiguration();
+
         bytes32 pairId = _buildLoanPairId(collateral, debt);
         if (_loanConfiguration[pairId].liquidationThreshold > 0) revert InvalidPair();
+
         _loanConfiguration[pairId] = LoanConfiguration({
             collateralDecimal: IERC20Metadata(collateral).decimals(),
             debtDecimal: IERC20Metadata(debt).decimals(),

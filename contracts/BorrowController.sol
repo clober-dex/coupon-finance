@@ -53,14 +53,14 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         (position.collateralAmount, position.debtAmount, position.expiredWith, maxPayInterest, minEarnInterest) =
             abi.decode(data, (uint256, uint256, Epoch, uint256, uint256));
 
-        (Coupon[] memory couponsToBurn, Coupon[] memory couponsToMint, int256 collateralDelta, int256 debtDelta) =
+        (Coupon[] memory couponsToMint, Coupon[] memory couponsToBurn, int256 collateralDelta, int256 debtDelta) =
         _loanManager.adjustPosition(positionId, position.collateralAmount, position.debtAmount, position.expiredWith);
         if (collateralDelta < 0) {
             _loanManager.withdrawToken(position.collateralToken, address(this), uint256(-collateralDelta));
         }
         if (debtDelta > 0) _loanManager.withdrawToken(position.debtToken, address(this), uint256(debtDelta));
         if (couponsToMint.length > 0) {
-            _loanManager.mintCoupons(couponsToMint, address(this), new bytes(0));
+            _loanManager.mintCoupons(couponsToMint, address(this), "");
             _wrapCoupons(couponsToMint);
         }
 
@@ -212,7 +212,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         return abi.encode(id, msg.sender, data);
     }
 
-    function setCollateralAllowance(address collateralToken) external onlyOwner {
-        IERC20(collateralToken).approve(address(_loanManager), type(uint256).max);
+    function giveLoanManagerAllowance(address token) external onlyOwner {
+        IERC20(token).approve(address(_loanManager), type(uint256).max);
     }
 }
