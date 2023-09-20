@@ -221,7 +221,7 @@ abstract contract Controller is
         }
 
         _couponMarkets[id] = cloberMarket;
-        emit SetCouponMarket(cloberMarket);
+        emit SetCouponMarket(couponKey.asset, couponKey.epoch, cloberMarket);
     }
 
     function manager() public view virtual returns (address) {

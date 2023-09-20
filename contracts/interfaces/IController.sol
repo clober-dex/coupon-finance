@@ -2,6 +2,8 @@
 
 pragma solidity ^0.8.0;
 
+import {Epoch} from "../libraries/Epoch.sol";
+
 interface IController {
     struct ERC20PermitParams {
         uint256 permitAmount;
@@ -16,7 +18,7 @@ interface IController {
     }
 
     event SetManagerAllowance(address indexed token);
-    event SetCouponMarket(address cloberMarket);
+    event SetCouponMarket(address indexed asset, Epoch indexed epoch, address indexed cloberMarket);
 
     error InvalidAccess();
     error InvalidMarket();
