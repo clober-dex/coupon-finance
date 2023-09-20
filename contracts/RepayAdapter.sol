@@ -54,6 +54,8 @@ contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
         position.collateralAmount = position.collateralAmount + leftCollateralAmount - sellCollateralAmount;
 
         Epoch lastExpiredEpoch = EpochLibrary.lastExpiredEpoch();
+        Coupon[] memory couponsToMint;
+        Coupon[] memory couponsToBurn;
         unchecked {
             if (position.debtAmount < repayDebtAmount) {
                 repayDebtAmount = position.debtAmount;
@@ -63,7 +65,7 @@ contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
             uint256 minDebtAmount = _getMinDebtAmount(position.debtToken);
             if (remainingDebt < minDebtAmount) remainingDebt = minDebtAmount;
 
-            (Coupon[] memory couponsToMint, Coupon[] memory couponsToBurn,,) = _loanManager.adjustPosition(
+            (couponsToMint, couponsToBurn,,) = _loanManager.adjustPosition(
                 positionId,
                 position.collateralAmount,
                 remainingDebt,
@@ -89,7 +91,7 @@ contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
             if (maxDebtAmount < position.debtAmount) revert ControllerSlippage();
         }
 
-        (Coupon[] memory couponsToMint,,,) = _loanManager.adjustPosition(
+        (couponsToMint,,,) = _loanManager.adjustPosition(
             positionId,
             position.collateralAmount,
             position.debtAmount,
