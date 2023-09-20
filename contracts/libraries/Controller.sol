@@ -110,13 +110,13 @@ abstract contract Controller is
         address asset = CloberOrderBook(msg.sender).quoteToken();
         address user;
         Coupon memory lastCoupon;
-        {
-            Coupon[] memory buyCoupons;
-            Coupon[] memory sellCoupons;
+        unchecked {
+            Coupon[] memory couponsToMint;
+            Coupon[] memory couponsToBurn;
             uint256 amountToPay;
             uint256 maxPayInterest;
             uint256 leftRequiredInterest;
-            (user, lastCoupon, buyCoupons, sellCoupons, amountToPay, maxPayInterest, leftRequiredInterest) =
+            (user, lastCoupon, couponsToMint, couponsToBurn, amountToPay, maxPayInterest, leftRequiredInterest) =
                 abi.decode(data, (address, Coupon, Coupon[], Coupon[], uint256, uint256, uint256));
 
             if (asset == inputToken) {
@@ -131,7 +131,9 @@ abstract contract Controller is
                 }
             }
 
-            _executeCouponTrade(user, asset, buyCoupons, sellCoupons, amountToPay, maxPayInterest, leftRequiredInterest);
+            _executeCouponTrade(
+                user, asset, couponsToMint, couponsToBurn, amountToPay, maxPayInterest, leftRequiredInterest
+            );
         }
 
         // transfer input tokens
