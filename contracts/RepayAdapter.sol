@@ -119,7 +119,7 @@ contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
         ISubstitute(debt).mint(outAmount, address(this));
     }
 
-    function giveLoanManagerAllowance(address token) external onlyOwner {
-        IERC20(token).approve(address(_loanManager), type(uint256).max);
+    function manager() public view override returns (address) {
+        return address(_loanManager);
     }
 }

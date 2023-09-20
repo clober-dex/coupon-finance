@@ -125,8 +125,7 @@ contract DepositController is IDepositController, Controller, IPositionLocker {
         _burnAllSubstitute(position.asset, msg.sender);
     }
 
-    function setCouponMarket(CouponKey memory couponKey, address cloberMarket) public override onlyOwner {
-        IERC20(couponKey.asset).approve(address(_bondManager), type(uint256).max);
-        super.setCouponMarket(couponKey, cloberMarket);
+    function manager() public view override returns (address) {
+        return address(_bondManager);
     }
 }
