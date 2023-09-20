@@ -23,7 +23,6 @@ abstract contract ERC721Permit is ERC721, IERC721Permit, EIP712 {
 
     function permit(address spender, uint256 tokenId, uint256 deadline, uint8 v, bytes32 r, bytes32 s)
         external
-        payable
         override
     {
         if (block.timestamp > deadline) revert PermitExpired();
