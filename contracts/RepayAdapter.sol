@@ -4,8 +4,10 @@
 pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import {ISubstitute} from "./interfaces/ISubstitute.sol";
+import {ICouponOracle} from "./interfaces/ICouponOracle.sol";
 import {ILoanPositionManager} from "./interfaces/ILoanPositionManager.sol";
 import {LoanPosition} from "./libraries/LoanPosition.sol";
 import {Coupon} from "./libraries/Coupon.sol";
@@ -49,44 +51,54 @@ contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
         (uint256 leftCollateralAmount, uint256 repayDebtAmount) =
             _swapCollateral(position.collateralToken, position.debtToken, sellCollateralAmount, swapData);
         _loanManager.depositToken(position.collateralToken, leftCollateralAmount);
-        position.collateralAmount = position.collateralAmount - sellCollateralAmount + leftCollateralAmount;
-        if (position.debtAmount < repayDebtAmount) {
-            repayDebtAmount = position.debtAmount;
+        position.collateralAmount = position.collateralAmount + leftCollateralAmount - sellCollateralAmount;
+
+        Epoch lastExpiredEpoch = EpochLibrary.lastExpiredEpoch();
+        unchecked {
+            if (position.debtAmount < repayDebtAmount) {
+                repayDebtAmount = position.debtAmount;
+            }
+            // @dev We know that couponsToBurn.length == 0
+            uint256 remainingDebt = position.debtAmount - repayDebtAmount;
+            uint256 minDebtAmount = _getMinDebtAmount(position.debtToken);
+            if (remainingDebt < minDebtAmount) remainingDebt = minDebtAmount;
+
+            (Coupon[] memory couponsToMint, Coupon[] memory couponsToBurn,,) = _loanManager.adjustPosition(
+                positionId,
+                position.collateralAmount,
+                remainingDebt,
+                remainingDebt == 0 ? lastExpiredEpoch : position.expiredWith
+            );
+
+            if (couponsToMint.length > 0) {
+                _loanManager.mintCoupons(couponsToMint, address(this), "");
+                _wrapCoupons(couponsToMint);
+            }
+
+            _executeCouponTrade(
+                user, position.debtToken, couponsToBurn, couponsToMint, repayDebtAmount, type(uint256).max, 0
+            );
+
+            uint256 depositDebtTokenAmount = IERC20(position.debtToken).balanceOf(address(this));
+            if (position.debtAmount <= depositDebtTokenAmount) {
+                depositDebtTokenAmount = position.debtAmount;
+            }
+
+            _loanManager.depositToken(position.debtToken, depositDebtTokenAmount);
+            position.debtAmount = position.debtAmount - depositDebtTokenAmount;
+            if (maxDebtAmount < position.debtAmount) revert ControllerSlippage();
         }
-
-        // @dev We know that couponsToBurn.length == 0
-        uint256 remainingDebt = position.debtAmount - repayDebtAmount;
-        (Coupon[] memory couponsToMint, Coupon[] memory couponsToBurn,,) = _loanManager.adjustPosition(
-            positionId,
-            position.collateralAmount,
-            remainingDebt,
-            remainingDebt == 0 ? EpochLibrary.lastExpiredEpoch() : position.expiredWith
-        );
-        if (couponsToMint.length > 0) {
-            _loanManager.mintCoupons(couponsToMint, address(this), "");
-            _wrapCoupons(couponsToMint);
-        }
-
-        _executeCouponTrade(
-            user, position.debtToken, couponsToBurn, couponsToMint, repayDebtAmount, type(uint256).max, 0
-        );
-
-        uint256 depositDebtTokenAmount = IERC20(position.debtToken).balanceOf(address(this));
-
-        if (position.debtAmount < depositDebtTokenAmount) {
-            depositDebtTokenAmount = position.debtAmount;
-        }
-
-        _loanManager.depositToken(position.debtToken, depositDebtTokenAmount);
-        position.debtAmount = position.debtAmount - depositDebtTokenAmount;
-        if (maxDebtAmount < position.debtAmount) revert ControllerSlippage();
 
         (Coupon[] memory leftCoupons,,,) = _loanManager.adjustPosition(
-            positionId, position.collateralAmount, position.debtAmount, position.expiredWith
+            positionId,
+            position.collateralAmount,
+            position.debtAmount,
+            position.debtAmount == 0 ? lastExpiredEpoch : position.expiredWith
         );
         _loanManager.mintCoupons(leftCoupons, user, "");
         _burnAllSubstitute(position.debtToken, user);
         _loanManager.settlePosition(positionId);
+
         return "";
     }
 
@@ -124,6 +136,25 @@ contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
 
         IERC20(outToken).approve(debt, outAmount);
         ISubstitute(debt).mint(outAmount, address(this));
+    }
+
+    function _getMinDebtAmount(address debtToken) internal returns (uint256 minDebtAmount) {
+        unchecked {
+            address[] memory assets = new address[](2);
+            assets[0] = debtToken;
+            assets[1] = address(0);
+
+            uint256 debtDecimal = IERC20Metadata(debtToken).decimals();
+
+            uint256[] memory prices = ICouponOracle(_loanManager.oracle()).getAssetsPrices(assets);
+            minDebtAmount = _loanManager.minDebtValueInEth() * prices[1];
+            if (debtDecimal > 18) {
+                minDebtAmount *= 10 ** (debtDecimal - 18);
+            } else {
+                minDebtAmount /= 10 ** (18 - debtDecimal);
+            }
+            minDebtAmount /= prices[0];
+        }
     }
 
     function giveLoanManagerAllowance(address token) external onlyOwner {
