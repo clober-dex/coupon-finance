@@ -88,14 +88,17 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable2S
         Epoch lastExpiredEpoch = EpochLibrary.lastExpiredEpoch();
         LoanPosition memory oldPosition = _positionMap[positionId];
 
-        // Only unexpired position can adjust debtAmount
-        if (
-            Epoch.wrap(0) < oldPosition.expiredWith && oldPosition.expiredWith <= lastExpiredEpoch
-                && (oldPosition.debtAmount < debtAmount || oldPosition.collateralAmount > collateralAmount)
-        ) revert AlreadyExpired();
+        if (oldPosition.expiredWith == Epoch.wrap(0)) {
+            oldPosition.expiredWith = lastExpiredEpoch;
+        } else if (oldPosition.expiredWith <= lastExpiredEpoch) {
+            oldPosition.expiredWith = lastExpiredEpoch;
+            if (
+                debtAmount > 0
+                    && (oldPosition.debtAmount < debtAmount || oldPosition.collateralAmount > collateralAmount)
+            ) revert AlreadyExpired();
+        }
         if (debtAmount == 0 && lastExpiredEpoch != expiredWith) revert LoanPositionLibrary.InvalidPositionEpoch();
 
-        if (oldPosition.expiredWith == Epoch.wrap(0)) oldPosition.expiredWith = lastExpiredEpoch;
         _positionMap[positionId].collateralAmount = collateralAmount;
         _positionMap[positionId].debtAmount = debtAmount;
         _positionMap[positionId].expiredWith = expiredWith;

@@ -23,7 +23,7 @@ contract LoanPositionBurnHelper is IPositionLocker, ERC1155Holder {
         uint256 positionId = abi.decode(data, (uint256));
 
         LoanPosition memory position = loanPositionManager.getPosition(positionId);
-        loanPositionManager.adjustPosition(positionId, 0, 0, Epoch.wrap(0));
+        loanPositionManager.adjustPosition(positionId, 0, 0, EpochLibrary.lastExpiredEpoch());
 
         loanPositionManager.withdrawToken(position.collateralToken, address(this), position.collateralAmount);
 

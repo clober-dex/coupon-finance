@@ -87,7 +87,7 @@ contract LoanPositionManagerBurnUnitTest is Test, ILoanPositionManagerTypes {
         uint256 beforePositionBalance = loanPositionManager.balanceOf(address(this));
 
         vm.expectEmit(true, true, true, true);
-        emit UpdatePosition(tokenId, 0, 0, beforePosition.expiredWith);
+        emit UpdatePosition(tokenId, 0, 0, EpochLibrary.lastExpiredEpoch());
         vm.expectCall(
             address(assetPool),
             abi.encodeCall(assetPool.withdraw, (address(weth), initialCollateralAmount, address(helper)))
@@ -99,7 +99,7 @@ contract LoanPositionManagerBurnUnitTest is Test, ILoanPositionManagerTypes {
         assertEq(loanPositionManager.balanceOf(address(this)), beforePositionBalance - 1, "INVALID_POSITION_BALANCE");
         assertEq(afterPosition.collateralAmount, 0, "INVALID_COLLATERAL_AMOUNT");
         assertEq(afterPosition.debtAmount, 0, "INVALID_DEBT_AMOUNT");
-        assertEq(afterPosition.expiredWith, beforePosition.expiredWith, "INVALID_EXPIRED_WITH");
+        assertEq(afterPosition.expiredWith, EpochLibrary.lastExpiredEpoch(), "INVALID_EXPIRED_WITH");
         vm.expectRevert("ERC721: invalid token ID");
         loanPositionManager.ownerOf(tokenId);
     }
@@ -120,7 +120,7 @@ contract LoanPositionManagerBurnUnitTest is Test, ILoanPositionManagerTypes {
 
         vm.warp(current.add(1).startTime());
 
-        vm.expectRevert(abi.encodeWithSelector(AlreadyExpired.selector));
+        vm.expectRevert(abi.encodeWithSelector(NotSettled.selector));
         helper.burn(tokenId);
     }
 
