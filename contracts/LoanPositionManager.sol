@@ -87,19 +87,14 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable2S
 
         Epoch lastExpiredEpoch = EpochLibrary.lastExpiredEpoch();
         LoanPosition memory oldPosition = _positionMap[positionId];
+
+        if (oldPosition.expiredWith <= lastExpiredEpoch) oldPosition.expiredWith = lastExpiredEpoch;
+
         _positionMap[positionId].collateralAmount = collateralAmount;
+        _positionMap[positionId].debtAmount = debtAmount;
+        _positionMap[positionId].expiredWith = debtAmount == 0 ? lastExpiredEpoch : expiredWith;
 
-        if (Epoch.wrap(0) < oldPosition.expiredWith && oldPosition.expiredWith <= lastExpiredEpoch) {
-            // Only unexpired position can adjust debtAmount
-            if (oldPosition.debtAmount != debtAmount) revert AlreadyExpired();
-        } else {
-            if (oldPosition.expiredWith == Epoch.wrap(0)) oldPosition.expiredWith = lastExpiredEpoch;
-            if (debtAmount == 0 && lastExpiredEpoch != expiredWith) revert LoanPositionLibrary.InvalidPositionEpoch();
-            _positionMap[positionId].debtAmount = debtAmount;
-            _positionMap[positionId].expiredWith = expiredWith;
-
-            (couponsToMint, couponsToBurn) = oldPosition.calculateCouponRequirement(_positionMap[positionId]);
-        }
+        (couponsToMint, couponsToBurn) = oldPosition.calculateCouponRequirement(_positionMap[positionId]);
 
         unchecked {
             for (uint256 i = 0; i < couponsToMint.length; ++i) {
@@ -120,7 +115,9 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable2S
         super.settlePosition(positionId);
         LoanPosition memory position = _positionMap[positionId];
 
-        if (position.debtAmount > 0 && position.expiredWith <= EpochLibrary.lastExpiredEpoch()) revert UnpaidDebt();
+        if (position.debtAmount > 0 && position.expiredWith <= EpochLibrary.lastExpiredEpoch()) {
+            revert FullRepaymentRequired();
+        }
 
         LoanConfiguration memory loanConfig =
             _loanConfiguration[_buildLoanPairId(position.collateralToken, position.debtToken)];
