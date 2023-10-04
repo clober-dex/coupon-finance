@@ -140,7 +140,7 @@ contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
         ISubstitute(debt).mint(outAmount, address(this));
     }
 
-    function _getMinDebtAmount(address debtToken) internal returns (uint256 minDebtAmount) {
+    function _getMinDebtAmount(address debtToken) internal view returns (uint256 minDebtAmount) {
         unchecked {
             address[] memory assets = new address[](2);
             assets[0] = debtToken;

@@ -274,7 +274,7 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
 
     function testAdjustPositionDecreaseEpochsToPast() public {
         Epoch epoch = EpochLibrary.lastExpiredEpoch();
-        vm.expectRevert(abi.encodeWithSelector(UnpaidDebt.selector));
+        vm.expectRevert(abi.encodeWithSelector(FullRepaymentRequired.selector));
         helper.adjustPosition(tokenId, initialCollateralAmount, initialDebtAmount, epoch);
     }
 
