@@ -115,7 +115,9 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable2S
         super.settlePosition(positionId);
         LoanPosition memory position = _positionMap[positionId];
 
-        if (position.debtAmount > 0 && position.expiredWith <= EpochLibrary.lastExpiredEpoch()) revert UnpaidDebt();
+        if (position.debtAmount > 0 && position.expiredWith <= EpochLibrary.lastExpiredEpoch()) {
+            revert FullRepaymentRequired();
+        }
 
         LoanConfiguration memory loanConfig =
             _loanConfiguration[_buildLoanPairId(position.collateralToken, position.debtToken)];

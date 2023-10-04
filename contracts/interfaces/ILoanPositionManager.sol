@@ -40,7 +40,7 @@ interface ILoanPositionManagerTypes is IPositionManagerTypes {
 
     error TooSmallDebtLeft();
     error InvalidAccess();
-    error UnpaidDebt();
+    error FullRepaymentRequired();
     error LiquidationThreshold();
     error InvalidPair();
     error InvalidConfiguration();
