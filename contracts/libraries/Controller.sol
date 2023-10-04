@@ -56,37 +56,37 @@ abstract contract Controller is
     function _executeCouponTrade(
         address user,
         address token,
-        Coupon[] memory couponsToBuy,
-        Coupon[] memory couponsToSell,
+        Coupon[] memory couponsToMint,
+        Coupon[] memory couponsToBurn,
         uint256 amountToPay,
         uint256 maxPayInterest,
         uint256 leftRequiredInterest
     ) internal {
-        if (couponsToBuy.length > 0) {
-            Coupon memory lastCoupon = couponsToBuy[couponsToBuy.length - 1];
+        if (couponsToMint.length > 0) {
+            Coupon memory lastCoupon = couponsToMint[couponsToMint.length - 1];
             assembly {
-                mstore(couponsToBuy, sub(mload(couponsToBuy), 1))
+                mstore(couponsToMint, sub(mload(couponsToMint), 1))
             }
             bytes memory data = abi.encode(
-                user, lastCoupon, couponsToBuy, couponsToSell, amountToPay, maxPayInterest, leftRequiredInterest
+                user, lastCoupon, couponsToMint, couponsToBurn, amountToPay, maxPayInterest, leftRequiredInterest
             );
             assembly {
-                mstore(couponsToBuy, add(mload(couponsToBuy), 1))
+                mstore(couponsToMint, add(mload(couponsToMint), 1))
             }
 
             CloberOrderBook market = CloberOrderBook(_couponMarkets[lastCoupon.id()]);
             uint256 dy = lastCoupon.amount - IERC20(market.baseToken()).balanceOf(address(this));
             market.marketOrder(address(this), type(uint16).max, type(uint64).max, dy, 1, data);
-        } else if (couponsToSell.length > 0) {
-            Coupon memory lastCoupon = couponsToSell[couponsToSell.length - 1];
+        } else if (couponsToBurn.length > 0) {
+            Coupon memory lastCoupon = couponsToBurn[couponsToBurn.length - 1];
             assembly {
-                mstore(couponsToSell, sub(mload(couponsToSell), 1))
+                mstore(couponsToBurn, sub(mload(couponsToBurn), 1))
             }
             bytes memory data = abi.encode(
-                user, lastCoupon, couponsToBuy, couponsToSell, amountToPay, maxPayInterest, leftRequiredInterest
+                user, lastCoupon, couponsToMint, couponsToBurn, amountToPay, maxPayInterest, leftRequiredInterest
             );
             assembly {
-                mstore(couponsToSell, add(mload(couponsToSell), 1))
+                mstore(couponsToBurn, add(mload(couponsToBurn), 1))
             }
 
             CloberOrderBook market = CloberOrderBook(_couponMarkets[lastCoupon.id()]);

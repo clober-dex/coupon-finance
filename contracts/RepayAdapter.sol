@@ -63,7 +63,7 @@ contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
             // @dev We know that couponsToBurn.length == 0
             uint256 remainingDebt = position.debtAmount - repayDebtAmount;
             uint256 minDebtAmount = _getMinDebtAmount(position.debtToken);
-            if (remainingDebt < minDebtAmount) remainingDebt = minDebtAmount;
+            if (0 < remainingDebt && remainingDebt < minDebtAmount) remainingDebt = minDebtAmount;
 
             (couponsToMint, couponsToBurn,,) = _loanManager.adjustPosition(
                 positionId,
@@ -86,9 +86,12 @@ contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
                 depositDebtTokenAmount = position.debtAmount;
             }
 
-            _loanManager.depositToken(position.debtToken, depositDebtTokenAmount);
-            position.debtAmount = position.debtAmount - depositDebtTokenAmount;
-            if (maxDebtAmount < position.debtAmount) revert ControllerSlippage();
+            uint256 remainingDebtAmount = position.debtAmount - depositDebtTokenAmount;
+            if (remainingDebtAmount > 0 && remainingDebtAmount < minDebtAmount) remainingDebtAmount = minDebtAmount;
+            if (maxDebtAmount < remainingDebtAmount) revert ControllerSlippage();
+
+            _loanManager.depositToken(position.debtToken, position.debtAmount - remainingDebtAmount);
+            position.debtAmount = remainingDebtAmount;
         }
 
         (couponsToMint,,,) = _loanManager.adjustPosition(
@@ -140,7 +143,7 @@ contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
         ISubstitute(debt).mint(outAmount, address(this));
     }
 
-    function _getMinDebtAmount(address debtToken) internal returns (uint256 minDebtAmount) {
+    function _getMinDebtAmount(address debtToken) internal view returns (uint256 minDebtAmount) {
         unchecked {
             address[] memory assets = new address[](2);
             assets[0] = debtToken;
