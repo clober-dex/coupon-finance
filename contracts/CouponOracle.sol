@@ -11,9 +11,9 @@ import {IFallbackOracle} from "./interfaces/IFallbackOracle.sol";
 
 contract CouponOracle is ICouponOracle, Ownable2Step {
     uint256 private constant _MAX_TIMEOUT = 1 days;
-    uint256 private constant _MIN_TIMEOUT = 1 minutes;
+    uint256 private constant _MIN_TIMEOUT = 20 minutes;
     uint256 private constant _MAX_GRACE_PERIOD = 1 days;
-    uint256 private constant _MIN_GRACE_PERIOD = 1 minutes;
+    uint256 private constant _MIN_GRACE_PERIOD = 20 minutes;
 
     uint256 public override timeout;
     address public override sequencerOracle;
