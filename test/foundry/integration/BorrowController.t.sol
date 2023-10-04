@@ -20,7 +20,7 @@ import {ICouponOracle} from "../../../contracts/interfaces/ICouponOracle.sol";
 import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
 import {IController} from "../../../contracts/interfaces/IController.sol";
 import {IERC721Permit} from "../../../contracts/interfaces/IERC721Permit.sol";
-import {ILoanPositionManager} from "../../../contracts/interfaces/ILoanPositionManager.sol";
+import {ILoanPositionManager, ILoanPositionManagerTypes} from "../../../contracts/interfaces/ILoanPositionManager.sol";
 import {Coupon, CouponLibrary} from "../../../contracts/libraries/Coupon.sol";
 import {CouponKey, CouponKeyLibrary} from "../../../contracts/libraries/CouponKey.sol";
 import {Epoch, EpochLibrary} from "../../../contracts/libraries/Epoch.sol";
@@ -424,6 +424,29 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
 
         assertGt(couponManager.balanceOf(user, couponKeys[5].toId()), 9.9 ether, "COUPON0_BALANCE");
         assertLt(couponManager.balanceOf(user, couponKeys[6].toId()), 10 ether, "COUPON0_BALANCE");
+    }
+
+    function testExpiredBorrowMore() public {
+        uint256 positionId = _initialBorrow(user, address(wausdc), address(waweth), usdc.amount(10000), 1 ether, 2);
+        // loan duration is 2 epochs
+        vm.warp(EpochLibrary.current().add(2).startTime());
+        IController.PermitSignature memory permitParams =
+            _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(borrowController), positionId);
+        vm.prank(user);
+        vm.expectRevert(abi.encodeWithSelector(ILoanPositionManagerTypes.UnpaidDebt.selector));
+        borrowController.borrowMore(positionId, 0.5 ether, type(uint256).max, permitParams);
+    }
+
+    function testExpiredReduceCollateral() public {
+        uint256 positionId = _initialBorrow(user, address(wausdc), address(waweth), usdc.amount(10000), 1 ether, 2);
+        uint256 collateralAmount = usdc.amount(123);
+        // loan duration is 2 epochs
+        vm.warp(EpochLibrary.current().add(2).startTime());
+        IController.PermitSignature memory permit721Params =
+            _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(borrowController), positionId);
+        vm.prank(user);
+        vm.expectRevert(abi.encodeWithSelector(ILoanPositionManagerTypes.UnpaidDebt.selector));
+        borrowController.removeCollateral(positionId, collateralAmount, permit721Params);
     }
 
     // Convert an hexadecimal character to their value
