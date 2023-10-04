@@ -433,7 +433,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         IController.PermitSignature memory permitParams =
             _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(borrowController), positionId);
         vm.prank(user);
-        vm.expectRevert(abi.encodeWithSelector(ILoanPositionManagerTypes.UnpaidDebt.selector));
+        vm.expectRevert(abi.encodeWithSelector(ILoanPositionManagerTypes.FullRepaymentRequired.selector));
         borrowController.borrowMore(positionId, 0.5 ether, type(uint256).max, permitParams);
     }
 
@@ -445,7 +445,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         IController.PermitSignature memory permit721Params =
             _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(borrowController), positionId);
         vm.prank(user);
-        vm.expectRevert(abi.encodeWithSelector(ILoanPositionManagerTypes.UnpaidDebt.selector));
+        vm.expectRevert(abi.encodeWithSelector(ILoanPositionManagerTypes.FullRepaymentRequired.selector));
         borrowController.removeCollateral(positionId, collateralAmount, permit721Params);
     }
 
