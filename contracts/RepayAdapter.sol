@@ -82,11 +82,14 @@ contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
             );
 
             uint256 depositDebtTokenAmount = IERC20(position.debtToken).balanceOf(address(this));
+
+            uint256 remainingDebtAmount;
             if (position.debtAmount <= depositDebtTokenAmount) {
                 depositDebtTokenAmount = position.debtAmount;
+            } else {
+                remainingDebtAmount = position.debtAmount - depositDebtTokenAmount;
             }
 
-            uint256 remainingDebtAmount = position.debtAmount - depositDebtTokenAmount;
             if (remainingDebtAmount > 0 && remainingDebtAmount < minDebtAmount) remainingDebtAmount = minDebtAmount;
             if (maxDebtAmount < remainingDebtAmount) revert ControllerSlippage();
 
