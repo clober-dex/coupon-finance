@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 
 interface ICouponOracleTypes {
     error LengthMismatch();
-    error InvalidDecimals();
     error AssetFeedAlreadySet();
     error InvalidTimeout();
     error InvalidGracePeriod();
@@ -13,7 +12,7 @@ interface ICouponOracleTypes {
     event SetTimeout(uint256 newTimeout);
     event SetGracePeriod(uint256 newGracePeriod);
     event SetFallbackOracle(address indexed newFallbackOracle);
-    event SetFeed(address indexed asset, address indexed feed);
+    event SetFeed(address indexed asset, address[] feeds);
 }
 
 interface ICouponOracle is ICouponOracleTypes {
@@ -27,7 +26,7 @@ interface ICouponOracle is ICouponOracleTypes {
 
     function fallbackOracle() external view returns (address);
 
-    function getFeed(address asset) external view returns (address);
+    function getFeeds(address asset) external view returns (address[] memory);
 
     function getAssetPrice(address asset) external view returns (uint256);
 
@@ -37,7 +36,7 @@ interface ICouponOracle is ICouponOracleTypes {
 
     function setFallbackOracle(address newFallbackOracle) external;
 
-    function setFeeds(address[] memory assets, address[] memory feeds) external;
+    function setFeeds(address[] calldata assets, address[][] calldata feeds) external;
 
     function setSequencerOracle(address newSequencerOracle) external;
 

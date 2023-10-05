@@ -15,7 +15,7 @@ task('borrow-controller:set-allowances').setAction(async (taskArgs, hre) => {
     if ((await token.allowance(controller.address, loanManager.address)).gt(0)) {
       console.log(`Allowance already set for ${tokenNames[i]}`)
     } else {
-      const receipt = await waitForTx(controller.setCollateralAllowance(token.address))
+      const receipt = await waitForTx(controller.giveManagerAllowance(token.address))
       console.log(`Set allowance for ${tokenNames[i]} at ${receipt.transactionHash}`)
     }
   }
@@ -32,7 +32,7 @@ task('repay-adapter:set-allowances').setAction(async (taskArgs, hre) => {
     if ((await token.allowance(adapter.address, loanManager.address)).gt(0)) {
       console.log(`Allowance already set for ${tokenNames[i]}`)
     } else {
-      const receipt = await waitForTx(adapter.setCollateralAllowance(token.address))
+      const receipt = await waitForTx(adapter.giveManagerAllowance(token.address))
       console.log(`Set allowance for ${tokenNames[i]} at ${receipt.transactionHash}`)
     }
   }

@@ -22,42 +22,37 @@ contract CouponOracleUnitTest is Test, ICouponOracleTypes {
         invalidPriceFeed = new InvalidPriceFeed();
         mockFallbackOracle = new MockFallbackOracle();
         couponOracle = new CouponOracle(Constants.CHAINLINK_SEQUENCER_ORACLE, 3600, 3600);
-        couponOracle.setFeeds(Utils.toArr(Constants.WETH), Utils.toArr(Constants.ETH_CHAINLINK_FEED));
+        couponOracle.setFeeds(Utils.toArr(Constants.WETH), Utils.toArr(Utils.toArr(Constants.ETH_CHAINLINK_FEED)));
     }
 
     function testSetFeeds() public {
-        assertEq(couponOracle.getFeed(Constants.USDC), address(0), "FEED_NOT_SET");
+        assertEq(couponOracle.getFeeds(Constants.USDC).length, 0, "FEED_NOT_SET");
 
         vm.expectEmit(true, true, true, true);
-        emit SetFeed(Constants.USDC, Constants.USDC_CHAINLINK_FEED);
-        couponOracle.setFeeds(Utils.toArr(Constants.USDC), Utils.toArr(Constants.USDC_CHAINLINK_FEED));
+        emit SetFeed(Constants.USDC, Utils.toArr(Constants.USDC_CHAINLINK_FEED));
+        couponOracle.setFeeds(Utils.toArr(Constants.USDC), Utils.toArr(Utils.toArr(Constants.USDC_CHAINLINK_FEED)));
 
-        assertEq(couponOracle.getFeed(Constants.USDC), Constants.USDC_CHAINLINK_FEED, "FEED_SET");
+        assertEq(couponOracle.getFeeds(Constants.USDC).length, 1, "FEED_SET_LENGTH");
+        assertEq(couponOracle.getFeeds(Constants.USDC)[0], Constants.USDC_CHAINLINK_FEED, "FEED_SET");
     }
 
     function testSetFeedsOwnership() public {
         vm.prank(address(0x123));
         vm.expectRevert("Ownable: caller is not the owner");
-        couponOracle.setFeeds(Utils.toArr(Constants.USDC), Utils.toArr(Constants.USDC_CHAINLINK_FEED));
+        couponOracle.setFeeds(Utils.toArr(Constants.USDC), Utils.toArr(Utils.toArr(Constants.USDC_CHAINLINK_FEED)));
     }
 
     function testSetFeedsLengthMismatch() public {
         vm.expectRevert(abi.encodeWithSelector(LengthMismatch.selector));
         couponOracle.setFeeds(
-            Utils.toArr(Constants.USDC), Utils.toArr(Constants.USDC_CHAINLINK_FEED, Constants.USDC_CHAINLINK_FEED)
+            Utils.toArr(Constants.USDC, Constants.WETH), Utils.toArr(Utils.toArr(Constants.USDC_CHAINLINK_FEED))
         );
     }
 
-    function testSetFeedsInvalidDecimals() public {
-        invalidPriceFeed.setDecimals(18);
-        vm.expectRevert(abi.encodeWithSelector(InvalidDecimals.selector));
-        couponOracle.setFeeds(Utils.toArr(Constants.USDC), Utils.toArr(address(invalidPriceFeed)));
-    }
-
     function testSetFeedsAlreadySet() public {
-        couponOracle.setFeeds(Utils.toArr(Constants.USDC), Utils.toArr(Constants.USDC_CHAINLINK_FEED));
+        couponOracle.setFeeds(Utils.toArr(Constants.USDC), Utils.toArr(Utils.toArr(Constants.USDC_CHAINLINK_FEED)));
         vm.expectRevert(abi.encodeWithSelector(AssetFeedAlreadySet.selector));
-        couponOracle.setFeeds(Utils.toArr(Constants.USDC), Utils.toArr(Constants.USDC_CHAINLINK_FEED));
+        couponOracle.setFeeds(Utils.toArr(Constants.USDC), Utils.toArr(Utils.toArr(Constants.USDC_CHAINLINK_FEED)));
     }
 
     function testSetFallbackOracle() public {
@@ -132,6 +127,18 @@ contract CouponOracleUnitTest is Test, ICouponOracleTypes {
         couponOracle.setTimeout(1800);
     }
 
+    function testCompositeFeeds() public {
+        couponOracle.setTimeout(1 days);
+        address wstEth = 0x0fBcbaEA96Ce0cF7Ee00A8c19c3ab6f5Dc8E1921;
+        address wstEthEthFeed = 0xb523AE262D20A936BC152e6023996e46FDC2A95D;
+        couponOracle.setFeeds(
+            Utils.toArr(wstEth), Utils.toArr(Utils.toArr(wstEthEthFeed, Constants.ETH_CHAINLINK_FEED))
+        );
+
+        uint256 price = couponOracle.getAssetPrice(wstEth);
+        console.log(price);
+    }
+
     function testGetPrice() public {
         uint256 price = couponOracle.getAssetPrice(Constants.WETH);
         assertEq(price, 184466348000, "PRICE");
@@ -149,7 +156,7 @@ contract CouponOracleUnitTest is Test, ICouponOracleTypes {
 
     function testGetPriceWhenPriceIsInvalid() public {
         couponOracle.setFallbackOracle(address(mockFallbackOracle));
-        couponOracle.setFeeds(Utils.toArr(Constants.USDC), Utils.toArr(address(invalidPriceFeed)));
+        couponOracle.setFeeds(Utils.toArr(Constants.USDC), Utils.toArr(Utils.toArr(address(invalidPriceFeed))));
         invalidPriceFeed.setPrice(0);
 
         assertEq(couponOracle.getAssetPrice(Constants.USDC), mockFallbackOracle.FALLBACK_PRICE(), "FALLBACK_PRICE_0");
