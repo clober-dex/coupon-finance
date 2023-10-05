@@ -60,7 +60,7 @@ contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
             if (position.debtAmount < repayDebtAmount) {
                 repayDebtAmount = position.debtAmount;
             }
-            // @dev We know that couponsToBurn.length == 0
+
             uint256 remainingDebt = position.debtAmount - repayDebtAmount;
             uint256 minDebtAmount = _getMinDebtAmount(position.debtToken);
             if (0 < remainingDebt && remainingDebt < minDebtAmount) remainingDebt = minDebtAmount;
@@ -104,6 +104,11 @@ contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
             position.debtAmount == 0 ? lastExpiredEpoch : position.expiredWith
         );
         _loanManager.mintCoupons(couponsToMint, user, "");
+        if (couponsToBurn.length > 0) {
+            _unwrapCoupons(couponsToBurn);
+            _loanManager.burnCoupons(couponsToBurn);
+        }
+
         _burnAllSubstitute(position.debtToken, user);
         _loanManager.settlePosition(positionId);
 
