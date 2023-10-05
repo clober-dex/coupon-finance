@@ -39,6 +39,28 @@ library Utils {
         arr[2] = account2;
     }
 
+    function toArr(address[] memory arr) internal pure returns (address[][] memory nested) {
+        nested = new address[][](1);
+        nested[0] = arr;
+    }
+
+    function toArr(address[] memory arr0, address[] memory arr1) internal pure returns (address[][] memory nested) {
+        nested = new address[][](2);
+        nested[0] = arr0;
+        nested[1] = arr1;
+    }
+
+    function toArr(address[] memory arr0, address[] memory arr1, address[] memory arr2)
+        internal
+        pure
+        returns (address[][] memory nested)
+    {
+        nested = new address[][](3);
+        nested[0] = arr0;
+        nested[1] = arr1;
+        nested[2] = arr2;
+    }
+
     function toArr(uint256 n0) internal pure returns (uint256[] memory arr) {
         arr = new uint256[](1);
         arr[0] = n0;

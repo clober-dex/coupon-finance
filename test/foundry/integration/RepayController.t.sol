@@ -108,7 +108,11 @@ contract RepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiver, 
         oracle = new CouponOracle(Constants.CHAINLINK_SEQUENCER_ORACLE, 1 days, 1 days);
         oracle.setFeeds(
             Utils.toArr(address(wausdc), address(waweth), address(0)),
-            Utils.toArr(Constants.USDC_CHAINLINK_FEED, Constants.ETH_CHAINLINK_FEED, Constants.ETH_CHAINLINK_FEED)
+            Utils.toArr(
+                Utils.toArr(Constants.USDC_CHAINLINK_FEED),
+                Utils.toArr(Constants.ETH_CHAINLINK_FEED),
+                Utils.toArr(Constants.ETH_CHAINLINK_FEED)
+            )
         );
         uint64 thisNonce = vm.getNonce(address(this));
         assetPool = new AssetPool(

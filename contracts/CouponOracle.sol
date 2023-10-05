@@ -19,7 +19,7 @@ contract CouponOracle is ICouponOracle, Ownable2Step {
     address public override sequencerOracle;
     uint256 public override gracePeriod;
     address public override fallbackOracle;
-    mapping(address => address) public override getFeed;
+    mapping(address => address[]) private _feeds;
 
     constructor(address sequencerOracle_, uint256 timeout_, uint256 gracePeriod_) {
         _setSequencerOracle(sequencerOracle_);
@@ -31,11 +31,18 @@ contract CouponOracle is ICouponOracle, Ownable2Step {
         return 8;
     }
 
-    function getAssetPrice(address asset) public view returns (uint256) {
-        address feed = getFeed[asset];
+    function getFeeds(address asset) external view returns (address[] memory) {
+        return _feeds[asset];
+    }
 
-        if (feed != address(0)) {
-            try AggregatorV3Interface(feed).latestRoundData() returns (
+    function getAssetPrice(address asset) public view returns (uint256) {
+        address[] memory feeds = _feeds[asset];
+        if (feeds.length == 0) {
+            return IFallbackOracle(fallbackOracle).getAssetPrice(asset);
+        }
+        uint256 price = 10 ** 8;
+        for (uint256 i = 0; i < feeds.length; ++i) {
+            try AggregatorV3Interface(feeds[i]).latestRoundData() returns (
                 uint80 roundId, int256 answer, uint256, /* startedAt */ uint256 updatedAt, uint80 /* answeredInRound */
             ) {
                 // Check Sanity, Staleness and the Sequencer
@@ -43,11 +50,14 @@ contract CouponOracle is ICouponOracle, Ownable2Step {
                     roundId != 0 && answer >= 0 && updatedAt <= block.timestamp
                         && block.timestamp <= updatedAt + timeout && _isSequencerValid()
                 ) {
-                    return uint256(answer);
+                    uint256 feedDecimals = AggregatorV3Interface(feeds[i]).decimals();
+                    price = price * uint256(answer) / 10 ** feedDecimals;
+                    continue;
                 }
             } catch {}
+            return IFallbackOracle(fallbackOracle).getAssetPrice(asset);
         }
-        return IFallbackOracle(fallbackOracle).getAssetPrice(asset);
+        return price;
     }
 
     function getAssetsPrices(address[] memory assets) external view returns (uint256[] memory prices) {
@@ -68,13 +78,15 @@ contract CouponOracle is ICouponOracle, Ownable2Step {
         emit SetFallbackOracle(newFallbackOracle);
     }
 
-    function setFeeds(address[] memory assets, address[] memory feeds) external onlyOwner {
+    function setFeeds(address[] calldata assets, address[][] calldata feeds) external onlyOwner {
         if (assets.length != feeds.length) revert LengthMismatch();
         unchecked {
             for (uint256 i = 0; i < assets.length; ++i) {
-                if (AggregatorV3Interface(feeds[i]).decimals() != 8) revert InvalidDecimals();
-                if (getFeed[assets[i]] != address(0)) revert AssetFeedAlreadySet();
-                getFeed[assets[i]] = feeds[i];
+                if (_feeds[assets[i]].length > 0) revert AssetFeedAlreadySet();
+                if (feeds[i].length == 0) revert LengthMismatch();
+                for (uint256 j = 0; j < feeds[i].length; ++j) {
+                    _feeds[assets[i]].push(feeds[i][j]);
+                }
                 emit SetFeed(assets[i], feeds[i]);
             }
         }

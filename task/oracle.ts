@@ -11,8 +11,8 @@ task('oracle:set-feed')
     const oracle = await getDeployedContract<CouponOracle>('CouponOracle')
     const chainId = hre.network.config.chainId ?? hardhat.id
     const token = AAVE_SUBSTITUTES[chainId][asset]
-    const feed = CHAINLINK_FEEDS[chainId][asset]
-    const receipt = await waitForTx(oracle.setFeeds([token], [feed]))
+    const feeds = CHAINLINK_FEEDS[chainId][asset]
+    const receipt = await waitForTx(oracle.setFeeds([token], [feeds]))
     console.log('Set feed at tx', receipt.transactionHash)
   })
 
@@ -34,7 +34,7 @@ task('oracle:list-feeds').setAction(async (taskArgs, hre) => {
   const chainId = hre.network.config.chainId ?? hardhat.id
   const tokens = Object.values(AAVE_SUBSTITUTES[chainId])
   const tokenNames = Object.keys(AAVE_SUBSTITUTES[chainId])
-  const feeds = await Promise.all(tokens.map((token) => oracle.getFeed(token)))
+  const feeds = await Promise.all(tokens.map((token) => oracle.getFeeds(token)))
   for (let i = 0; i < tokens.length; i++) {
     console.log(`${tokenNames[i]}(${tokens[i]}): ${feeds[i]}`)
   }

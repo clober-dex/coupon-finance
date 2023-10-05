@@ -47,13 +47,13 @@ contract MockOracle is ICouponOracle {
         return address(0);
     }
 
-    function getFeed(address) external pure returns (address) {
-        return address(0);
+    function getFeeds(address) external pure returns (address[] memory) {
+        return new address[](0);
     }
 
     function setFallbackOracle(address) external {}
 
-    function setFeeds(address[] memory, address[] memory) external {}
+    function setFeeds(address[] calldata, address[][] calldata) external {}
 
     function setSequencerOracle(address) external {}
 
