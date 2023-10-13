@@ -78,7 +78,7 @@ contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
             }
 
             _executeCouponTrade(
-                user, position.debtToken, couponsToBurn, couponsToMint, repayDebtAmount, type(uint256).max, 0
+                user, position.debtToken, couponsToMint, couponsToBurn, repayDebtAmount, type(uint256).max, 0
             );
 
             uint256 depositDebtTokenAmount = IERC20(position.debtToken).balanceOf(address(this));

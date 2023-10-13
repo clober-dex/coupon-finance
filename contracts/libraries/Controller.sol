@@ -62,22 +62,7 @@ abstract contract Controller is
         uint256 maxPayInterest,
         uint256 leftRequiredInterest
     ) internal {
-        if (couponsToMint.length > 0) {
-            Coupon memory lastCoupon = couponsToMint[couponsToMint.length - 1];
-            assembly {
-                mstore(couponsToMint, sub(mload(couponsToMint), 1))
-            }
-            bytes memory data = abi.encode(
-                user, lastCoupon, couponsToMint, couponsToBurn, amountToPay, maxPayInterest, leftRequiredInterest
-            );
-            assembly {
-                mstore(couponsToMint, add(mload(couponsToMint), 1))
-            }
-
-            CloberOrderBook market = CloberOrderBook(_couponMarkets[lastCoupon.id()]);
-            uint256 dy = lastCoupon.amount - IERC20(market.baseToken()).balanceOf(address(this));
-            market.marketOrder(address(this), type(uint16).max, type(uint64).max, dy, 1, data);
-        } else if (couponsToBurn.length > 0) {
+        if (couponsToBurn.length > 0) {
             Coupon memory lastCoupon = couponsToBurn[couponsToBurn.length - 1];
             assembly {
                 mstore(couponsToBurn, sub(mload(couponsToBurn), 1))
@@ -87,6 +72,21 @@ abstract contract Controller is
             );
             assembly {
                 mstore(couponsToBurn, add(mload(couponsToBurn), 1))
+            }
+
+            CloberOrderBook market = CloberOrderBook(_couponMarkets[lastCoupon.id()]);
+            uint256 dy = lastCoupon.amount - IERC20(market.baseToken()).balanceOf(address(this));
+            market.marketOrder(address(this), type(uint16).max, type(uint64).max, dy, 1, data);
+        } else if (couponsToMint.length > 0) {
+            Coupon memory lastCoupon = couponsToMint[couponsToMint.length - 1];
+            assembly {
+                mstore(couponsToMint, sub(mload(couponsToMint), 1))
+            }
+            bytes memory data = abi.encode(
+                user, lastCoupon, couponsToMint, couponsToBurn, amountToPay, maxPayInterest, leftRequiredInterest
+            );
+            assembly {
+                mstore(couponsToMint, add(mload(couponsToMint), 1))
             }
 
             CloberOrderBook market = CloberOrderBook(_couponMarkets[lastCoupon.id()]);
