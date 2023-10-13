@@ -24,6 +24,7 @@ abstract contract PositionManager is ERC721Permit, IPositionManager {
     address public immutable override assetPool;
 
     string public override baseURI;
+    string public override contractURI;
     uint256 public override nextId = 1;
 
     LockData private _lockData;
@@ -35,12 +36,14 @@ abstract contract PositionManager is ERC721Permit, IPositionManager {
         address couponManager_,
         address assetPool_,
         string memory baseURI_,
+        string memory contractURI_,
         string memory name_,
         string memory symbol_
     ) ERC721Permit(name_, symbol_, "1") {
         _couponManager = couponManager_;
         assetPool = assetPool_;
         baseURI = baseURI_;
+        contractURI = contractURI_;
     }
 
     modifier modifyPosition(uint256 positionId) {
