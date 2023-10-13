@@ -44,7 +44,8 @@ library TestInitializer {
         p.bondPositionManager = new BondPositionManager(
             address(p.couponManager),
             address(p.assetPool),
-            "bond/position/uri/"
+            "bond/position/uri/",
+            "URI"
         );
         p.bondPositionManager.registerAsset(address(p.usdc));
 
