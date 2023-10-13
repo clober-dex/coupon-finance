@@ -63,13 +63,13 @@ contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
 
             uint256 remainingDebt = position.debtAmount - repayDebtAmount;
             uint256 minDebtAmount = _getMinDebtAmount(position.debtToken);
-            if (0 < remainingDebt && remainingDebt < minDebtAmount) remainingDebt = minDebtAmount;
+            if (0 < remainingDebtAmount && remainingDebtAmount < minDebtAmount) remainingDebtAmount = minDebtAmount;
 
             (couponsToMint, couponsToBurn,,) = _loanManager.adjustPosition(
                 positionId,
                 position.collateralAmount,
-                remainingDebt,
-                remainingDebt == 0 ? lastExpiredEpoch : position.expiredWith
+                remainingDebtAmount,
+                remainingDebtAmount == 0 ? lastExpiredEpoch : position.expiredWith
             );
 
             if (couponsToMint.length > 0) {
@@ -83,8 +83,8 @@ contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
 
             uint256 depositDebtTokenAmount = IERC20(position.debtToken).balanceOf(address(this));
 
-            uint256 remainingDebtAmount;
             if (position.debtAmount <= depositDebtTokenAmount) {
+                remainingDebtAmount = 0;
                 depositDebtTokenAmount = position.debtAmount;
             } else {
                 remainingDebtAmount = position.debtAmount - depositDebtTokenAmount;
@@ -134,6 +134,7 @@ contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
         address outToken = ISubstitute(debt).underlyingToken();
 
         ISubstitute(collateral).burn(inAmount, address(this));
+        if (inToken == address(_weth)) _weth.deposit{value: inAmount}();
         IERC20(inToken).approve(_router, inAmount);
         (bool success, bytes memory result) = _router.call(swapData);
         if (!success) revert CollateralSwapFailed(string(result));
