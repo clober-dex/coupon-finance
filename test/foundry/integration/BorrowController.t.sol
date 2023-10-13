@@ -38,6 +38,7 @@ import {MockOracle} from "../mocks/MockOracle.sol";
 import {AssetPool} from "../../../contracts/AssetPool.sol";
 import {CouponOracle} from "../../../contracts/CouponOracle.sol";
 import {AaveTokenSubstitute} from "../../../contracts/AaveTokenSubstitute.sol";
+import "../../../contracts/BorrowAdapter.sol";
 
 contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiver, ERC1155Holder {
     using Strings for *;
@@ -51,6 +52,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
 
     IAssetPool public assetPool;
     BorrowController public borrowController;
+    BorrowAdapter public borrowAdapter;
     ILoanPositionManager public loanPositionManager;
     IWrapped1155Factory public wrapped1155Factory;
     ICouponManager public couponManager;
@@ -139,8 +141,20 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
             Constants.WETH,
             address(loanPositionManager)
         );
+        borrowAdapter = new BorrowAdapter(
+            Constants.WRAPPED1155_FACTORY,
+            Constants.CLOBER_FACTORY,
+            address(couponManager),
+            Constants.WETH,
+            address(loanPositionManager),
+            Constants.ODOS_V2_SWAP_ROUTER
+        );
+
         borrowController.giveManagerAllowance(address(wausdc));
         borrowController.giveManagerAllowance(address(waweth));
+
+        borrowAdapter.giveManagerAllowance(address(wausdc));
+        borrowAdapter.giveManagerAllowance(address(waweth));
 
         wausdc.transfer(address(assetPool), usdc.amount(1_000));
         waweth.transfer(address(assetPool), 1_000 ether);
@@ -178,6 +192,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
                 1001 * 1e15
             );
             borrowController.setCouponMarket(couponKeys[i], market);
+            borrowAdapter.setCouponMarket(couponKeys[i], market);
         }
         _marketMake();
 
@@ -195,7 +210,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
             CloberOrderBook(market).limitOrder(
                 MARKET_MAKER, bidIndex, market.quoteToRaw(IERC20(key.asset).amount(1), false), 0, 3, ""
             );
-            uint256 amount = IERC20(wrappedCoupons[i]).amount(100);
+            uint256 amount = IERC20(wrappedCoupons[i]).amount(5000);
             Coupon[] memory coupons = Utils.toArr(Coupon(key, amount));
             couponManager.mintBatch(address(this), coupons, "");
             couponManager.safeBatchTransferFrom(
@@ -309,6 +324,44 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         assertEq(beforeLoanPosition.debtAmount, afterLoanPosition.debtAmount, "POSITION_DEBT_AMOUNT");
         assertEq(beforeLoanPosition.collateralToken, afterLoanPosition.collateralToken, "POSITION_COLLATERAL_TOKEN");
         assertEq(beforeLoanPosition.debtToken, afterLoanPosition.debtToken, "POSITION_DEBT_TOKEN");
+    }
+
+    function testBorrowLeverage() public {
+        uint256 collateralAmount = 0.4 ether;
+        uint256 borrowAmount = usdc.amount(550);
+
+        uint256 beforeUSDCBalance = usdc.balanceOf(user);
+        uint256 beforeWETHBalance = weth.balanceOf(user);
+        uint256 beforeETHBalance = user.balance;
+
+        uint256 positionId = loanPositionManager.nextId();
+        IController.ERC20PermitParams memory permitParams = _buildERC20PermitParams(
+            1, AaveTokenSubstitute(payable(address(wausdc))), address(borrowAdapter), collateralAmount
+        );
+
+        bytes memory data = fromHex(
+            string.concat(
+                "83bd37f90001af88d065e77c8cc2239327c5edb3a432268e5831000182af49447d8a07e3bd95bd0d56f35241523fbab1041dcd65000803c174ee39d2c08007ae1400017e3e803E966291EE9aA69e6FADa116cD07462E5D00000001",
+                this.remove0x(Strings.toHexString(address(borrowAdapter))),
+                "0000000103010204014386e4ac0b01000102000022010203020203ff0000000000000000006f38e884725a116c9c7fbf208e79fe8828a2595faf88d065e77c8cc2239327c5edb3a432268e583182af49447d8a07e3bd95bd0d56f35241523fbab100000000"
+            )
+        );
+
+        vm.prank(user);
+        borrowAdapter.borrow{value: 0.13 ether}(
+            address(waweth), address(wausdc), collateralAmount, borrowAmount, type(uint256).max, 2, data, permitParams
+        );
+
+        LoanPosition memory loanPosition = loanPositionManager.getPosition(positionId);
+
+        assertEq(loanPositionManager.ownerOf(positionId), user, "POSITION_OWNER");
+        assertGt(usdc.balanceOf(user) - beforeUSDCBalance, 0, "USDC_BALANCE");
+        assertLt(beforeETHBalance - user.balance, 0.13 ether, "NATIVE_BALANCE");
+        assertEq(loanPosition.expiredWith, EpochLibrary.current().add(1), "POSITION_EXPIRE_EPOCH");
+        assertEq(loanPosition.collateralAmount, collateralAmount, "POSITION_COLLATERAL_AMOUNT");
+        assertEq(loanPosition.debtAmount, borrowAmount, "POSITION_DEBT_AMOUNT");
+        assertEq(loanPosition.collateralToken, address(waweth), "POSITION_COLLATERAL_TOKEN");
+        assertEq(loanPosition.debtToken, address(wausdc), "POSITION_DEBT_TOKEN");
     }
 
     function testRemoveCollateral() public {
