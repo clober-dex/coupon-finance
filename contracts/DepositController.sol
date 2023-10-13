@@ -63,8 +63,8 @@ contract DepositController is IDepositController, Controller, IPositionLocker {
         _executeCouponTrade(
             user,
             position.asset,
-            couponsToBurn,
             couponsToMint,
+            couponsToBurn,
             amountDelta > 0 ? uint256(amountDelta) : 0,
             maxPayInterest,
             minEarnInterest

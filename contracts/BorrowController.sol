@@ -67,8 +67,8 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         _executeCouponTrade(
             user,
             position.debtToken,
-            couponsToBurn,
             couponsToMint,
+            couponsToBurn,
             debtDelta < 0 ? uint256(-debtDelta) : 0,
             maxPayInterest,
             minEarnInterest
