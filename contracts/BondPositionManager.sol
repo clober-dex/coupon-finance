@@ -22,8 +22,8 @@ contract BondPositionManager is IBondPositionManager, PositionManager, Ownable2S
     mapping(address asset => bool) public override isAssetRegistered;
     mapping(uint256 id => BondPosition) private _positionMap;
 
-    constructor(address coupon_, address assetPool_, string memory baseURI_)
-        PositionManager(coupon_, assetPool_, baseURI_, "Bond Position", "BP")
+    constructor(address coupon_, address assetPool_, string memory baseURI_, string memory contractURI_)
+        PositionManager(coupon_, assetPool_, baseURI_, contractURI_, "Bond Position", "BP")
     {}
 
     function getPosition(uint256 positionId) external view returns (BondPosition memory) {

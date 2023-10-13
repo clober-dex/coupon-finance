@@ -127,7 +127,8 @@ contract RepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiver, 
             address(oracle),
             Constants.TREASURY,
             10 ** 16,
-            "loan/position/uri/"
+            "loan/position/uri/",
+            "URI"
         );
         loanPositionManager.setLoanConfiguration(address(wausdc), address(waweth), 800000, 25000, 5000, 700000);
         loanPositionManager.setLoanConfiguration(address(waweth), address(wausdc), 800000, 25000, 5000, 700000);

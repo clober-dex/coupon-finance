@@ -52,7 +52,8 @@ library TestInitializer {
             address(p.oracle),
             Constants.TREASURY,
             10 ** 16,
-            ""
+            "",
+            "URI"
         );
         p.loanPositionManager.setLoanConfiguration(address(p.usdc), address(p.weth), 800000, 20000, 5000, 700000);
         p.loanPositionManager.setLoanConfiguration(address(p.weth), address(p.usdc), 800000, 20000, 5000, 700000);

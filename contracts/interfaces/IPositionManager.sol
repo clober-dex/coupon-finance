@@ -15,6 +15,8 @@ interface IPositionManagerTypes {
 interface IPositionManager is IERC721Metadata, IERC721Permit, IPositionManagerTypes {
     function baseURI() external view returns (string memory);
 
+    function contractURI() external view returns (string memory);
+
     function nextId() external view returns (uint256);
 
     function assetPool() external view returns (address);

@@ -41,8 +41,9 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable2S
         address oracle_,
         address treasury_,
         uint256 minDebtValueInEth_,
-        string memory baseURI_
-    ) PositionManager(couponManager_, assetPool_, baseURI_, "Loan Position", "LP") {
+        string memory baseURI_,
+        string memory contractURI_
+    ) PositionManager(couponManager_, assetPool_, baseURI_, contractURI_, "Loan Position", "LP") {
         oracle = oracle_;
         minDebtValueInEth = minDebtValueInEth_;
         treasury = treasury_;

@@ -100,7 +100,8 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         bondPositionManager = new BondPositionManager(
             address(couponManager),
             address(assetPool),
-            "bond/position/uri/"
+            "bond/position/uri/",
+            "URI"
         );
         bondPositionManager.registerAsset(address(wausdc));
         bondPositionManager.registerAsset(address(waweth));
