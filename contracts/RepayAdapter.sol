@@ -61,7 +61,7 @@ contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
                 repayDebtAmount = position.debtAmount;
             }
 
-            uint256 remainingDebt = position.debtAmount - repayDebtAmount;
+            uint256 remainingDebtAmount = position.debtAmount - repayDebtAmount;
             uint256 minDebtAmount = _getMinDebtAmount(position.debtToken);
             if (0 < remainingDebtAmount && remainingDebtAmount < minDebtAmount) remainingDebtAmount = minDebtAmount;
 
