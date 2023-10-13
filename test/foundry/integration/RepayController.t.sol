@@ -206,7 +206,7 @@ contract RepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiver, 
             CloberOrderBook(market).limitOrder(
                 MARKET_MAKER, bidIndex, market.quoteToRaw(IERC20(key.asset).amount(1), false), 0, 3, ""
             );
-            uint256 amount = IERC20(wrappedCoupons[i]).amount(100);
+            uint256 amount = IERC20(wrappedCoupons[i]).amount(100000000);
             Coupon[] memory coupons = Utils.toArr(Coupon(key, amount));
             couponManager.mintBatch(address(this), coupons, "");
             couponManager.safeBatchTransferFrom(
@@ -386,6 +386,32 @@ contract RepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiver, 
         assertLe(afterLoanPosition.debtAmount, maxDebtAmount, "POSITION_DEBT_AMOUNT");
         assertEq(beforeLoanPosition.collateralToken, afterLoanPosition.collateralToken, "POSITION_COLLATERAL_TOKEN");
         assertEq(beforeLoanPosition.debtToken, afterLoanPosition.debtToken, "POSITION_DEBT_TOKEN");
+    }
+
+    function testRepayWhenSmallDebt() public {
+        uint256 positionId = _initialBorrow(user, address(waweth), address(wausdc), 1 ether, usdc.amount(20), 2);
+
+        address[] memory assets = new address[](2);
+        assets[0] = address(0xFEfC6BAF87cF3684058D62Da40Ff3A795946Ab06);
+        assets[1] = address(0);
+
+        uint256[] memory price = new uint256[](2);
+        price[0] = 100000000;
+        price[1] = 1000000000000;
+
+        vm.mockCall(address(oracle), abi.encodeWithSignature("getAssetsPrices(address[])", assets), abi.encode(price));
+        assertEq(oracle.getAssetsPrices(assets)[1], 1000000000000, "MANIPULATE_ORACLE");
+
+        bytes memory data;
+
+        IController.PermitSignature memory permit721Params =
+            _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(repayAdapter), positionId);
+
+        vm.startPrank(user);
+        usdc.approve(address(repayAdapter), 7000000);
+        vm.expectRevert(abi.encodeWithSelector(IController.ControllerSlippage.selector));
+        repayAdapter.repayWithCollateral(positionId, 0.01 ether, 0, data, permit721Params);
+        vm.stopPrank();
     }
 
     function _buildERC20PermitParams(
