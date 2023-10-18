@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
+// https://github.com/aave/aave-v3-core/blob/6070e82d962d9b12835c88e68210d0e63f08d035/contracts/protocol/libraries/configuration/ReserveConfiguration.sol
+
 pragma solidity ^0.8.0;
 
 import {Errors} from "./Errors.sol";
