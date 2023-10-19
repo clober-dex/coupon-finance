@@ -16,11 +16,13 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   const couponManager = await getDeployedContract<CouponManager>('CouponManager')
   const assetPool = await getDeployedContract<AssetPool>('AssetPool')
 
+  // TODO
   const baseURI = 'BOND_BASE_URI'
+  const contractURI = 'BOND_CONTRACT_URI'
 
   await deploy('BondPositionManager', {
     from: deployer,
-    args: [couponManager.address, assetPool.address, baseURI],
+    args: [couponManager.address, assetPool.address, baseURI, contractURI],
     log: true,
   })
 }
