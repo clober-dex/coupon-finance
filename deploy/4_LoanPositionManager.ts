@@ -22,12 +22,22 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 
   const chainId = network.config.chainId || hardhat.id
 
+  // TODO
   const baseURI = 'LOAN_BASE_URI'
+  const contractURI = 'LOAN_CONTRACT_URI'
   const minDebtValueInEth = BigNumber.from('1000000000000000') // TODO: change this
 
   await deploy('LoanPositionManager', {
     from: deployer,
-    args: [couponManager.address, assetPool.address, oracle.address, TREASURY[chainId], minDebtValueInEth, baseURI],
+    args: [
+      couponManager.address,
+      assetPool.address,
+      oracle.address,
+      TREASURY[chainId],
+      minDebtValueInEth,
+      baseURI,
+      contractURI,
+    ],
     log: true,
   })
 }
