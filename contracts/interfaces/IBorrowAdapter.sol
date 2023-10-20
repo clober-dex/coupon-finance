@@ -7,7 +7,7 @@ import {IController} from "./IController.sol";
 interface IBorrowAdapter is IController {
     error CollateralSwapFailed(string reason);
 
-    function borrow(
+    function leverage(
         address collateralToken,
         address debtToken,
         uint256 collateralAmount,
@@ -15,6 +15,16 @@ interface IBorrowAdapter is IController {
         uint256 maxPayInterest,
         uint8 loanEpochs,
         bytes memory swapData,
+        ERC20PermitParams calldata collateralPermitParams
+    ) external payable;
+
+    function leverageMore(
+        uint256 positionId,
+        uint256 collateralAmount,
+        uint256 debtAmount,
+        uint256 maxPayInterest,
+        bytes memory swapData,
+        PermitSignature calldata positionPermitParams,
         ERC20PermitParams calldata collateralPermitParams
     ) external payable;
 }
