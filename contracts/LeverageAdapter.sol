@@ -16,7 +16,7 @@ import {IPositionLocker} from "./interfaces/IPositionLocker.sol";
 import {IBorrowAdapter} from "./interfaces/IBorrowAdapter.sol";
 import {Epoch, EpochLibrary} from "./libraries/Epoch.sol";
 
-contract BorrowAdapter is IBorrowAdapter, Controller, IPositionLocker {
+contract LeverageAdapter is IBorrowAdapter, Controller, IPositionLocker {
     using EpochLibrary for Epoch;
 
     ILoanPositionManager private immutable _loanManager;

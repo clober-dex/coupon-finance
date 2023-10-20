@@ -38,9 +38,9 @@ import {MockOracle} from "../mocks/MockOracle.sol";
 import {AssetPool} from "../../../contracts/AssetPool.sol";
 import {CouponOracle} from "../../../contracts/CouponOracle.sol";
 import {AaveTokenSubstitute} from "../../../contracts/AaveTokenSubstitute.sol";
-import "../../../contracts/BorrowAdapter.sol";
+import "../../../contracts/LeverageAdapter.sol";
 
-contract BorrowAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiver, ERC1155Holder {
+contract LeverageAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiver, ERC1155Holder {
     using Strings for *;
     using ERC20Utils for IERC20;
     using CouponKeyLibrary for CouponKey;
@@ -52,7 +52,7 @@ contract BorrowAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiver,
 
     IAssetPool public assetPool;
     BorrowController public borrowController;
-    BorrowAdapter public borrowAdapter;
+    LeverageAdapter public borrowAdapter;
     ILoanPositionManager public loanPositionManager;
     IWrapped1155Factory public wrapped1155Factory;
     ICouponManager public couponManager;
@@ -141,7 +141,7 @@ contract BorrowAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiver,
             Constants.WETH,
             address(loanPositionManager)
         );
-        borrowAdapter = new BorrowAdapter(
+        borrowAdapter = new LeverageAdapter(
             Constants.WRAPPED1155_FACTORY,
             Constants.CLOBER_FACTORY,
             address(couponManager),
