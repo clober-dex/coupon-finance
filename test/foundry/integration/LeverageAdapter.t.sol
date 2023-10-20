@@ -52,7 +52,7 @@ contract LeverageAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceive
 
     IAssetPool public assetPool;
     BorrowController public borrowController;
-    LeverageAdapter public borrowAdapter;
+    LeverageAdapter public leverageAdapter;
     ILoanPositionManager public loanPositionManager;
     IWrapped1155Factory public wrapped1155Factory;
     ICouponManager public couponManager;
@@ -141,7 +141,7 @@ contract LeverageAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceive
             Constants.WETH,
             address(loanPositionManager)
         );
-        borrowAdapter = new LeverageAdapter(
+        leverageAdapter = new LeverageAdapter(
             Constants.WRAPPED1155_FACTORY,
             Constants.CLOBER_FACTORY,
             address(couponManager),
@@ -153,8 +153,8 @@ contract LeverageAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceive
         borrowController.giveManagerAllowance(address(wausdc));
         borrowController.giveManagerAllowance(address(waweth));
 
-        borrowAdapter.giveManagerAllowance(address(wausdc));
-        borrowAdapter.giveManagerAllowance(address(waweth));
+        leverageAdapter.giveManagerAllowance(address(wausdc));
+        leverageAdapter.giveManagerAllowance(address(waweth));
 
         wausdc.transfer(address(assetPool), usdc.amount(1_500));
         waweth.transfer(address(assetPool), 1_500 ether);
@@ -192,7 +192,7 @@ contract LeverageAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceive
                 1001 * 1e15
             );
             borrowController.setCouponMarket(couponKeys[i], market);
-            borrowAdapter.setCouponMarket(couponKeys[i], market);
+            leverageAdapter.setCouponMarket(couponKeys[i], market);
         }
         _marketMake();
 
@@ -260,19 +260,19 @@ contract LeverageAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceive
 
         uint256 positionId = loanPositionManager.nextId();
         IController.ERC20PermitParams memory permitParams = _buildERC20PermitParams(
-            1, AaveTokenSubstitute(payable(address(wausdc))), address(borrowAdapter), collateralAmount
+            1, AaveTokenSubstitute(payable(address(wausdc))), address(leverageAdapter), collateralAmount
         );
 
         bytes memory data = fromHex(
             string.concat(
                 "83bd37f90001af88d065e77c8cc2239327c5edb3a432268e5831000182af49447d8a07e3bd95bd0d56f35241523fbab1041dcd65000803c174ee39d2c08007ae1400017e3e803E966291EE9aA69e6FADa116cD07462E5D00000001",
-                this.remove0x(Strings.toHexString(address(borrowAdapter))),
+                this.remove0x(Strings.toHexString(address(leverageAdapter))),
                 "0000000103010204014386e4ac0b01000102000022010203020203ff0000000000000000006f38e884725a116c9c7fbf208e79fe8828a2595faf88d065e77c8cc2239327c5edb3a432268e583182af49447d8a07e3bd95bd0d56f35241523fbab100000000"
             )
         );
 
         vm.prank(user);
-        borrowAdapter.leverage{value: 0.13 ether}(
+        leverageAdapter.leverage{value: 0.13 ether}(
             address(waweth), address(wausdc), collateralAmount, borrowAmount, type(uint256).max, 2, data, permitParams
         );
 
@@ -305,22 +305,22 @@ contract LeverageAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceive
         uint256 borrowAmount = usdc.amount(550);
 
         IController.ERC20PermitParams memory permitParams = _buildERC20PermitParams(
-            1, AaveTokenSubstitute(payable(address(wausdc))), address(borrowAdapter), collateralAmount
+            1, AaveTokenSubstitute(payable(address(wausdc))), address(leverageAdapter), collateralAmount
         );
 
         IController.PermitSignature memory permit721Params =
-            _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(borrowAdapter), positionId);
+            _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(leverageAdapter), positionId);
 
         bytes memory data = fromHex(
             string.concat(
                 "83bd37f90001af88d065e77c8cc2239327c5edb3a432268e5831000182af49447d8a07e3bd95bd0d56f35241523fbab1041dcd65000803c174ee39d2c08007ae1400017e3e803E966291EE9aA69e6FADa116cD07462E5D00000001",
-                this.remove0x(Strings.toHexString(address(borrowAdapter))),
+                this.remove0x(Strings.toHexString(address(leverageAdapter))),
                 "0000000103010204014386e4ac0b01000102000022010203020203ff0000000000000000006f38e884725a116c9c7fbf208e79fe8828a2595faf88d065e77c8cc2239327c5edb3a432268e583182af49447d8a07e3bd95bd0d56f35241523fbab100000000"
             )
         );
 
         vm.prank(user);
-        borrowAdapter.leverageMore{value: 0.13 ether}(
+        leverageAdapter.leverageMore{value: 0.13 ether}(
             positionId, collateralAmount, borrowAmount, type(uint256).max, data, permit721Params, permitParams
         );
 
