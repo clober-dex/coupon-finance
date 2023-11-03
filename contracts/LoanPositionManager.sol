@@ -316,7 +316,7 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable2S
             _positionMap[positionId].expiredWith = position.expiredWith;
 
             _accountDelta(uint256(uint160(position.collateralToken)), protocolFeeAmount, liquidationAmount);
-            IAssetPool(assetPool).withdraw(position.collateralToken, protocolFeeAmount, treasury);
+            _withdrawAsset(position.collateralToken, protocolFeeAmount, treasury);
             _accountDelta(uint256(uint160(position.debtToken)), repayAmount, 0);
 
             if (epochLength > 0) {
@@ -330,7 +330,7 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable2S
                         _couponOwed[couponOwner][coupons[i].id()] += coupons[i].amount;
                     }
                 } else {
-                    ICouponManager(_couponManager).mintBatch(couponOwner, coupons, "");
+                    _mintCoupons(couponOwner, coupons, "");
                 }
             }
 
@@ -349,7 +349,7 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable2S
                 coupons[i] = Coupon(couponKeys[i], _couponOwed[msg.sender][id]);
                 _couponOwed[msg.sender][id] = 0;
             }
-            ICouponManager(_couponManager).mintBatch(msg.sender, coupons, data);
+            _mintCoupons(msg.sender, coupons, data);
         }
     }
 
