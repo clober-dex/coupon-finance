@@ -107,10 +107,13 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable2S
 
         if (oldPosition.expiredWith <= lastExpiredEpoch) oldPosition.expiredWith = lastExpiredEpoch;
 
+        if (debtAmount == 0) {
+            expiredWith = lastExpiredEpoch;
+        }
         _hook(positionId, oldPosition.collateralToken, oldPosition.debtToken, collateralAmount, debtAmount, expiredWith);
         _positionMap[positionId].collateralAmount = collateralAmount;
         _positionMap[positionId].debtAmount = debtAmount;
-        _positionMap[positionId].expiredWith = debtAmount == 0 ? lastExpiredEpoch : expiredWith;
+        _positionMap[positionId].expiredWith = expiredWith;
 
         (couponsToMint, couponsToBurn) = oldPosition.calculateCouponRequirement(_positionMap[positionId]);
 
