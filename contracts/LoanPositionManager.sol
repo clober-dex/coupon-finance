@@ -12,6 +12,7 @@ import {ICouponOracle} from "./interfaces/ICouponOracle.sol";
 import {ICouponManager} from "./interfaces/ICouponManager.sol";
 import {IPositionManager} from "./interfaces/IPositionManager.sol";
 import {ILoanPositionManager} from "./interfaces/ILoanPositionManager.sol";
+import {ICouponPositionHook} from "./interfaces/ICouponPositionHook.sol";
 import {CouponKey, CouponKeyLibrary} from "./libraries/CouponKey.sol";
 import {Coupon, CouponLibrary} from "./libraries/Coupon.sol";
 import {Epoch, EpochLibrary} from "./libraries/Epoch.sol";
@@ -32,6 +33,7 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable2S
     mapping(address user => mapping(uint256 couponId => uint256)) private _couponOwed;
     mapping(bytes32 => LoanConfiguration) private _loanConfiguration;
     mapping(uint256 id => LoanPosition) private _positionMap;
+    mapping(bytes32 => address) private _hooks;
 
     address public override treasury;
 
@@ -78,6 +80,20 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable2S
         _mint(msg.sender, positionId);
     }
 
+    function _hook(
+        uint256 positionId,
+        address collateralToken,
+        address debtToken,
+        uint256 collateralAmount,
+        uint256 debtAmount,
+        Epoch expiredWith
+    ) internal {
+        address callback = _hooks[_buildLoanPairId(collateralToken, debtToken)];
+        if (callback != address(0)) {
+            ICouponPositionHook(callback).hook(positionId, collateralAmount, debtAmount, expiredWith);
+        }
+    }
+
     function adjustPosition(uint256 positionId, uint256 collateralAmount, uint256 debtAmount, Epoch expiredWith)
         external
         onlyByLocker
@@ -91,6 +107,7 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable2S
 
         if (oldPosition.expiredWith <= lastExpiredEpoch) oldPosition.expiredWith = lastExpiredEpoch;
 
+        _hook(positionId, oldPosition.collateralToken, oldPosition.debtToken, collateralAmount, debtAmount, expiredWith);
         _positionMap[positionId].collateralAmount = collateralAmount;
         _positionMap[positionId].debtAmount = debtAmount;
         _positionMap[positionId].expiredWith = debtAmount == 0 ? lastExpiredEpoch : expiredWith;
@@ -281,10 +298,19 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable2S
             position.debtAmount -= repayAmount;
             if (position.debtAmount == 0) {
                 position.expiredWith = currentEpoch.sub(1);
-                _positionMap[positionId].expiredWith = position.expiredWith;
             }
+
+            _hook(
+                positionId,
+                position.collateralToken,
+                position.debtToken,
+                position.collateralAmount,
+                position.debtAmount,
+                position.expiredWith
+            );
             _positionMap[positionId].collateralAmount = position.collateralAmount;
             _positionMap[positionId].debtAmount = position.debtAmount;
+            _positionMap[positionId].expiredWith = position.expiredWith;
 
             _accountDelta(uint256(uint160(position.collateralToken)), protocolFeeAmount, liquidationAmount);
             IAssetPool(assetPool).withdraw(position.collateralToken, protocolFeeAmount, treasury);
@@ -330,7 +356,8 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable2S
         uint32 liquidationThreshold,
         uint32 liquidationFee,
         uint32 liquidationProtocolFee,
-        uint32 liquidationTargetLtv
+        uint32 liquidationTargetLtv,
+        address hook
     ) external onlyOwner {
         if (
             liquidationThreshold >= _RATE_PRECISION || liquidationFee + liquidationTargetLtv >= _RATE_PRECISION
@@ -340,6 +367,7 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable2S
         bytes32 pairId = _buildLoanPairId(collateral, debt);
         if (_loanConfiguration[pairId].liquidationThreshold > 0) revert InvalidPair();
 
+        _hooks[pairId] = hook;
         _loanConfiguration[pairId] = LoanConfiguration({
             collateralDecimal: IERC20Metadata(collateral).decimals(),
             debtDecimal: IERC20Metadata(debt).decimals(),
@@ -349,7 +377,7 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable2S
             liquidationTargetLtv: liquidationTargetLtv
         });
         emit SetLoanConfiguration(
-            collateral, debt, liquidationThreshold, liquidationFee, liquidationProtocolFee, liquidationTargetLtv
+            collateral, debt, liquidationThreshold, liquidationFee, liquidationProtocolFee, liquidationTargetLtv, hook
         );
     }
 

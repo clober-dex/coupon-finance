@@ -55,8 +55,12 @@ library TestInitializer {
             "",
             "URI"
         );
-        p.loanPositionManager.setLoanConfiguration(address(p.usdc), address(p.weth), 800000, 20000, 5000, 700000);
-        p.loanPositionManager.setLoanConfiguration(address(p.weth), address(p.usdc), 800000, 20000, 5000, 700000);
+        p.loanPositionManager.setLoanConfiguration(
+            address(p.usdc), address(p.weth), 800000, 20000, 5000, 700000, address(0)
+        );
+        p.loanPositionManager.setLoanConfiguration(
+            address(p.weth), address(p.usdc), 800000, 20000, 5000, 700000, address(0)
+        );
 
         p.weth.approve(address(p.loanPositionManager), type(uint256).max);
         p.usdc.approve(address(p.loanPositionManager), type(uint256).max);

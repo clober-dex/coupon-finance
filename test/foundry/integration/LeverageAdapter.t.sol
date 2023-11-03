@@ -131,8 +131,12 @@ contract LeverageAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceive
             "loan/position/uri/",
             "URI"
         );
-        loanPositionManager.setLoanConfiguration(address(wausdc), address(waweth), 800000, 25000, 5000, 700000);
-        loanPositionManager.setLoanConfiguration(address(waweth), address(wausdc), 800000, 25000, 5000, 700000);
+        loanPositionManager.setLoanConfiguration(
+            address(wausdc), address(waweth), 800000, 25000, 5000, 700000, address(0)
+        );
+        loanPositionManager.setLoanConfiguration(
+            address(waweth), address(wausdc), 800000, 25000, 5000, 700000, address(0)
+        );
 
         borrowController = new BorrowController(
             Constants.WRAPPED1155_FACTORY,

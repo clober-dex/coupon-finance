@@ -204,7 +204,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
             amount,
             2,
             0,
-            _buildERC20PermitParams(1, IERC20Permit(Constants.USDC), address(depositController), amount)
+            _buildERC20PermitParams(1, IERC20Permit(Constants.USDC), address(depositController), amount - 100000)
         );
 
         BondPosition memory position = bondPositionManager.getPosition(tokenId);

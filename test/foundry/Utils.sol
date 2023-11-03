@@ -82,8 +82,7 @@ library Utils {
 
 library ForkUtils {
     function fork(Vm vm, uint256 blockNumber) public {
-        uint256 newFork =
-            vm.createFork(string.concat("https://arb-mainnet.g.alchemy.com/v2/", vm.envString("ALCHEMY_API_KEY")));
+        uint256 newFork = vm.createFork("https://arbitrum-one-archive-korea.allthatnode.com");
         vm.selectFork(newFork);
         vm.rollFork(blockNumber);
     }

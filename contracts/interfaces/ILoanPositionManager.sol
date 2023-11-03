@@ -26,7 +26,8 @@ interface ILoanPositionManagerTypes is IPositionManagerTypes {
         uint32 liquidationThreshold,
         uint32 liquidationFee,
         uint32 liquidationProtocolFee,
-        uint32 liquidationTargetLtv
+        uint32 liquidationTargetLtv,
+        address hook
     );
     event UpdatePosition(uint256 indexed positionId, uint256 collateralAmount, uint256 debtAmount, Epoch unlockedAt);
     event LiquidatePosition(
@@ -85,7 +86,8 @@ interface ILoanPositionManager is ILoanPositionManagerTypes, IPositionManager {
         uint32 liquidationThreshold,
         uint32 liquidationFee,
         uint32 liquidationProtocolFee,
-        uint32 liquidationTargetLtv
+        uint32 liquidationTargetLtv,
+        address hook
     ) external;
 
     function setTreasury(address newTreasury) external;
