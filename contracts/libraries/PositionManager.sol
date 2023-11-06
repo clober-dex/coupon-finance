@@ -126,7 +126,7 @@ abstract contract PositionManager is ERC721Permit, IPositionManager {
     }
 
     function _mintCoupons(address recipient, Coupon[] memory coupons, bytes memory data) internal {
-        ICouponManager(_couponManager).mintBatch(msg.sender, coupons, data);
+        ICouponManager(_couponManager).mintBatch(recipient, coupons, data);
     }
 
     function depositToken(address token, uint256 amount) external onlyByLocker {
