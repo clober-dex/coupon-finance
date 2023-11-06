@@ -82,7 +82,7 @@ library Utils {
 
 library ForkUtils {
     function fork(Vm vm, uint256 blockNumber) public {
-        uint256 newFork = vm.createFork("https://arbitrum-one-archive-korea.allthatnode.com");
+        uint256 newFork = vm.createFork(vm.envString("FORK_URL"));
         vm.selectFork(newFork);
         vm.rollFork(blockNumber);
     }
