@@ -1,5 +1,5 @@
 import { arbitrum, arbitrumGoerli } from '@wagmi/chains'
-import { BigNumber } from 'ethers'
+import { constants } from 'ethers'
 
 export const TESTNET_ID = 7777
 
@@ -130,6 +130,7 @@ export type LoanConfiguration = {
   liquidationFee: number
   liquidationProtocolFee: number
   liquidationTargetLtv: number
+  hook: string
 }
 
 const DEFAULT_LOAN_CONFIGURATION: LoanConfiguration = {
@@ -137,6 +138,7 @@ const DEFAULT_LOAN_CONFIGURATION: LoanConfiguration = {
   liquidationFee: 25000,
   liquidationProtocolFee: 5000,
   liquidationTargetLtv: 700000,
+  hook: constants.AddressZero,
 }
 
 const STABLE_LOAN_CONFIGURATION: LoanConfiguration = {
@@ -144,6 +146,7 @@ const STABLE_LOAN_CONFIGURATION: LoanConfiguration = {
   liquidationFee: 25000,
   liquidationProtocolFee: 5000,
   liquidationTargetLtv: 800000,
+  hook: constants.AddressZero,
 }
 
 const LOAN_CONFIGURATION: { [collateral: string]: { [debt: string]: LoanConfiguration } } = {}
