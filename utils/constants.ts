@@ -24,7 +24,7 @@ export const WRAPPED1155_FACTORY: { [chainId: number]: string } = {
 }
 
 export const TREASURY: { [chainId: number]: string } = {
-  [arbitrum.id]: '0x000000000000000000000000000000000000dEaD', // TODO: change this
+  [arbitrum.id]: '0x2f1707aed1fb24d07b9b42e4b0bc885f546b4f43',
   [arbitrumGoerli.id]: '0x000000000000000000000000000000000000dEaD',
   [TESTNET_ID]: '0x000000000000000000000000000000000000dEaD',
 }
