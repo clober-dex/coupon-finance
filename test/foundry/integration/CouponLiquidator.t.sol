@@ -20,7 +20,7 @@ import {ICouponOracle} from "../../../contracts/interfaces/ICouponOracle.sol";
 import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
 import {IController} from "../../../contracts/interfaces/IController.sol";
 import {IERC721Permit} from "../../../contracts/interfaces/IERC721Permit.sol";
-import {ILoanPositionManager} from "../../../contracts/interfaces/ILoanPositionManager.sol";
+import {ILoanPositionManager, ILoanPositionManagerTypes} from "../../../contracts/interfaces/ILoanPositionManager.sol";
 import {Coupon, CouponLibrary} from "../../../contracts/libraries/Coupon.sol";
 import {CouponKey, CouponKeyLibrary} from "../../../contracts/libraries/CouponKey.sol";
 import {Epoch, EpochLibrary} from "../../../contracts/libraries/Epoch.sol";
@@ -30,17 +30,17 @@ import {IWrapped1155Factory} from "../../../contracts/external/wrapped1155/IWrap
 import {CloberMarketFactory} from "../../../contracts/external/clober/CloberMarketFactory.sol";
 import {CloberMarketSwapCallbackReceiver} from "../../../contracts/external/clober/CloberMarketSwapCallbackReceiver.sol";
 import {CloberOrderBook} from "../../../contracts/external/clober/CloberOrderBook.sol";
-import {RepayAdapter} from "../../../contracts/RepayAdapter.sol";
 import {BorrowController} from "../../../contracts/BorrowController.sol";
-import {IRepayAdapter} from "../../../contracts/interfaces/IRepayAdapter.sol";
+import {IBorrowController} from "../../../contracts/interfaces/IBorrowController.sol";
 import {CouponManager} from "../../../contracts/CouponManager.sol";
 import {LoanPositionManager} from "../../../contracts/LoanPositionManager.sol";
 import {MockOracle} from "../mocks/MockOracle.sol";
 import {AssetPool} from "../../../contracts/AssetPool.sol";
 import {CouponOracle} from "../../../contracts/CouponOracle.sol";
 import {AaveTokenSubstitute} from "../../../contracts/AaveTokenSubstitute.sol";
+import {CouponLiquidator} from "../../../contracts/CouponLiquidator.sol";
 
-contract RepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiver, ERC1155Holder {
+contract CouponLiquidatorIntegrationTest is Test, CloberMarketSwapCallbackReceiver, ERC1155Holder {
     using Strings for *;
     using ERC20Utils for IERC20;
     using CouponKeyLibrary for CouponKey;
@@ -51,8 +51,8 @@ contract RepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiver, 
         keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
 
     IAssetPool public assetPool;
-    RepayAdapter public repayAdapter;
     BorrowController public borrowController;
+    CouponLiquidator public couponLiquidator;
     ILoanPositionManager public loanPositionManager;
     IWrapped1155Factory public wrapped1155Factory;
     ICouponManager public couponManager;
@@ -63,7 +63,8 @@ contract RepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiver, 
     AaveTokenSubstitute public wausdc;
     AaveTokenSubstitute public waweth;
     address public user;
-    IController.ERC20PermitParams public emptyPermitParams;
+    IController.ERC20PermitParams public emptyERC20PermitParams;
+    IController.PermitSignature public emptyERC721PermitParams;
 
     CouponKey[] public couponKeys;
     address[] public wrappedCoupons;
@@ -94,10 +95,10 @@ contract RepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiver, 
         cloberMarketFactory = CloberMarketFactory(Constants.CLOBER_FACTORY);
 
         wausdc = new AaveTokenSubstitute(
-            Constants.WETH, Constants.USDC, Constants.AAVE_V3_POOL, address(this), address(this)
+            Constants.WETH, Constants.USDC, Constants.AAVE_V3_POOL, address (this), address (this)
         );
         waweth = new AaveTokenSubstitute(
-            Constants.WETH, Constants.WETH, Constants.AAVE_V3_POOL, address(this), address(this)
+            Constants.WETH, Constants.WETH, Constants.AAVE_V3_POOL, address (this), address (this)
         );
 
         usdc.approve(address(wausdc), usdc.amount(3_000));
@@ -144,21 +145,15 @@ contract RepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiver, 
             Constants.WETH,
             address(loanPositionManager)
         );
-        repayAdapter = new RepayAdapter(
-            Constants.WRAPPED1155_FACTORY,
-            Constants.CLOBER_FACTORY,
-            address(couponManager),
-            Constants.WETH,
-            address(loanPositionManager),
-            Constants.ODOS_V2_SWAP_ROUTER
-        );
+
+        couponLiquidator =
+            new CouponLiquidator( address (loanPositionManager), Constants.ODOS_V2_SWAP_ROUTER, Constants.WETH);
+
         borrowController.giveManagerAllowance(address(wausdc));
         borrowController.giveManagerAllowance(address(waweth));
-        repayAdapter.giveManagerAllowance(address(wausdc));
-        repayAdapter.giveManagerAllowance(address(waweth));
 
-        wausdc.transfer(address(assetPool), usdc.amount(1_000));
-        waweth.transfer(address(assetPool), 1_000 ether);
+        wausdc.transfer(address(assetPool), usdc.amount(1_500));
+        waweth.transfer(address(assetPool), 1_500 ether);
 
         // create wrapped1155
         for (uint8 i = 0; i < 5; i++) {
@@ -192,7 +187,6 @@ contract RepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiver, 
                 1e10,
                 1001 * 1e15
             );
-            repayAdapter.setCouponMarket(couponKeys[i], market);
             borrowController.setCouponMarket(couponKeys[i], market);
         }
         _marketMake();
@@ -205,13 +199,13 @@ contract RepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiver, 
     function _marketMake() internal {
         for (uint256 i = 0; i < wrappedCoupons.length; ++i) {
             CouponKey memory key = couponKeys[i];
-            CloberOrderBook market = CloberOrderBook(repayAdapter.getCouponMarket(key));
+            CloberOrderBook market = CloberOrderBook(borrowController.getCouponMarket(key));
             (uint16 bidIndex,) = market.priceToIndex(1e18 / 100 * 2, false); // 2%
             (uint16 askIndex,) = market.priceToIndex(1e18 / 100 * 4, false); // 4%
             CloberOrderBook(market).limitOrder(
                 MARKET_MAKER, bidIndex, market.quoteToRaw(IERC20(key.asset).amount(1), false), 0, 3, ""
             );
-            uint256 amount = IERC20(wrappedCoupons[i]).amount(100000000);
+            uint256 amount = IERC20(wrappedCoupons[i]).amount(5000);
             Coupon[] memory coupons = Utils.toArr(Coupon(key, amount));
             couponManager.mintBatch(address(this), coupons, "");
             couponManager.safeBatchTransferFrom(
@@ -251,6 +245,44 @@ contract RepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiver, 
         );
     }
 
+    function testLiquidator() public {
+        uint256 positionId = _initialBorrow(user, address(wausdc), address(waweth), usdc.amount(700), 0.3 ether, 2);
+
+        LoanPosition memory loanPosition = loanPositionManager.getPosition(positionId);
+
+        vm.warp(loanPosition.expiredWith.endTime() + 1);
+
+        address feeRecipient = address(this);
+        uint256 beforeUSDCBalance = usdc.balanceOf(feeRecipient);
+        uint256 beforeWETHBalance = weth.balanceOf(feeRecipient);
+
+        address[] memory assets = new address[](3);
+        assets[0] = address(0xFEfC6BAF87cF3684058D62Da40Ff3A795946Ab06);
+        assets[1] = address(0x2a9e8fa175F45b235efDdD97d2727741EF4Eee63);
+        assets[2] = address(0);
+
+        uint256[] memory prices = new uint256[](3);
+        prices[0] = 100049934;
+        prices[1] = 184466348000;
+        prices[2] = 184466348000;
+
+        vm.mockCall(address(oracle), abi.encodeWithSignature("getAssetsPrices(address[])", assets), abi.encode(prices));
+        assertEq(oracle.getAssetsPrices(assets)[1], 184466348000, "MANIPULATE_ORACLE");
+
+        bytes memory data = fromHex(
+            string.concat(
+                "83bd37f90001af88d065e77c8cc2239327c5edb3a432268e5831000182af49447d8a07e3bd95bd0d56f35241523fbab1041dcd65000803c174ee39d2c08007ae1400017e3e803E966291EE9aA69e6FADa116cD07462E5D00000001",
+                this.remove0x(Strings.toHexString(address(couponLiquidator))),
+                "0000000103010204014386e4ac0b01000102000022010203020203ff0000000000000000006f38e884725a116c9c7fbf208e79fe8828a2595faf88d065e77c8cc2239327c5edb3a432268e583182af49447d8a07e3bd95bd0d56f35241523fbab100000000"
+            )
+        );
+
+        couponLiquidator.liquidate(positionId, 0.27 ether, data, feeRecipient);
+
+        assertEq(usdc.balanceOf(feeRecipient) - beforeUSDCBalance, 8022063, "USDC_BALANCE");
+        assertEq(weth.balanceOf(feeRecipient) - beforeWETHBalance, 626019140092032, "WETH_BALANCE");
+    }
+
     // Convert an hexadecimal character to their value
     function fromHexChar(uint8 c) public pure returns (uint8) {
         if (bytes1(c) >= bytes1("0") && bytes1(c) <= bytes1("9")) {
@@ -278,145 +310,6 @@ contract RepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiver, 
 
     function remove0x(string calldata s) external pure returns (string memory) {
         return s[2:];
-    }
-
-    function testRepayWithCollateral() public {
-        uint256 positionId = _initialBorrow(user, address(wausdc), address(waweth), usdc.amount(10000), 1 ether, 2);
-
-        uint256 beforeUSDCBalance = usdc.balanceOf(user);
-        uint256 beforeETHBalance = user.balance;
-        LoanPosition memory beforeLoanPosition = loanPositionManager.getPosition(positionId);
-        uint256 collateralAmount = usdc.amount(500);
-        uint256 maxDebtAmount = 0.75 ether;
-        bytes memory data = fromHex(
-            string.concat(
-                "83bd37f90001af88d065e77c8cc2239327c5edb3a432268e5831000182af49447d8a07e3bd95bd0d56f35241523fbab1041dcd65000803c174ee39d2c08007ae1400017e3e803E966291EE9aA69e6FADa116cD07462E5D00000001",
-                this.remove0x(Strings.toHexString(address(repayAdapter))),
-                "0000000103010204014386e4ac0b01000102000022010203020203ff0000000000000000006f38e884725a116c9c7fbf208e79fe8828a2595faf88d065e77c8cc2239327c5edb3a432268e583182af49447d8a07e3bd95bd0d56f35241523fbab100000000"
-            )
-        );
-
-        IController.PermitSignature memory permit721Params =
-            _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(repayAdapter), positionId);
-
-        vm.prank(user);
-        repayAdapter.repayWithCollateral(positionId, collateralAmount, 1 ether - maxDebtAmount, data, permit721Params);
-
-        LoanPosition memory afterLoanPosition = loanPositionManager.getPosition(positionId);
-
-        assertEq(usdc.balanceOf(user), beforeUSDCBalance, "USDC_BALANCE");
-        assertLe(user.balance, beforeETHBalance, "NATIVE_BALANCE");
-        assertEq(beforeLoanPosition.expiredWith, afterLoanPosition.expiredWith, "POSITION_EXPIRE_EPOCH");
-        assertEq(
-            beforeLoanPosition.collateralAmount - collateralAmount,
-            afterLoanPosition.collateralAmount,
-            "POSITION_COLLATERAL_AMOUNT"
-        );
-        assertLe(afterLoanPosition.debtAmount, maxDebtAmount, "POSITION_DEBT_AMOUNT");
-        assertGe(afterLoanPosition.debtAmount, 0.7 ether, "POSITION_DEBT_AMOUNT");
-        assertEq(beforeLoanPosition.collateralToken, afterLoanPosition.collateralToken, "POSITION_COLLATERAL_TOKEN");
-        assertEq(beforeLoanPosition.debtToken, afterLoanPosition.debtToken, "POSITION_DEBT_TOKEN");
-    }
-
-    function testRepayWithLeftCollateral() public {
-        uint256 positionId = _initialBorrow(user, address(wausdc), address(waweth), usdc.amount(10000), 1 ether, 2);
-
-        uint256 beforeUSDCBalance = usdc.balanceOf(user);
-        uint256 beforeETHBalance = user.balance;
-        LoanPosition memory beforeLoanPosition = loanPositionManager.getPosition(positionId);
-        uint256 collateralAmount = usdc.amount(5000);
-        uint256 maxDebtAmount = 0.75 ether;
-        bytes memory data = fromHex(
-            string.concat(
-                "83bd37f90001af88d065e77c8cc2239327c5edb3a432268e5831000182af49447d8a07e3bd95bd0d56f35241523fbab1041dcd65000803c174ee39d2c08007ae1400017e3e803E966291EE9aA69e6FADa116cD07462E5D00000001",
-                this.remove0x(Strings.toHexString(address(repayAdapter))),
-                "0000000103010204014386e4ac0b01000102000022010203020203ff0000000000000000006f38e884725a116c9c7fbf208e79fe8828a2595faf88d065e77c8cc2239327c5edb3a432268e583182af49447d8a07e3bd95bd0d56f35241523fbab100000000"
-            )
-        );
-
-        IController.PermitSignature memory permit721Params =
-            _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(repayAdapter), positionId);
-
-        vm.prank(user);
-        repayAdapter.repayWithCollateral(positionId, collateralAmount, 1 ether - maxDebtAmount, data, permit721Params);
-
-        LoanPosition memory afterLoanPosition = loanPositionManager.getPosition(positionId);
-
-        assertEq(usdc.balanceOf(user), beforeUSDCBalance, "USDC_BALANCE");
-        assertLe(user.balance, beforeETHBalance, "NATIVE_BALANCE");
-        assertEq(beforeLoanPosition.expiredWith, afterLoanPosition.expiredWith, "POSITION_EXPIRE_EPOCH");
-        assertEq(
-            beforeLoanPosition.collateralAmount - usdc.amount(500),
-            afterLoanPosition.collateralAmount,
-            "POSITION_COLLATERAL_AMOUNT"
-        );
-        assertLe(afterLoanPosition.debtAmount, maxDebtAmount, "POSITION_DEBT_AMOUNT");
-        assertGe(afterLoanPosition.debtAmount, 0.7 ether, "POSITION_DEBT_AMOUNT");
-        assertEq(beforeLoanPosition.collateralToken, afterLoanPosition.collateralToken, "POSITION_COLLATERAL_TOKEN");
-        assertEq(beforeLoanPosition.debtToken, afterLoanPosition.debtToken, "POSITION_DEBT_TOKEN");
-    }
-
-    function testRepayAllWithCollateral() public {
-        uint256 positionId = _initialBorrow(user, address(wausdc), address(waweth), usdc.amount(10000), 0.2 ether, 2);
-
-        uint256 beforeUSDCBalance = usdc.balanceOf(user);
-        uint256 beforeETHBalance = user.balance;
-        LoanPosition memory beforeLoanPosition = loanPositionManager.getPosition(positionId);
-        uint256 collateralAmount = usdc.amount(500);
-        uint256 maxDebtAmount = 0;
-        bytes memory data = fromHex(
-            string.concat(
-                "83bd37f90001af88d065e77c8cc2239327c5edb3a432268e5831000182af49447d8a07e3bd95bd0d56f35241523fbab1041dcd65000803c174ee39d2c08007ae1400017e3e803E966291EE9aA69e6FADa116cD07462E5D00000001",
-                this.remove0x(Strings.toHexString(address(repayAdapter))),
-                "0000000103010204014386e4ac0b01000102000022010203020203ff0000000000000000006f38e884725a116c9c7fbf208e79fe8828a2595faf88d065e77c8cc2239327c5edb3a432268e583182af49447d8a07e3bd95bd0d56f35241523fbab100000000"
-            )
-        );
-
-        IController.PermitSignature memory permit721Params =
-            _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(repayAdapter), positionId);
-
-        vm.prank(user);
-        repayAdapter.repayWithCollateral(positionId, collateralAmount, 0.2 ether - maxDebtAmount, data, permit721Params);
-
-        LoanPosition memory afterLoanPosition = loanPositionManager.getPosition(positionId);
-
-        assertEq(usdc.balanceOf(user), beforeUSDCBalance, "USDC_BALANCE");
-        assertGe(user.balance, beforeETHBalance, "NATIVE_BALANCE");
-        assertEq(Epoch.wrap(106), afterLoanPosition.expiredWith, "POSITION_EXPIRE_EPOCH");
-        assertEq(
-            beforeLoanPosition.collateralAmount - usdc.amount(500),
-            afterLoanPosition.collateralAmount,
-            "POSITION_COLLATERAL_AMOUNT"
-        );
-        assertLe(afterLoanPosition.debtAmount, maxDebtAmount, "POSITION_DEBT_AMOUNT");
-        assertEq(beforeLoanPosition.collateralToken, afterLoanPosition.collateralToken, "POSITION_COLLATERAL_TOKEN");
-        assertEq(beforeLoanPosition.debtToken, afterLoanPosition.debtToken, "POSITION_DEBT_TOKEN");
-    }
-
-    function testRepayWhenSmallDebt() public {
-        uint256 positionId = _initialBorrow(user, address(waweth), address(wausdc), 1 ether, usdc.amount(20), 2);
-
-        address[] memory assets = new address[](2);
-        assets[0] = address(0xFEfC6BAF87cF3684058D62Da40Ff3A795946Ab06);
-        assets[1] = address(0);
-
-        uint256[] memory prices = new uint256[](2);
-        prices[0] = 100000000;
-        prices[1] = 1000000000000;
-
-        vm.mockCall(address(oracle), abi.encodeWithSignature("getAssetsPrices(address[])", assets), abi.encode(prices));
-        assertEq(oracle.getAssetsPrices(assets)[1], 1000000000000, "MANIPULATE_ORACLE");
-
-        bytes memory data;
-
-        IController.PermitSignature memory permit721Params =
-            _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(repayAdapter), positionId);
-
-        vm.startPrank(user);
-        usdc.approve(address(repayAdapter), 7000000);
-        vm.expectRevert(abi.encodeWithSelector(IController.ControllerSlippage.selector));
-        repayAdapter.repayWithCollateral(positionId, 0.01 ether, 0, data, permit721Params);
-        vm.stopPrank();
     }
 
     function _buildERC20PermitParams(

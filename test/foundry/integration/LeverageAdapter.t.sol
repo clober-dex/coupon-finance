@@ -38,7 +38,7 @@ import {MockOracle} from "../mocks/MockOracle.sol";
 import {AssetPool} from "../../../contracts/AssetPool.sol";
 import {CouponOracle} from "../../../contracts/CouponOracle.sol";
 import {AaveTokenSubstitute} from "../../../contracts/AaveTokenSubstitute.sol";
-import "../../../contracts/LeverageAdapter.sol";
+import {LeverageAdapter} from "../../../contracts/LeverageAdapter.sol";
 
 contract LeverageAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiver, ERC1155Holder {
     using Strings for *;
