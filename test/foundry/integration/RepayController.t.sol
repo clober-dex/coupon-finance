@@ -400,11 +400,11 @@ contract RepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiver, 
         assets[0] = address(0xFEfC6BAF87cF3684058D62Da40Ff3A795946Ab06);
         assets[1] = address(0);
 
-        uint256[] memory price = new uint256[](2);
-        price[0] = 100000000;
-        price[1] = 1000000000000;
+        uint256[] memory prices = new uint256[](2);
+        prices[0] = 100000000;
+        prices[1] = 1000000000000;
 
-        vm.mockCall(address(oracle), abi.encodeWithSignature("getAssetsPrices(address[])", assets), abi.encode(price));
+        vm.mockCall(address(oracle), abi.encodeWithSignature("getAssetsPrices(address[])", assets), abi.encode(prices));
         assertEq(oracle.getAssetsPrices(assets)[1], 1000000000000, "MANIPULATE_ORACLE");
 
         bytes memory data;
