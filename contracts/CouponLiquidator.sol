@@ -79,4 +79,6 @@ contract CouponLiquidator is ICouponLiquidator, IPositionLocker {
         if (leftAmount == 0) return;
         ISubstitute(substitute).burn(leftAmount, to);
     }
+
+    receive() external payable {}
 }
