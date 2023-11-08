@@ -16,12 +16,12 @@ import {ICouponLiquidator} from "./interfaces/ICouponLiquidator.sol";
 contract CouponLiquidator is ICouponLiquidator, IPositionLocker {
     using SafeERC20 for IERC20;
 
-    ILoanPositionManager private immutable _loanManager;
+    ILoanPositionManager private immutable _loanPositionManager;
     address private immutable _router;
     IWETH9 internal immutable _weth;
 
-    constructor(address loanManager, address router, address weth) {
-        _loanManager = ILoanPositionManager(loanManager);
+    constructor(address loanPositionManager, address router, address weth) {
+        _loanPositionManager = ILoanPositionManager(loanPositionManager);
         _router = router;
         _weth = IWETH9(weth);
     }
@@ -29,12 +29,12 @@ contract CouponLiquidator is ICouponLiquidator, IPositionLocker {
     function positionLockAcquired(bytes memory data) external returns (bytes memory) {
         (uint256 positionId, uint256 swapAmount, bytes memory swapData) = abi.decode(data, (uint256, uint256, bytes));
 
-        LoanPosition memory position = _loanManager.getPosition(positionId);
+        LoanPosition memory position = _loanPositionManager.getPosition(positionId);
         (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount) =
-            _loanManager.liquidate(positionId, swapAmount);
+            _loanPositionManager.liquidate(positionId, swapAmount);
 
         uint256 collateralAmount = liquidationAmount - protocolFeeAmount;
-        _loanManager.withdrawToken(position.collateralToken, address(this), collateralAmount);
+        _loanPositionManager.withdrawToken(position.collateralToken, address(this), collateralAmount);
         _burnAllSubstitute(position.collateralToken, address(this));
 
         address inToken = ISubstitute(position.collateralToken).underlyingToken();
@@ -46,15 +46,16 @@ contract CouponLiquidator is ICouponLiquidator, IPositionLocker {
         _swap(inToken, swapAmount, swapData);
         IERC20(outToken).approve(position.debtToken, repayAmount);
         ISubstitute(position.debtToken).mint(repayAmount, address(this));
-        IERC20(position.debtToken).approve(address(_loanManager), repayAmount);
-        _loanManager.depositToken(position.debtToken, repayAmount);
+        IERC20(position.debtToken).approve(address(_loanPositionManager), repayAmount);
+        _loanPositionManager.depositToken(position.debtToken, repayAmount);
 
         return abi.encode(inToken, outToken);
     }
 
     function liquidate(uint256 positionId, uint256 swapAmount, bytes memory swapData, address feeRecipient) external {
         bytes memory lockData = abi.encode(positionId, swapAmount, swapData);
-        (address collateralToken, address debtToken) = abi.decode(_loanManager.lock(lockData), (address, address));
+        (address collateralToken, address debtToken) =
+            abi.decode(_loanPositionManager.lock(lockData), (address, address));
 
         uint256 collateralAmount = IERC20(collateralToken).balanceOf(address(this));
         if (collateralAmount > 0) {

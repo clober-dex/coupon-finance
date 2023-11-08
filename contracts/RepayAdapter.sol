@@ -19,11 +19,11 @@ import {Epoch, EpochLibrary} from "./libraries/Epoch.sol";
 contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
     using EpochLibrary for Epoch;
 
-    ILoanPositionManager private immutable _loanManager;
+    ILoanPositionManager private immutable _loanPositionManager;
     address private immutable _router;
 
     modifier onlyPositionOwner(uint256 positionId) {
-        if (_loanManager.ownerOf(positionId) != msg.sender) revert InvalidAccess();
+        if (_loanPositionManager.ownerOf(positionId) != msg.sender) revert InvalidAccess();
         _;
     }
 
@@ -32,25 +32,26 @@ contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
         address cloberMarketFactory,
         address couponManager,
         address weth,
-        address loanManager,
+        address loanPositionManager,
         address router
     ) Controller(wrapped1155Factory, cloberMarketFactory, couponManager, weth) {
-        _loanManager = ILoanPositionManager(loanManager);
+        _loanPositionManager = ILoanPositionManager(loanPositionManager);
         _router = router;
     }
 
     function positionLockAcquired(bytes memory data) external returns (bytes memory) {
-        if (msg.sender != address(_loanManager)) revert InvalidAccess();
+        if (msg.sender != address(_loanPositionManager)) revert InvalidAccess();
 
         (uint256 positionId, address user, uint256 sellCollateralAmount, uint256 minRepayAmount, bytes memory swapData)
         = abi.decode(data, (uint256, address, uint256, uint256, bytes));
-        LoanPosition memory position = _loanManager.getPosition(positionId);
+        LoanPosition memory position = _loanPositionManager.getPosition(positionId);
         uint256 maxDebtAmount = position.debtAmount - minRepayAmount;
 
-        _loanManager.withdrawToken(position.collateralToken, address(this), sellCollateralAmount);
+        _loanPositionManager.withdrawToken(position.collateralToken, address(this), sellCollateralAmount);
         (uint256 leftCollateralAmount, uint256 repayDebtAmount) =
             _swapCollateral(position.collateralToken, position.debtToken, sellCollateralAmount, swapData);
-        _loanManager.depositToken(position.collateralToken, leftCollateralAmount);
+        IERC20(position.collateralToken).approve(address(_loanPositionManager), leftCollateralAmount);
+        _loanPositionManager.depositToken(position.collateralToken, leftCollateralAmount);
         position.collateralAmount = position.collateralAmount + leftCollateralAmount - sellCollateralAmount;
 
         Epoch lastExpiredEpoch = EpochLibrary.lastExpiredEpoch();
@@ -65,7 +66,7 @@ contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
             uint256 minDebtAmount = _getMinDebtAmount(position.debtToken);
             if (0 < remainingDebtAmount && remainingDebtAmount < minDebtAmount) remainingDebtAmount = minDebtAmount;
 
-            (couponsToMint, couponsToBurn,,) = _loanManager.adjustPosition(
+            (couponsToMint, couponsToBurn,,) = _loanPositionManager.adjustPosition(
                 positionId,
                 position.collateralAmount,
                 remainingDebtAmount,
@@ -73,7 +74,7 @@ contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
             );
 
             if (couponsToMint.length > 0) {
-                _loanManager.mintCoupons(couponsToMint, address(this), "");
+                _loanPositionManager.mintCoupons(couponsToMint, address(this), "");
                 _wrapCoupons(couponsToMint);
             }
 
@@ -93,24 +94,26 @@ contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
             if (remainingDebtAmount > 0 && remainingDebtAmount < minDebtAmount) remainingDebtAmount = minDebtAmount;
             if (maxDebtAmount < remainingDebtAmount) revert ControllerSlippage();
 
-            _loanManager.depositToken(position.debtToken, position.debtAmount - remainingDebtAmount);
+            uint256 depositAmount = position.debtAmount - remainingDebtAmount;
+            IERC20(position.debtToken).approve(address(_loanPositionManager), depositAmount);
+            _loanPositionManager.depositToken(position.debtToken, depositAmount);
             position.debtAmount = remainingDebtAmount;
         }
 
-        (couponsToMint,,,) = _loanManager.adjustPosition(
+        (couponsToMint,,,) = _loanPositionManager.adjustPosition(
             positionId,
             position.collateralAmount,
             position.debtAmount,
             position.debtAmount == 0 ? lastExpiredEpoch : position.expiredWith
         );
-        _loanManager.mintCoupons(couponsToMint, user, "");
+        _loanPositionManager.mintCoupons(couponsToMint, user, "");
         if (couponsToBurn.length > 0) {
             _unwrapCoupons(couponsToBurn);
-            _loanManager.burnCoupons(couponsToBurn);
+            _loanPositionManager.burnCoupons(couponsToBurn);
         }
 
         _burnAllSubstitute(position.debtToken, user);
-        _loanManager.settlePosition(positionId);
+        _loanPositionManager.settlePosition(positionId);
 
         return "";
     }
@@ -122,8 +125,8 @@ contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
         bytes memory swapData,
         PermitSignature calldata positionPermitParams
     ) external nonReentrant onlyPositionOwner(positionId) {
-        _permitERC721(_loanManager, positionId, positionPermitParams);
-        _loanManager.lock(abi.encode(positionId, msg.sender, sellCollateralAmount, minRepayAmount, swapData));
+        _permitERC721(_loanPositionManager, positionId, positionPermitParams);
+        _loanPositionManager.lock(abi.encode(positionId, msg.sender, sellCollateralAmount, minRepayAmount, swapData));
     }
 
     function _swapCollateral(address collateral, address debt, uint256 inAmount, bytes memory swapData)
@@ -160,8 +163,8 @@ contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
 
             uint256 debtDecimal = IERC20Metadata(debtToken).decimals();
 
-            uint256[] memory prices = ICouponOracle(_loanManager.oracle()).getAssetsPrices(assets);
-            minDebtAmount = _loanManager.minDebtValueInEth() * prices[1];
+            uint256[] memory prices = ICouponOracle(_loanPositionManager.oracle()).getAssetsPrices(assets);
+            minDebtAmount = _loanPositionManager.minDebtValueInEth() * prices[1];
             if (debtDecimal > 18) {
                 minDebtAmount *= 10 ** (debtDecimal - 18);
             } else {
@@ -169,9 +172,5 @@ contract RepayAdapter is IRepayAdapter, Controller, IPositionLocker {
             }
             minDebtAmount /= prices[0];
         }
-    }
-
-    function manager() public view override returns (address) {
-        return address(_loanManager);
     }
 }
