@@ -44,14 +44,18 @@ contract CouponLiquidator is ICouponLiquidator, Ownable2Step, ReentrancyGuard, I
         _swap(inToken, maxRepayAmount, swapData);
         IERC20(outToken).approve(position.debtToken, repayAmount);
         ISubstitute(position.debtToken).mint(repayAmount, address(this));
+        IERC20(position.debtToken).approve(address(_loanManager), repayAmount);
         _loanManager.depositToken(position.debtToken, repayAmount);
 
         return "";
     }
 
-    function liquidate(uint256 positionId, uint256 maxRepayAmount, bytes memory swapData) external {
+    function liquidate(uint256 positionId, uint256 maxRepayAmount, bytes memory swapData)
+        external
+        returns (bytes memory result)
+    {
         bytes memory lockData = abi.encode(positionId, maxRepayAmount, swapData);
-        bytes memory result = _loanManager.lock(lockData);
+        result = _loanManager.lock(lockData);
     }
 
     function collectFee(address token, address recipient) external onlyOwner {
