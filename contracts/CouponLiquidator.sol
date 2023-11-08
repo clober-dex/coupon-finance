@@ -52,10 +52,7 @@ contract CouponLiquidator is ICouponLiquidator, IPositionLocker {
         return abi.encode(inToken, outToken);
     }
 
-    function liquidate(uint256 positionId, uint256 swapAmount, bytes memory swapData, address feeRecipient)
-        external
-        returns (bytes memory result)
-    {
+    function liquidate(uint256 positionId, uint256 swapAmount, bytes memory swapData, address feeRecipient) external {
         bytes memory lockData = abi.encode(positionId, swapAmount, swapData);
         (address collateralToken, address debtToken) = abi.decode(_loanManager.lock(lockData), (address, address));
 
@@ -68,8 +65,6 @@ contract CouponLiquidator is ICouponLiquidator, IPositionLocker {
         if (debtAmount > 0) {
             IERC20(debtToken).safeTransfer(feeRecipient, debtAmount);
         }
-
-        return "";
     }
 
     function _swap(address inToken, uint256 inAmount, bytes memory swapData) internal {
