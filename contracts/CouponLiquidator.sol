@@ -5,7 +5,6 @@ pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 import {LoanPosition} from "./libraries/LoanPosition.sol";
 import {IWETH9} from "./external/weth/IWETH9.sol";
@@ -13,9 +12,8 @@ import {ISubstitute} from "./interfaces/ISubstitute.sol";
 import {ILoanPositionManager} from "./interfaces/ILoanPositionManager.sol";
 import {IPositionLocker} from "./interfaces/IPositionLocker.sol";
 import {ICouponLiquidator} from "./interfaces/ICouponLiquidator.sol";
-import {ReentrancyGuard} from "./libraries/ReentrancyGuard.sol";
 
-contract CouponLiquidator is ICouponLiquidator, Ownable2Step, ReentrancyGuard, IPositionLocker {
+contract CouponLiquidator is ICouponLiquidator, IPositionLocker {
     using SafeERC20 for IERC20;
 
     ILoanPositionManager private immutable _loanManager;
