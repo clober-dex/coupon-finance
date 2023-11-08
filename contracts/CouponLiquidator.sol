@@ -54,8 +54,8 @@ contract CouponLiquidator is ICouponLiquidator, Ownable2Step, ReentrancyGuard, I
         bytes memory result = _loanManager.lock(lockData);
     }
 
-    function collectFee(address token) external onlyOwner {
-        IERC20(token).safeTransfer(msg.sender, IERC20(token).balanceOf(address(this)));
+    function collectFee(address token, address recipient) external onlyOwner {
+        IERC20(token).safeTransfer(recipient, IERC20(token).balanceOf(address(this)));
     }
 
     function _swap(address inToken, uint256 inAmount, bytes memory swapData) internal {
