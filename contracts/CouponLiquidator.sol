@@ -41,7 +41,7 @@ contract CouponLiquidator is ICouponLiquidator, Ownable2Step, ReentrancyGuard, I
 
         address inToken = ISubstitute(position.collateralToken).underlyingToken();
         address outToken = ISubstitute(position.debtToken).underlyingToken();
-        _swap(inToken, maxRepayAmount, outToken, swapData);
+        _swap(inToken, maxRepayAmount, swapData);
         IERC20(outToken).approve(position.debtToken, repayAmount);
         ISubstitute(position.debtToken).mint(repayAmount, address(this));
         _loanManager.depositToken(position.debtToken, repayAmount);
@@ -58,7 +58,7 @@ contract CouponLiquidator is ICouponLiquidator, Ownable2Step, ReentrancyGuard, I
         IERC20(token).safeTransfer(msg.sender, IERC20(token).balanceOf(address(this)));
     }
 
-    function _swap(address inToken, uint256 inAmount, address outToken, bytes memory swapData) internal {
+    function _swap(address inToken, uint256 inAmount, bytes memory swapData) internal {
         IERC20(inToken).approve(_router, inAmount);
         (bool success, bytes memory result) = _router.call(swapData);
         if (!success) revert CollateralSwapFailed(string(result));
