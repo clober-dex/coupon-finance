@@ -6,6 +6,5 @@ interface ICouponLiquidator {
     error CollateralSwapFailed(string reason);
 
     function liquidate(uint256 positionId, uint256 swapAmount, bytes memory swapData, address feeRecipient)
-        external
-        returns (bytes memory result);
+        external;
 }
