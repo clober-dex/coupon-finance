@@ -35,6 +35,18 @@ export const REPAY_ROUTER: { [chainId: number]: string } = {
   [TESTNET_ID]: '0x14ebF62788361C17A9Fd44f222ecfF1DC75398F4',
 }
 
+export const LEVERAGE_ROUTER: { [chainId: number]: string } = {
+  [arbitrum.id]: '0xa669e7A0d4b3e4Fa48af2dE86BD4CD7126Be4e13',
+  [arbitrumGoerli.id]: '0xbe83C53499C676dAB038db0E2CAd3E69a3d5CdFC',
+  [TESTNET_ID]: '0x14ebF62788361C17A9Fd44f222ecfF1DC75398F4',
+}
+
+export const LIQUIDATOR_ROUTER: { [chainId: number]: string } = {
+  [arbitrum.id]: '0xa669e7A0d4b3e4Fa48af2dE86BD4CD7126Be4e13',
+  [arbitrumGoerli.id]: '0xbe83C53499C676dAB038db0E2CAd3E69a3d5CdFC',
+  [TESTNET_ID]: '0x14ebF62788361C17A9Fd44f222ecfF1DC75398F4',
+}
+
 export const CHAINLINK_SEQUENCER_ORACLE: { [chainId: number]: string } = {
   [arbitrum.id]: '0xFdB631F5EE196F0ed6FAa767959853A9F217697D',
   [TESTNET_ID]: '0xFdB631F5EE196F0ed6FAa767959853A9F217697D',
