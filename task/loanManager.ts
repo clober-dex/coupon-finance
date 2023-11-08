@@ -24,6 +24,7 @@ task('loan:set-configuration')
           configuration.liquidationFee,
           configuration.liquidationProtocolFee,
           configuration.liquidationTargetLtv,
+          configuration.hook,
         ),
       )
       console.log('Registered pair at tx', receipt.transactionHash)

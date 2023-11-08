@@ -1,5 +1,5 @@
 import { arbitrum, arbitrumGoerli } from '@wagmi/chains'
-import { BigNumber } from 'ethers'
+import { constants } from 'ethers'
 
 export const TESTNET_ID = 7777
 
@@ -24,12 +24,24 @@ export const WRAPPED1155_FACTORY: { [chainId: number]: string } = {
 }
 
 export const TREASURY: { [chainId: number]: string } = {
-  [arbitrum.id]: '0x000000000000000000000000000000000000dEaD', // TODO: change this
+  [arbitrum.id]: '0x2f1707aed1fb24d07b9b42e4b0bc885f546b4f43',
   [arbitrumGoerli.id]: '0x000000000000000000000000000000000000dEaD',
   [TESTNET_ID]: '0x000000000000000000000000000000000000dEaD',
 }
 
 export const REPAY_ROUTER: { [chainId: number]: string } = {
+  [arbitrum.id]: '0xa669e7A0d4b3e4Fa48af2dE86BD4CD7126Be4e13',
+  [arbitrumGoerli.id]: '0xbe83C53499C676dAB038db0E2CAd3E69a3d5CdFC',
+  [TESTNET_ID]: '0x14ebF62788361C17A9Fd44f222ecfF1DC75398F4',
+}
+
+export const LEVERAGE_ROUTER: { [chainId: number]: string } = {
+  [arbitrum.id]: '0xa669e7A0d4b3e4Fa48af2dE86BD4CD7126Be4e13',
+  [arbitrumGoerli.id]: '0xbe83C53499C676dAB038db0E2CAd3E69a3d5CdFC',
+  [TESTNET_ID]: '0x14ebF62788361C17A9Fd44f222ecfF1DC75398F4',
+}
+
+export const LIQUIDATOR_ROUTER: { [chainId: number]: string } = {
   [arbitrum.id]: '0xa669e7A0d4b3e4Fa48af2dE86BD4CD7126Be4e13',
   [arbitrumGoerli.id]: '0xbe83C53499C676dAB038db0E2CAd3E69a3d5CdFC',
   [TESTNET_ID]: '0x14ebF62788361C17A9Fd44f222ecfF1DC75398F4',
@@ -52,7 +64,9 @@ export const SEQUENCER_GRACE_PERIOD: { [chainId: number]: number } = {
 
 export const TOKEN_KEYS = {
   WETH: 'WETH',
+  wstETH: 'wstETH',
   USDC: 'USDC',
+  USDCe: 'USDC.e',
   DAI: 'DAI',
   USDT: 'USDT',
   WBTC: 'WBTC',
@@ -63,7 +77,9 @@ const STABLES = [TOKEN_KEYS.USDC, TOKEN_KEYS.DAI, TOKEN_KEYS.USDT]
 export const TOKENS: { [chainId: number]: { [name: string]: string } } = {
   [arbitrum.id]: {
     [TOKEN_KEYS.WETH]: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
+    [TOKEN_KEYS.wstETH]: '0x5979D7b546E38E414F7E9822514be443A4800529',
     [TOKEN_KEYS.USDC]: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    [TOKEN_KEYS.USDCe]: '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8',
     [TOKEN_KEYS.DAI]: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1',
     [TOKEN_KEYS.USDT]: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
     [TOKEN_KEYS.WBTC]: '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f',
@@ -77,6 +93,7 @@ export const TOKENS: { [chainId: number]: { [name: string]: string } } = {
   },
   [TESTNET_ID]: {
     [TOKEN_KEYS.WETH]: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
+    [TOKEN_KEYS.wstETH]: '0x5979D7b546E38E414F7E9822514be443A4800529',
     [TOKEN_KEYS.USDC]: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
     [TOKEN_KEYS.DAI]: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1',
     [TOKEN_KEYS.USDT]: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
@@ -87,7 +104,9 @@ export const TOKENS: { [chainId: number]: { [name: string]: string } } = {
 export const CHAINLINK_FEEDS: { [chainId: number]: { [name: string]: string[] } } = {
   [arbitrum.id]: {
     [TOKEN_KEYS.WETH]: ['0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612'],
+    [TOKEN_KEYS.wstETH]: ['0xb523ae262d20a936bc152e6023996e46fdc2a95d', '0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612'],
     [TOKEN_KEYS.USDC]: ['0x50834F3163758fcC1Df9973b6e91f0F0F0434aD3'],
+    [TOKEN_KEYS.USDCe]: ['0x50834F3163758fcC1Df9973b6e91f0F0F0434aD3'],
     [TOKEN_KEYS.DAI]: ['0xc5C8E77B397E531B8EC06BFb0048328B30E9eCfB'],
     [TOKEN_KEYS.USDT]: ['0x3f3f5dF88dC9F13eac63DF89EC16ef6e7E25DdE7'],
     [TOKEN_KEYS.WBTC]: ['0x6ce185860a4963106506C203335A2910413708e9'],
@@ -109,6 +128,7 @@ export const CHAINLINK_FEEDS: { [chainId: number]: { [name: string]: string[] } 
 }
 
 export const AAVE_SUBSTITUTES: { [chainId: number]: { [name: string]: string } } = {
+  [arbitrum.id]: {},
   [arbitrumGoerli.id]: {
     [TOKEN_KEYS.WETH]: '0x37FD1b14Ba333889bC6683D7ADec9c1aE11F3227',
     [TOKEN_KEYS.USDC]: '0x6E11A012910819E0855a2505B48A5C1562BE9981',
@@ -130,6 +150,7 @@ export type LoanConfiguration = {
   liquidationFee: number
   liquidationProtocolFee: number
   liquidationTargetLtv: number
+  hook: string
 }
 
 const DEFAULT_LOAN_CONFIGURATION: LoanConfiguration = {
@@ -137,6 +158,7 @@ const DEFAULT_LOAN_CONFIGURATION: LoanConfiguration = {
   liquidationFee: 25000,
   liquidationProtocolFee: 5000,
   liquidationTargetLtv: 700000,
+  hook: constants.AddressZero,
 }
 
 const STABLE_LOAN_CONFIGURATION: LoanConfiguration = {
@@ -144,6 +166,7 @@ const STABLE_LOAN_CONFIGURATION: LoanConfiguration = {
   liquidationFee: 25000,
   liquidationProtocolFee: 5000,
   liquidationTargetLtv: 800000,
+  hook: constants.AddressZero,
 }
 
 const LOAN_CONFIGURATION: { [collateral: string]: { [debt: string]: LoanConfiguration } } = {}
