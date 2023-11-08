@@ -252,6 +252,10 @@ contract CouponLiquidatorIntegrationTest is Test, CloberMarketSwapCallbackReceiv
 
         vm.warp(loanPosition.expiredWith.endTime() + 1);
 
+        address feeRecipient = address(this);
+        uint256 beforeUSDCBalance = usdc.balanceOf(feeRecipient);
+        uint256 beforeWETHBalance = weth.balanceOf(feeRecipient);
+
         address[] memory assets = new address[](3);
         assets[0] = address(0xFEfC6BAF87cF3684058D62Da40Ff3A795946Ab06);
         assets[1] = address(0x2a9e8fa175F45b235efDdD97d2727741EF4Eee63);
@@ -273,7 +277,10 @@ contract CouponLiquidatorIntegrationTest is Test, CloberMarketSwapCallbackReceiv
             )
         );
 
-        couponLiquidator.liquidate(positionId, 0.27 ether, data);
+        couponLiquidator.liquidate(positionId, 0.27 ether, data, feeRecipient);
+
+        assertEq(usdc.balanceOf(feeRecipient) - beforeUSDCBalance, 8022063, "USDC_BALANCE");
+        assertEq(weth.balanceOf(feeRecipient) - beforeWETHBalance, 626019140092032, "WETH_BALANCE");
     }
 
     // Convert an hexadecimal character to their value

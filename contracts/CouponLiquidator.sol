@@ -29,37 +29,49 @@ contract CouponLiquidator is ICouponLiquidator, Ownable2Step, ReentrancyGuard, I
     }
 
     function positionLockAcquired(bytes memory data) external returns (bytes memory) {
-        (uint256 positionId, uint256 maxRepayAmount, bytes memory swapData) =
-            abi.decode(data, (uint256, uint256, bytes));
+        (uint256 positionId, uint256 swapAmount, bytes memory swapData) = abi.decode(data, (uint256, uint256, bytes));
 
         LoanPosition memory position = _loanManager.getPosition(positionId);
         (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount) =
-            _loanManager.liquidate(positionId, maxRepayAmount);
+            _loanManager.liquidate(positionId, swapAmount);
 
-        _loanManager.withdrawToken(position.collateralToken, address(this), liquidationAmount - protocolFeeAmount);
+        uint256 collateralAmount = liquidationAmount - protocolFeeAmount;
+        _loanManager.withdrawToken(position.collateralToken, address(this), collateralAmount);
         _burnAllSubstitute(position.collateralToken, address(this));
 
         address inToken = ISubstitute(position.collateralToken).underlyingToken();
         address outToken = ISubstitute(position.debtToken).underlyingToken();
-        _swap(inToken, maxRepayAmount, swapData);
+        if (inToken == address(_weth)) {
+            _weth.deposit{value: collateralAmount}();
+        }
+
+        _swap(inToken, swapAmount, swapData);
         IERC20(outToken).approve(position.debtToken, repayAmount);
         ISubstitute(position.debtToken).mint(repayAmount, address(this));
         IERC20(position.debtToken).approve(address(_loanManager), repayAmount);
         _loanManager.depositToken(position.debtToken, repayAmount);
 
-        return "";
+        return abi.encode(inToken, outToken);
     }
 
-    function liquidate(uint256 positionId, uint256 maxRepayAmount, bytes memory swapData)
+    function liquidate(uint256 positionId, uint256 swapAmount, bytes memory swapData, address feeRecipient)
         external
         returns (bytes memory result)
     {
-        bytes memory lockData = abi.encode(positionId, maxRepayAmount, swapData);
-        result = _loanManager.lock(lockData);
-    }
+        bytes memory lockData = abi.encode(positionId, swapAmount, swapData);
+        (address collateralToken, address debtToken) = abi.decode(_loanManager.lock(lockData), (address, address));
 
-    function collectFee(address token, address recipient) external onlyOwner {
-        IERC20(token).safeTransfer(recipient, IERC20(token).balanceOf(address(this)));
+        uint256 collateralAmount = IERC20(collateralToken).balanceOf(address(this));
+        if (collateralAmount > 0) {
+            IERC20(collateralToken).safeTransfer(feeRecipient, collateralAmount);
+        }
+
+        uint256 debtAmount = IERC20(debtToken).balanceOf(address(this));
+        if (debtAmount > 0) {
+            IERC20(debtToken).safeTransfer(feeRecipient, debtAmount);
+        }
+
+        return "";
     }
 
     function _swap(address inToken, uint256 inAmount, bytes memory swapData) internal {

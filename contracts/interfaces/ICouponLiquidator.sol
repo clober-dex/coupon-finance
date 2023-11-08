@@ -5,9 +5,7 @@ pragma solidity ^0.8.0;
 interface ICouponLiquidator {
     error CollateralSwapFailed(string reason);
 
-    function liquidate(uint256 positionId, uint256 maxRepayAmount, bytes memory swapData)
+    function liquidate(uint256 positionId, uint256 swapAmount, bytes memory swapData, address feeRecipient)
         external
         returns (bytes memory result);
-
-    function collectFee(address token, address recipient) external;
 }
