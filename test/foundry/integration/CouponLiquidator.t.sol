@@ -149,9 +149,6 @@ contract CouponLiquidatorIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         couponLiquidator =
             new CouponLiquidator( address (loanPositionManager), Constants.ODOS_V2_SWAP_ROUTER, Constants.WETH);
 
-        borrowController.giveManagerAllowance(address(wausdc));
-        borrowController.giveManagerAllowance(address(waweth));
-
         wausdc.transfer(address(assetPool), usdc.amount(1_500));
         waweth.transfer(address(assetPool), 1_500 ether);
 

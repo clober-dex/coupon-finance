@@ -145,7 +145,6 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
                 1e10,
                 1001 * 1e15
             );
-            depositController.giveManagerAllowance(couponKeys[i].asset);
             depositController.setCouponMarket(couponKeys[i], market);
         }
         _marketMake();

@@ -17,12 +17,9 @@ interface IController {
         bytes32 s;
     }
 
-    event SetManagerAllowance(address indexed token);
     event SetCouponMarket(address indexed asset, Epoch indexed epoch, address indexed cloberMarket);
 
     error InvalidAccess();
     error InvalidMarket();
     error ControllerSlippage();
-
-    function giveManagerAllowance(address token) external;
 }

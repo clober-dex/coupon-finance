@@ -154,12 +154,6 @@ contract LeverageAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceive
             Constants.ODOS_V2_SWAP_ROUTER
         );
 
-        borrowController.giveManagerAllowance(address(wausdc));
-        borrowController.giveManagerAllowance(address(waweth));
-
-        leverageAdapter.giveManagerAllowance(address(wausdc));
-        leverageAdapter.giveManagerAllowance(address(waweth));
-
         wausdc.transfer(address(assetPool), usdc.amount(1_500));
         waweth.transfer(address(assetPool), 1_500 ether);
 

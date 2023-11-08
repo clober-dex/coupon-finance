@@ -17,10 +17,10 @@ import {Controller} from "./libraries/Controller.sol";
 contract DepositController is IDepositController, Controller, IPositionLocker {
     using EpochLibrary for Epoch;
 
-    IBondPositionManager private immutable _bondManager;
+    IBondPositionManager private immutable _bondPositionManager;
 
     modifier onlyPositionOwner(uint256 positionId) {
-        if (_bondManager.ownerOf(positionId) != msg.sender) revert InvalidAccess();
+        if (_bondPositionManager.ownerOf(positionId) != msg.sender) revert InvalidAccess();
         _;
     }
 
@@ -31,11 +31,11 @@ contract DepositController is IDepositController, Controller, IPositionLocker {
         address weth,
         address bondManager
     ) Controller(wrapped1155Factory, cloberMarketFactory, couponManager, weth) {
-        _bondManager = IBondPositionManager(bondManager);
+        _bondPositionManager = IBondPositionManager(bondManager);
     }
 
     function positionLockAcquired(bytes memory data) external returns (bytes memory result) {
-        if (msg.sender != address(_bondManager)) revert InvalidAccess();
+        if (msg.sender != address(_bondPositionManager)) revert InvalidAccess();
 
         uint256 positionId;
         address user;
@@ -43,20 +43,20 @@ contract DepositController is IDepositController, Controller, IPositionLocker {
         if (positionId == 0) {
             address asset;
             (asset, data) = abi.decode(data, (address, bytes));
-            positionId = _bondManager.mint(asset);
+            positionId = _bondPositionManager.mint(asset);
             result = abi.encode(positionId);
         }
-        BondPosition memory position = _bondManager.getPosition(positionId);
+        BondPosition memory position = _bondPositionManager.getPosition(positionId);
 
         uint256 maxPayInterest;
         uint256 minEarnInterest;
         (position.amount, position.expiredWith, maxPayInterest, minEarnInterest) =
             abi.decode(data, (uint256, Epoch, uint256, uint256));
         (Coupon[] memory couponsToMint, Coupon[] memory couponsToBurn, int256 amountDelta) =
-            _bondManager.adjustPosition(positionId, position.amount, position.expiredWith);
-        if (amountDelta < 0) _bondManager.withdrawToken(position.asset, address(this), uint256(-amountDelta));
+            _bondPositionManager.adjustPosition(positionId, position.amount, position.expiredWith);
+        if (amountDelta < 0) _bondPositionManager.withdrawToken(position.asset, address(this), uint256(-amountDelta));
         if (couponsToMint.length > 0) {
-            _bondManager.mintCoupons(couponsToMint, address(this), "");
+            _bondPositionManager.mintCoupons(couponsToMint, address(this), "");
             _wrapCoupons(couponsToMint);
         }
 
@@ -70,13 +70,16 @@ contract DepositController is IDepositController, Controller, IPositionLocker {
             minEarnInterest
         );
 
-        if (amountDelta > 0) _bondManager.depositToken(position.asset, uint256(amountDelta));
+        if (amountDelta > 0) {
+            IERC20(position.asset).approve(address(_bondPositionManager), uint256(amountDelta));
+            _bondPositionManager.depositToken(position.asset, uint256(amountDelta));
+        }
         if (couponsToBurn.length > 0) {
             _unwrapCoupons(couponsToBurn);
-            _bondManager.burnCoupons(couponsToBurn);
+            _bondPositionManager.burnCoupons(couponsToBurn);
         }
 
-        _bondManager.settlePosition(positionId);
+        _bondPositionManager.settlePosition(positionId);
     }
 
     function deposit(
@@ -88,12 +91,12 @@ contract DepositController is IDepositController, Controller, IPositionLocker {
     ) external payable nonReentrant wrapETH {
         _permitERC20(asset, tokenPermitParams);
         bytes memory lockData = abi.encode(amount, EpochLibrary.current().add(lockEpochs - 1), 0, minEarnInterest);
-        bytes memory result = _bondManager.lock(abi.encode(0, msg.sender, abi.encode(asset, lockData)));
+        bytes memory result = _bondPositionManager.lock(abi.encode(0, msg.sender, abi.encode(asset, lockData)));
         uint256 id = abi.decode(result, (uint256));
 
         _burnAllSubstitute(asset, msg.sender);
 
-        _bondManager.transferFrom(address(this), msg.sender, id);
+        _bondPositionManager.transferFrom(address(this), msg.sender, id);
     }
 
     function withdraw(
@@ -102,11 +105,11 @@ contract DepositController is IDepositController, Controller, IPositionLocker {
         uint256 maxPayInterest,
         PermitSignature calldata positionPermitParams
     ) external nonReentrant onlyPositionOwner(positionId) {
-        _permitERC721(_bondManager, positionId, positionPermitParams);
-        BondPosition memory position = _bondManager.getPosition(positionId);
+        _permitERC721(_bondPositionManager, positionId, positionPermitParams);
+        BondPosition memory position = _bondPositionManager.getPosition(positionId);
 
         bytes memory lockData = abi.encode(position.amount - withdrawAmount, position.expiredWith, maxPayInterest, 0);
-        _bondManager.lock(abi.encode(positionId, msg.sender, lockData));
+        _bondPositionManager.lock(abi.encode(positionId, msg.sender, lockData));
 
         _burnAllSubstitute(position.asset, msg.sender);
     }
@@ -116,16 +119,12 @@ contract DepositController is IDepositController, Controller, IPositionLocker {
         nonReentrant
         onlyPositionOwner(positionId)
     {
-        _permitERC721(_bondManager, positionId, positionPermitParams);
-        BondPosition memory position = _bondManager.getPosition(positionId);
+        _permitERC721(_bondPositionManager, positionId, positionPermitParams);
+        BondPosition memory position = _bondPositionManager.getPosition(positionId);
         if (position.expiredWith >= EpochLibrary.current()) revert NotExpired();
 
-        _bondManager.lock(abi.encode(positionId, msg.sender, abi.encode(0, position.expiredWith, 0, 0)));
+        _bondPositionManager.lock(abi.encode(positionId, msg.sender, abi.encode(0, position.expiredWith, 0, 0)));
 
         _burnAllSubstitute(position.asset, msg.sender);
-    }
-
-    function manager() public view override returns (address) {
-        return address(_bondManager);
     }
 }
