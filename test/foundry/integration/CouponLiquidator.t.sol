@@ -38,9 +38,9 @@ import {MockOracle} from "../mocks/MockOracle.sol";
 import {AssetPool} from "../../../contracts/AssetPool.sol";
 import {CouponOracle} from "../../../contracts/CouponOracle.sol";
 import {AaveTokenSubstitute} from "../../../contracts/AaveTokenSubstitute.sol";
-import {LeverageAdapter} from "../../../contracts/LeverageAdapter.sol";
+import {CouponLiquidator} from "../../../contracts/CouponLiquidator.sol";
 
-contract LeverageAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiver, ERC1155Holder {
+contract CouponLiquidatorIntegrationTest is Test, CloberMarketSwapCallbackReceiver, ERC1155Holder {
     using Strings for *;
     using ERC20Utils for IERC20;
     using CouponKeyLibrary for CouponKey;
@@ -52,7 +52,7 @@ contract LeverageAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceive
 
     IAssetPool public assetPool;
     BorrowController public borrowController;
-    LeverageAdapter public leverageAdapter;
+    CouponLiquidator public couponLiquidator;
     ILoanPositionManager public loanPositionManager;
     IWrapped1155Factory public wrapped1155Factory;
     ICouponManager public couponManager;
@@ -145,14 +145,9 @@ contract LeverageAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceive
             Constants.WETH,
             address(loanPositionManager)
         );
-        leverageAdapter = new LeverageAdapter(
-            Constants.WRAPPED1155_FACTORY,
-            Constants.CLOBER_FACTORY,
-            address(couponManager),
-            Constants.WETH,
-            address(loanPositionManager),
-            Constants.ODOS_V2_SWAP_ROUTER
-        );
+
+        couponLiquidator =
+            new CouponLiquidator( address (loanPositionManager), Constants.ODOS_V2_SWAP_ROUTER, Constants.WETH);
 
         wausdc.transfer(address(assetPool), usdc.amount(1_500));
         waweth.transfer(address(assetPool), 1_500 ether);
@@ -190,7 +185,6 @@ contract LeverageAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceive
                 1001 * 1e15
             );
             borrowController.setCouponMarket(couponKeys[i], market);
-            leverageAdapter.setCouponMarket(couponKeys[i], market);
         }
         _marketMake();
 
@@ -248,95 +242,42 @@ contract LeverageAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceive
         );
     }
 
-    function testLeverage() public {
-        uint256 collateralAmount = 0.4 ether;
-        uint256 borrowAmount = usdc.amount(550);
+    function testLiquidator() public {
+        uint256 positionId = _initialBorrow(user, address(wausdc), address(waweth), usdc.amount(700), 0.3 ether, 2);
 
-        uint256 beforeUSDCBalance = usdc.balanceOf(user);
-        uint256 beforeWETHBalance = weth.balanceOf(user);
-        uint256 beforeETHBalance = user.balance;
+        LoanPosition memory loanPosition = loanPositionManager.getPosition(positionId);
 
-        uint256 positionId = loanPositionManager.nextId();
-        IController.ERC20PermitParams memory permitParams = _buildERC20PermitParams(
-            1, AaveTokenSubstitute(payable(address(wausdc))), address(leverageAdapter), collateralAmount
-        );
+        vm.warp(loanPosition.expiredWith.endTime() + 1);
+
+        address feeRecipient = address(this);
+        uint256 beforeUSDCBalance = usdc.balanceOf(feeRecipient);
+        uint256 beforeWETHBalance = weth.balanceOf(feeRecipient);
+
+        address[] memory assets = new address[](3);
+        assets[0] = address(0xFEfC6BAF87cF3684058D62Da40Ff3A795946Ab06);
+        assets[1] = address(0x2a9e8fa175F45b235efDdD97d2727741EF4Eee63);
+        assets[2] = address(0);
+
+        uint256[] memory prices = new uint256[](3);
+        prices[0] = 100049934;
+        prices[1] = 184466348000;
+        prices[2] = 184466348000;
+
+        vm.mockCall(address(oracle), abi.encodeWithSignature("getAssetsPrices(address[])", assets), abi.encode(prices));
+        assertEq(oracle.getAssetsPrices(assets)[1], 184466348000, "MANIPULATE_ORACLE");
 
         bytes memory data = fromHex(
             string.concat(
                 "83bd37f90001af88d065e77c8cc2239327c5edb3a432268e5831000182af49447d8a07e3bd95bd0d56f35241523fbab1041dcd65000803c174ee39d2c08007ae1400017e3e803E966291EE9aA69e6FADa116cD07462E5D00000001",
-                this.remove0x(Strings.toHexString(address(leverageAdapter))),
+                this.remove0x(Strings.toHexString(address(couponLiquidator))),
                 "0000000103010204014386e4ac0b01000102000022010203020203ff0000000000000000006f38e884725a116c9c7fbf208e79fe8828a2595faf88d065e77c8cc2239327c5edb3a432268e583182af49447d8a07e3bd95bd0d56f35241523fbab100000000"
             )
         );
 
-        vm.prank(user);
-        leverageAdapter.leverage{value: 0.13 ether}(
-            address(waweth), address(wausdc), collateralAmount, borrowAmount, type(uint256).max, 2, data, permitParams
-        );
+        couponLiquidator.liquidate(positionId, 0.27 ether, data, feeRecipient);
 
-        LoanPosition memory loanPosition = loanPositionManager.getPosition(positionId);
-
-        assertEq(loanPositionManager.ownerOf(positionId), user, "POSITION_OWNER");
-        assertGt(usdc.balanceOf(user) - beforeUSDCBalance, 0, "USDC_BALANCE");
-        assertLt(beforeETHBalance - user.balance, 0.13 ether, "NATIVE_BALANCE");
-        assertEq(beforeWETHBalance, weth.balanceOf(user), "WETH_BALANCE");
-        assertEq(loanPosition.expiredWith, EpochLibrary.current().add(1), "POSITION_EXPIRE_EPOCH");
-        assertEq(loanPosition.collateralAmount, collateralAmount, "POSITION_COLLATERAL_AMOUNT");
-        assertEq(loanPosition.debtAmount, borrowAmount, "POSITION_DEBT_AMOUNT");
-        assertEq(loanPosition.collateralToken, address(waweth), "POSITION_COLLATERAL_TOKEN");
-        assertEq(loanPosition.debtToken, address(wausdc), "POSITION_DEBT_TOKEN");
-    }
-
-    function testLeverageMore() public {
-        uint256 positionId = _initialBorrow(user, address(waweth), address(wausdc), 1 ether, usdc.amount(500), 2);
-
-        uint256 beforeUSDCBalance = usdc.balanceOf(user);
-        uint256 beforeWETHBalance = weth.balanceOf(user);
-        uint256 beforeETHBalance = user.balance;
-
-        LoanPosition memory loanPosition = loanPositionManager.getPosition(positionId);
-
-        uint256 beforePositionCollateralAmount = loanPosition.collateralAmount;
-        uint256 beforePositionDebtAmount = loanPosition.debtAmount;
-
-        uint256 collateralAmount = 0.4 ether;
-        uint256 borrowAmount = usdc.amount(550);
-
-        IController.ERC20PermitParams memory permitParams = _buildERC20PermitParams(
-            1, AaveTokenSubstitute(payable(address(wausdc))), address(leverageAdapter), collateralAmount
-        );
-
-        IController.PermitSignature memory permit721Params =
-            _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(leverageAdapter), positionId);
-
-        bytes memory data = fromHex(
-            string.concat(
-                "83bd37f90001af88d065e77c8cc2239327c5edb3a432268e5831000182af49447d8a07e3bd95bd0d56f35241523fbab1041dcd65000803c174ee39d2c08007ae1400017e3e803E966291EE9aA69e6FADa116cD07462E5D00000001",
-                this.remove0x(Strings.toHexString(address(leverageAdapter))),
-                "0000000103010204014386e4ac0b01000102000022010203020203ff0000000000000000006f38e884725a116c9c7fbf208e79fe8828a2595faf88d065e77c8cc2239327c5edb3a432268e583182af49447d8a07e3bd95bd0d56f35241523fbab100000000"
-            )
-        );
-
-        vm.prank(user);
-        leverageAdapter.leverageMore{value: 0.13 ether}(
-            positionId, collateralAmount, borrowAmount, type(uint256).max, data, permit721Params, permitParams
-        );
-
-        loanPosition = loanPositionManager.getPosition(positionId);
-
-        assertEq(loanPositionManager.ownerOf(positionId), user, "POSITION_OWNER");
-        assertGt(usdc.balanceOf(user) - beforeUSDCBalance, 0, "USDC_BALANCE");
-        assertLt(beforeETHBalance - user.balance, 0.13 ether, "NATIVE_BALANCE");
-        assertEq(beforeWETHBalance, weth.balanceOf(user), "WETH_BALANCE");
-        assertEq(loanPosition.expiredWith, EpochLibrary.current().add(1), "POSITION_EXPIRE_EPOCH");
-        assertEq(
-            loanPosition.collateralAmount,
-            collateralAmount + beforePositionCollateralAmount,
-            "POSITION_COLLATERAL_AMOUNT"
-        );
-        assertEq(loanPosition.debtAmount, borrowAmount + beforePositionDebtAmount, "POSITION_DEBT_AMOUNT");
-        assertEq(loanPosition.collateralToken, address(waweth), "POSITION_COLLATERAL_TOKEN");
-        assertEq(loanPosition.debtToken, address(wausdc), "POSITION_DEBT_TOKEN");
+        assertEq(usdc.balanceOf(feeRecipient) - beforeUSDCBalance, 8022063, "USDC_BALANCE");
+        assertEq(weth.balanceOf(feeRecipient) - beforeWETHBalance, 626019140092032, "WETH_BALANCE");
     }
 
     // Convert an hexadecimal character to their value
