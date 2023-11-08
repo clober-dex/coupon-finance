@@ -29,9 +29,9 @@ contract DepositController is IDepositController, Controller, IPositionLocker {
         address cloberMarketFactory,
         address couponManager,
         address weth,
-        address bondManager
+        address bondPositionManager
     ) Controller(wrapped1155Factory, cloberMarketFactory, couponManager, weth) {
-        _bondPositionManager = IBondPositionManager(bondManager);
+        _bondPositionManager = IBondPositionManager(bondPositionManager);
     }
 
     function positionLockAcquired(bytes memory data) external returns (bytes memory result) {

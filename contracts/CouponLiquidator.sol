@@ -20,8 +20,8 @@ contract CouponLiquidator is ICouponLiquidator, IPositionLocker {
     address private immutable _router;
     IWETH9 internal immutable _weth;
 
-    constructor(address loanManager, address router, address weth) {
-        _loanPositionManager = ILoanPositionManager(loanManager);
+    constructor(address loanPositionManager, address router, address weth) {
+        _loanPositionManager = ILoanPositionManager(loanPositionManager);
         _router = router;
         _weth = IWETH9(weth);
     }

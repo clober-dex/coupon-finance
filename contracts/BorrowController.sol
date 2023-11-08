@@ -28,9 +28,9 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         address cloberMarketFactory,
         address couponManager,
         address weth,
-        address loanManager
+        address loanPositionManager
     ) Controller(wrapped1155Factory, cloberMarketFactory, couponManager, weth) {
-        _loanPositionManager = ILoanPositionManager(loanManager);
+        _loanPositionManager = ILoanPositionManager(loanPositionManager);
     }
 
     function positionLockAcquired(bytes memory data) external returns (bytes memory result) {

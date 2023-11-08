@@ -32,10 +32,10 @@ contract LeverageAdapter is ILeverageAdapter, Controller, IPositionLocker {
         address cloberMarketFactory,
         address couponManager,
         address weth,
-        address loanManager,
+        address loanPositionManager,
         address router
     ) Controller(wrapped1155Factory, cloberMarketFactory, couponManager, weth) {
-        _loanPositionManager = ILoanPositionManager(loanManager);
+        _loanPositionManager = ILoanPositionManager(loanPositionManager);
         _router = router;
     }
 
