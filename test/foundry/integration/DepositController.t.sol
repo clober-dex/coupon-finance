@@ -5,9 +5,6 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 
-import {IPoolAddressesProvider} from "../../../contracts/external/aave-v3/IPoolAddressesProvider.sol";
-import {IPoolDataProvider} from "../../../contracts/external/aave-v3/IPoolDataProvider.sol";
-
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
