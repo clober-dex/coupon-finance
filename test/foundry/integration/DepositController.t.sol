@@ -5,6 +5,9 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 
+import {IPoolAddressesProvider} from "../../../contracts/external/aave-v3/IPoolAddressesProvider.sol";
+import {IPoolDataProvider} from "../../../contracts/external/aave-v3/IPoolDataProvider.sol";
+
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -313,6 +316,40 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         assertEq(afterPosition.expiredWith, EpochLibrary.lastExpiredEpoch(), "POSITION_EXPIRED_WITH_1");
         assertEq(afterPosition.nonce, beforePosition.nonce, "POSITION_NONCE_1");
         _checkWrappedTokenAlmost0Balance(address(depositController));
+
+        vm.stopPrank();
+    }
+
+    function testWithdrawMax() public {
+        vm.startPrank(user);
+        uint256 amount = usdc.amount(10);
+        uint256 tokenId = bondPositionManager.nextId();
+        depositController.deposit(
+            address(wausdc),
+            amount,
+            2,
+            0,
+            _buildERC20PermitParams(1, IERC20Permit(Constants.USDC), address(depositController), amount)
+        );
+
+        BondPosition memory beforePosition = bondPositionManager.getPosition(tokenId);
+        uint256 beforeBalance = usdc.balanceOf(user);
+
+        depositController.withdraw(
+            tokenId,
+            amount - 1,
+            type(uint256).max,
+            _buildERC721PermitParams(1, IERC721Permit(bondPositionManager), address(depositController), tokenId)
+        );
+
+        BondPosition memory afterPosition = bondPositionManager.getPosition(tokenId);
+
+        assertEq(bondPositionManager.ownerOf(tokenId), user, "POSITION_OWNER_0");
+        assertLt(usdc.balanceOf(user), beforeBalance + amount, "USDC_BALANCE_0");
+        assertEq(afterPosition.asset, address(wausdc), "POSITION_ASSET_0");
+        assertEq(afterPosition.amount, beforePosition.amount - amount / 2, "POSITION_AMOUNT_0");
+        assertEq(afterPosition.expiredWith, beforePosition.expiredWith, "POSITION_EXPIRED_WITH_0");
+        assertEq(afterPosition.nonce, beforePosition.nonce + 1, "POSITION_NONCE_0");
 
         vm.stopPrank();
     }

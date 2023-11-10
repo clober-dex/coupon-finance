@@ -10,7 +10,7 @@ interface IDepositController is IController {
     function deposit(
         address token,
         uint256 amount,
-        uint8 lockEpochs,
+        uint16 lockEpochs,
         uint256 minEarnInterest,
         ERC20PermitParams calldata tokenPermitParams
     ) external payable;

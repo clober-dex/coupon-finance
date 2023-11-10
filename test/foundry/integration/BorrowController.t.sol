@@ -225,7 +225,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         address borrowToken,
         uint256 collateralAmount,
         uint256 borrowAmount,
-        uint8 loanEpochs
+        uint16 loanEpochs
     ) internal returns (uint256 positionId) {
         positionId = loanPositionManager.nextId();
         IController.ERC20PermitParams memory permitParams = _buildERC20PermitParams(
@@ -345,7 +345,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         uint256 beforeUSDCBalance = usdc.balanceOf(user);
         uint256 beforeETHBalance = user.balance;
         LoanPosition memory beforeLoanPosition = loanPositionManager.getPosition(positionId);
-        uint8 epochs = 3;
+        uint16 epochs = 3;
         uint256 maxPayInterest = 0.04 ether * uint256(epochs);
         IController.PermitSignature memory permit721Params =
             _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(borrowController), positionId);
@@ -373,7 +373,7 @@ contract BorrowControllerIntegrationTest is Test, CloberMarketSwapCallbackReceiv
         uint256 beforeUSDCBalance = usdc.balanceOf(user);
         uint256 beforeETHBalance = user.balance;
         LoanPosition memory beforeLoanPosition = loanPositionManager.getPosition(positionId);
-        uint8 epochs = 3;
+        uint16 epochs = 3;
         uint256 minEarnInterest = 0.02 ether * epochs - 0.01 ether;
         IController.PermitSignature memory permit721Params =
             _buildERC721PermitParams(1, IERC721Permit(loanPositionManager), address(borrowController), positionId);

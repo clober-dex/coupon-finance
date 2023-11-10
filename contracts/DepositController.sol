@@ -85,7 +85,7 @@ contract DepositController is IDepositController, Controller, IPositionLocker {
     function deposit(
         address asset,
         uint256 amount,
-        uint8 lockEpochs,
+        uint16 lockEpochs,
         uint256 minEarnInterest,
         ERC20PermitParams calldata tokenPermitParams
     ) external payable nonReentrant wrapETH {

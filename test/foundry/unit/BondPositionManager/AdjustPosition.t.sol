@@ -231,7 +231,7 @@ contract BondPositionManagerAdjustPositionUnitTest is Test, IBondPositionManager
     }
 
     function testAdjustPositionToOverMaxEpoch() public {
-        Epoch epoch = Epoch.wrap(type(uint8).max);
+        Epoch epoch = Epoch.wrap(type(uint16).max);
         vm.expectRevert(abi.encodeWithSelector(InvalidEpoch.selector));
         helper.adjustPosition(tokenId, initialAmount, epoch);
 

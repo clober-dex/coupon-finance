@@ -25,7 +25,7 @@ contract CouponKeyUnitTest is Test {
         _checkId(address(1), 0, 0x0000000000000000000000000000000000000000000000000000000000000001);
     }
 
-    function _checkId(address asset, uint8 epoch, uint256 expected) internal {
+    function _checkId(address asset, uint16 epoch, uint256 expected) internal {
         uint256 id = CouponKey(asset, Epoch.wrap(epoch)).toId();
         assertEq(id, expected, id.toHexString());
     }

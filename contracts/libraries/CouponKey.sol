@@ -11,7 +11,7 @@ struct CouponKey {
 
 library CouponKeyLibrary {
     function toId(CouponKey memory key) internal pure returns (uint256 id) {
-        uint8 epoch = Epoch.unwrap(key.epoch);
+        uint16 epoch = Epoch.unwrap(key.epoch);
         address asset = key.asset;
         assembly {
             id := add(asset, shl(160, epoch))

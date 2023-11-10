@@ -87,10 +87,10 @@ contract EpochUnitTest is Test {
     }
 
     function testMaxEpoch() public {
-        uint256 endTime = Epoch.wrap(type(uint8).max).endTime();
+        uint256 endTime = Epoch.wrap(type(uint16).max).endTime();
         assertEq(endTime, 4039372800 - 1);
         vm.warp(endTime);
         Epoch a = EpochLibrary.current();
-        assertEq(Epoch.unwrap(a), type(uint8).max);
+        assertEq(Epoch.unwrap(a), type(uint16).max);
     }
 }

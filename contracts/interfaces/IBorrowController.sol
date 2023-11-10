@@ -14,7 +14,7 @@ interface IBorrowController is IController {
         uint256 collateralAmount,
         uint256 borrowAmount,
         uint256 maxPayInterest,
-        uint8 loanEpochs,
+        uint16 loanEpochs,
         ERC20PermitParams calldata collateralPermitParams
     ) external payable;
 
@@ -37,7 +37,7 @@ interface IBorrowController is IController {
 
     function extendLoanDuration(
         uint256 positionId,
-        uint8 epochs,
+        uint16 epochs,
         uint256 maxPayInterest,
         PermitSignature calldata positionPermitParams,
         ERC20PermitParams calldata debtPermitParams
@@ -45,7 +45,7 @@ interface IBorrowController is IController {
 
     function shortenLoanDuration(
         uint256 positionId,
-        uint8 epochs,
+        uint16 epochs,
         uint256 minEarnInterest,
         PermitSignature calldata positionPermitParams
     ) external;

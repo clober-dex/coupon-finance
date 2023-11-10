@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.19;
 
-type Epoch is uint8;
+type Epoch is uint16;
 
 using {gt as >, gte as >=, lt as <, lte as <=, eq as ==, ne as !=} for Epoch global;
 
@@ -40,7 +40,7 @@ library EpochLibrary {
     int256 constant OFFSET19700101 = 2440588;
 
     function startTime(Epoch epoch) internal pure returns (uint256) {
-        uint8 currentEpoch = Epoch.unwrap(epoch);
+        uint16 currentEpoch = Epoch.unwrap(epoch);
         if (currentEpoch == 0) return 0;
         unchecked {
             return _epochToTimestamp(currentEpoch - 1) + 1;
@@ -59,15 +59,15 @@ library EpochLibrary {
         return Epoch.wrap(_timestampToEpoch(block.timestamp));
     }
 
-    function add(Epoch epoch, uint8 epochs) internal pure returns (Epoch) {
+    function add(Epoch epoch, uint16 epochs) internal pure returns (Epoch) {
         return Epoch.wrap(Epoch.unwrap(epoch) + epochs);
     }
 
-    function sub(Epoch epoch, uint8 epochs) internal pure returns (Epoch) {
+    function sub(Epoch epoch, uint16 epochs) internal pure returns (Epoch) {
         return Epoch.wrap(Epoch.unwrap(epoch) - epochs);
     }
 
-    function sub(Epoch e1, Epoch e2) internal pure returns (uint8) {
+    function sub(Epoch e1, Epoch e2) internal pure returns (uint16) {
         return Epoch.unwrap(e1) - Epoch.unwrap(e2);
     }
 
@@ -93,7 +93,7 @@ library EpochLibrary {
     // month = month + 2 - 12 * L
     // year = 100 * (N - 49) + year + L
     // ------------------------------------------------------------------------
-    function _timestampToEpoch(uint256 timestamp) private pure returns (uint8) {
+    function _timestampToEpoch(uint256 timestamp) private pure returns (uint16) {
         unchecked {
             uint256 _days = timestamp / SECONDS_PER_DAY;
             int256 __days = int256(_days);
@@ -109,12 +109,12 @@ library EpochLibrary {
             _year = 100 * (N - 49) + _year + L;
 
             uint256 epoch = uint256((_year - 1970) * 12 + _month - 1) / MONTHS_PER_EPOCH;
-            if (epoch > type(uint8).max) revert EpochOverflow();
-            return uint8(epoch);
+            if (epoch > type(uint16).max) revert EpochOverflow();
+            return uint16(epoch);
         }
     }
 
-    function _epochToTimestamp(uint8 epoch) internal pure returns (uint256) {
+    function _epochToTimestamp(uint16 epoch) internal pure returns (uint256) {
         unchecked {
             uint256 months = MONTHS_PER_EPOCH + MONTHS_PER_EPOCH * epoch;
             uint256 year = months / 12 + 1970;

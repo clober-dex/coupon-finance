@@ -63,14 +63,14 @@ contract LoanPositionManagerLiquidateUnitTest is Test, ILoanPositionManagerTypes
     }
 
     function _mintPosition(
-        uint8 lockEpochs,
+        uint16 lockEpochs,
         address collateralToken,
         address debtToken,
         uint256 collateralAmount,
         uint256 debtAmount
     ) internal returns (Coupon[] memory coupons, uint256 positionId) {
         coupons = new Coupon[](lockEpochs);
-        for (uint8 i = 0; i < lockEpochs; ++i) {
+        for (uint16 i = 0; i < lockEpochs; ++i) {
             coupons[i] = CouponLibrary.from(debtToken, startEpoch.add(i), debtAmount);
         }
 
