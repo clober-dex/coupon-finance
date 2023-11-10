@@ -235,7 +235,7 @@ contract RepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiver, 
         address borrowToken,
         uint256 collateralAmount,
         uint256 borrowAmount,
-        uint8 loanEpochs
+        uint16 loanEpochs
     ) internal returns (uint256 positionId) {
         positionId = loanPositionManager.nextId();
         IController.ERC20PermitParams memory permitParams = _buildERC20PermitParams(
@@ -378,7 +378,7 @@ contract RepayAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceiver, 
 
         assertEq(usdc.balanceOf(user), beforeUSDCBalance, "USDC_BALANCE");
         assertGe(user.balance, beforeETHBalance, "NATIVE_BALANCE");
-        assertEq(Epoch.wrap(106), afterLoanPosition.expiredWith, "POSITION_EXPIRE_EPOCH");
+        assertEq(Epoch.wrap(642), afterLoanPosition.expiredWith, "POSITION_EXPIRE_EPOCH");
         assertEq(
             beforeLoanPosition.collateralAmount - usdc.amount(500),
             afterLoanPosition.collateralAmount,

@@ -112,7 +112,7 @@ contract LeverageAdapter is ILeverageAdapter, Controller, IPositionLocker {
         uint256 collateralAmount,
         uint256 borrowAmount,
         uint256 maxPayInterest,
-        uint8 loanEpochs,
+        uint16 loanEpochs,
         bytes memory swapData,
         ERC20PermitParams calldata collateralPermitParams
     ) external payable nonReentrant wrapETH {

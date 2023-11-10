@@ -317,6 +317,40 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         vm.stopPrank();
     }
 
+    function testWithdrawMaxMinusOne() public {
+        vm.startPrank(user);
+        uint256 amount = usdc.amount(10);
+        uint256 tokenId = bondPositionManager.nextId();
+        depositController.deposit(
+            address(wausdc),
+            amount,
+            2,
+            0,
+            _buildERC20PermitParams(1, IERC20Permit(Constants.USDC), address(depositController), amount)
+        );
+
+        BondPosition memory beforePosition = bondPositionManager.getPosition(tokenId);
+        uint256 beforeBalance = usdc.balanceOf(user);
+
+        depositController.withdraw(
+            tokenId,
+            amount - 1,
+            type(uint256).max,
+            _buildERC721PermitParams(1, IERC721Permit(bondPositionManager), address(depositController), tokenId)
+        );
+
+        BondPosition memory afterPosition = bondPositionManager.getPosition(tokenId);
+
+        assertEq(bondPositionManager.ownerOf(tokenId), user, "POSITION_OWNER_0");
+        assertLt(usdc.balanceOf(user), beforeBalance + amount, "USDC_BALANCE_0");
+        assertEq(afterPosition.asset, address(wausdc), "POSITION_ASSET_0");
+        assertEq(afterPosition.amount, 1, "POSITION_AMOUNT_0");
+        assertEq(afterPosition.expiredWith, beforePosition.expiredWith, "POSITION_EXPIRED_WITH_0");
+        assertEq(afterPosition.nonce, beforePosition.nonce + 1, "POSITION_NONCE_0");
+
+        vm.stopPrank();
+    }
+
     function testWithdrawNative() public {
         vm.startPrank(user);
         uint256 amount = 10 ether;

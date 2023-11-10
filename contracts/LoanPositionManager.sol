@@ -323,7 +323,7 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable2S
                 address couponOwner = ownerOf(positionId);
                 Coupon[] memory coupons = new Coupon[](epochLength);
                 for (uint256 i = 0; i < epochLength; ++i) {
-                    coupons[i] = CouponLibrary.from(position.debtToken, currentEpoch.add(uint8(i)), repayAmount);
+                    coupons[i] = CouponLibrary.from(position.debtToken, currentEpoch.add(uint16(i)), repayAmount);
                 }
                 if (couponOwner.code.length > 0) {
                     for (uint256 i = 0; i < epochLength; ++i) {

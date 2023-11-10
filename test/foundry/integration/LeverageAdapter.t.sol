@@ -236,7 +236,7 @@ contract LeverageAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceive
         address borrowToken,
         uint256 collateralAmount,
         uint256 borrowAmount,
-        uint8 loanEpochs
+        uint16 loanEpochs
     ) internal returns (uint256 positionId) {
         positionId = loanPositionManager.nextId();
         IController.ERC20PermitParams memory permitParams = _buildERC20PermitParams(

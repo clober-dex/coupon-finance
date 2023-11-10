@@ -99,7 +99,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
         uint256 collateralAmount,
         uint256 borrowAmount,
         uint256 maxPayInterest,
-        uint8 loanEpochs,
+        uint16 loanEpochs,
         ERC20PermitParams calldata collateralPermitParams
     ) external payable nonReentrant wrapETH {
         _permitERC20(collateralToken, collateralPermitParams);
@@ -162,7 +162,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
 
     function extendLoanDuration(
         uint256 positionId,
-        uint8 epochs,
+        uint16 epochs,
         uint256 maxPayInterest,
         PermitSignature calldata positionPermitParams,
         ERC20PermitParams calldata debtPermitParams
@@ -179,7 +179,7 @@ contract BorrowController is IBorrowController, Controller, IPositionLocker {
 
     function shortenLoanDuration(
         uint256 positionId,
-        uint8 epochs,
+        uint16 epochs,
         uint256 minEarnInterest,
         PermitSignature calldata positionPermitParams
     ) external nonReentrant onlyPositionOwner(positionId) {

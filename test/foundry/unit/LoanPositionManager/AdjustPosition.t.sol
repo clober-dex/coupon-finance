@@ -62,7 +62,7 @@ contract LoanPositionManagerAdjustPositionUnitTest is Test, ILoanPositionManager
 
         Coupon[] memory coupons = new Coupon[](8);
         for (uint256 i = 0; i < 8; i++) {
-            coupons[i] = CouponLibrary.from(address(usdc), startEpoch.add(uint8(i)), initialDebtAmount * 1000);
+            coupons[i] = CouponLibrary.from(address(usdc), startEpoch.add(uint16(i)), initialDebtAmount * 1000);
         }
         _mintCoupons(address(helper), coupons);
 

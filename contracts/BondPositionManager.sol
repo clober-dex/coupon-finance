@@ -17,7 +17,7 @@ contract BondPositionManager is IBondPositionManager, PositionManager, Ownable2S
     using BondPositionLibrary for BondPosition;
     using CouponLibrary for Coupon;
 
-    Epoch public constant override MAX_EPOCH = Epoch.wrap(157); // Ends at 31 Dec 2048 23:59:59 GMT
+    Epoch public constant override MAX_EPOCH = Epoch.wrap(947); // Ends at 31 Dec 2048 23:59:59 GMT
 
     mapping(address asset => bool) public override isAssetRegistered;
     mapping(uint256 id => BondPosition) private _positionMap;
