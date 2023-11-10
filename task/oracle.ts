@@ -1,5 +1,5 @@
 import { task } from 'hardhat/config'
-import { AAVE_SUBSTITUTES, CHAINLINK_FEEDS } from '../utils/constants'
+import { AAVE_SUBSTITUTES, CHAINLINK_FEEDS, TOKENS } from '../utils/constants'
 import { hardhat } from '@wagmi/chains'
 import { getDeployedContract, waitForTx } from '../utils/contract'
 import { CouponOracle } from '../typechain'
@@ -19,9 +19,14 @@ task('oracle:set-feed')
 task('oracle:set-feeds').setAction(async (taskArgs, hre) => {
   const oracle = await getDeployedContract<CouponOracle>('CouponOracle')
   const chainId = hre.network.config.chainId ?? hardhat.id
-  const tokens = Object.values(AAVE_SUBSTITUTES[chainId])
-  const feeds = Object.keys(AAVE_SUBSTITUTES[chainId]).map((key) => {
-    return CHAINLINK_FEEDS[chainId][key]
+  const tokens: string[] = []
+  const feeds: string[][] = []
+  const keys = Object.keys(AAVE_SUBSTITUTES[chainId])
+  keys.forEach((key) => {
+    tokens.push(TOKENS[chainId][key])
+    feeds.push(CHAINLINK_FEEDS[chainId][key])
+    tokens.push(AAVE_SUBSTITUTES[chainId][key])
+    feeds.push(CHAINLINK_FEEDS[chainId][key])
   })
   tokens.push(hre.ethers.constants.AddressZero)
   feeds.push(CHAINLINK_FEEDS[chainId].WETH)
