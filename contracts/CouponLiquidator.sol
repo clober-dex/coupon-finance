@@ -27,11 +27,12 @@ contract CouponLiquidator is ICouponLiquidator, IPositionLocker {
     }
 
     function positionLockAcquired(bytes memory data) external returns (bytes memory) {
-        (uint256 positionId, uint256 swapAmount, bytes memory swapData) = abi.decode(data, (uint256, uint256, bytes));
+        (uint256 positionId, uint256 swapAmount, bytes memory swapData, uint256 maxRepayAmount) =
+            abi.decode(data, (uint256, uint256, bytes, uint256));
 
         LoanPosition memory position = _loanPositionManager.getPosition(positionId);
         (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount) =
-            _loanPositionManager.liquidate(positionId, swapAmount);
+            _loanPositionManager.liquidate(positionId, maxRepayAmount);
 
         uint256 collateralAmount = liquidationAmount - protocolFeeAmount;
         _loanPositionManager.withdrawToken(position.collateralToken, address(this), collateralAmount);
@@ -52,8 +53,14 @@ contract CouponLiquidator is ICouponLiquidator, IPositionLocker {
         return abi.encode(inToken, outToken);
     }
 
-    function liquidate(uint256 positionId, uint256 swapAmount, bytes memory swapData, address feeRecipient) external {
-        bytes memory lockData = abi.encode(positionId, swapAmount, swapData);
+    function liquidate(
+        uint256 positionId,
+        uint256 swapAmount,
+        bytes memory swapData,
+        uint256 maxRepayAmount,
+        address feeRecipient
+    ) external {
+        bytes memory lockData = abi.encode(positionId, swapAmount, swapData, maxRepayAmount);
         (address collateralToken, address debtToken) =
             abi.decode(_loanPositionManager.lock(lockData), (address, address));
 

@@ -274,7 +274,7 @@ contract CouponLiquidatorIntegrationTest is Test, CloberMarketSwapCallbackReceiv
             )
         );
 
-        couponLiquidator.liquidate(positionId, 0.27 ether, data, feeRecipient);
+        couponLiquidator.liquidate(positionId, 0.27 ether, data, type(uint256).max, feeRecipient);
 
         assertEq(usdc.balanceOf(feeRecipient) - beforeUSDCBalance, 8022063, "USDC_BALANCE");
         assertEq(weth.balanceOf(feeRecipient) - beforeWETHBalance, 626019140092032, "WETH_BALANCE");
