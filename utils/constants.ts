@@ -32,19 +32,19 @@ export const TREASURY: { [chainId: number]: string } = {
 export const REPAY_ROUTER: { [chainId: number]: string } = {
   [arbitrum.id]: '0xa669e7A0d4b3e4Fa48af2dE86BD4CD7126Be4e13',
   [arbitrumGoerli.id]: '0xbe83C53499C676dAB038db0E2CAd3E69a3d5CdFC',
-  [TESTNET_ID]: '0x14ebF62788361C17A9Fd44f222ecfF1DC75398F4',
+  [TESTNET_ID]: '0xBe4343BBb42347036321d8b1608311E7ed5Ea014',
 }
 
 export const LEVERAGE_ROUTER: { [chainId: number]: string } = {
   [arbitrum.id]: '0xa669e7A0d4b3e4Fa48af2dE86BD4CD7126Be4e13',
   [arbitrumGoerli.id]: '0xbe83C53499C676dAB038db0E2CAd3E69a3d5CdFC',
-  [TESTNET_ID]: '0x14ebF62788361C17A9Fd44f222ecfF1DC75398F4',
+  [TESTNET_ID]: '0xBe4343BBb42347036321d8b1608311E7ed5Ea014',
 }
 
 export const LIQUIDATOR_ROUTER: { [chainId: number]: string } = {
   [arbitrum.id]: '0xa669e7A0d4b3e4Fa48af2dE86BD4CD7126Be4e13',
   [arbitrumGoerli.id]: '0xbe83C53499C676dAB038db0E2CAd3E69a3d5CdFC',
-  [TESTNET_ID]: '0x14ebF62788361C17A9Fd44f222ecfF1DC75398F4',
+  [TESTNET_ID]: '0xBe4343BBb42347036321d8b1608311E7ed5Ea014',
 }
 
 export const CHAINLINK_SEQUENCER_ORACLE: { [chainId: number]: string } = {
@@ -71,8 +71,6 @@ export const TOKEN_KEYS = {
   USDT: 'USDT',
   WBTC: 'WBTC',
 }
-
-const STABLES = [TOKEN_KEYS.USDC, TOKEN_KEYS.DAI, TOKEN_KEYS.USDT]
 
 export const TOKENS: { [chainId: number]: { [name: string]: string } } = {
   [arbitrum.id]: {
@@ -153,33 +151,72 @@ export type LoanConfiguration = {
   hook: string
 }
 
-const DEFAULT_LOAN_CONFIGURATION: LoanConfiguration = {
+const STABLE_STABLE_LOAN_CONFIGURATION: LoanConfiguration = {
+  liquidationThreshold: 970000,
+  liquidationFee: 10000,
+  liquidationProtocolFee: 3000,
+  liquidationTargetLtv: 950000,
+  hook: constants.AddressZero,
+}
+
+const STABLE_VOLATILE_LOAN_CONFIGURATION: LoanConfiguration = {
+  liquidationThreshold: 850000,
+  liquidationFee: 30000,
+  liquidationProtocolFee: 10000,
+  liquidationTargetLtv: 750000,
+  hook: constants.AddressZero,
+}
+
+const VOLATILE_VOLATILE_LOAN_CONFIGURATION: LoanConfiguration = {
   liquidationThreshold: 800000,
-  liquidationFee: 25000,
-  liquidationProtocolFee: 5000,
+  liquidationFee: 30000,
+  liquidationProtocolFee: 10000,
   liquidationTargetLtv: 700000,
   hook: constants.AddressZero,
 }
 
-const STABLE_LOAN_CONFIGURATION: LoanConfiguration = {
-  liquidationThreshold: 900000,
-  liquidationFee: 25000,
-  liquidationProtocolFee: 5000,
-  liquidationTargetLtv: 800000,
-  hook: constants.AddressZero,
+const LOAN_CONFIGURATION: { [collateral: string]: { [debt: string]: LoanConfiguration } } = {
+  [TOKEN_KEYS.wstETH]: {
+    [TOKEN_KEYS.USDC]: STABLE_VOLATILE_LOAN_CONFIGURATION,
+    [TOKEN_KEYS.WETH]: {
+      liquidationThreshold: 900000,
+      liquidationFee: 15000,
+      liquidationProtocolFee: 5000,
+      liquidationTargetLtv: 850000,
+      hook: constants.AddressZero,
+    },
+  },
+  [TOKEN_KEYS.WETH]: {
+    [TOKEN_KEYS.USDC]: STABLE_VOLATILE_LOAN_CONFIGURATION,
+  },
+  [TOKEN_KEYS.WBTC]: {
+    [TOKEN_KEYS.USDC]: STABLE_VOLATILE_LOAN_CONFIGURATION,
+    [TOKEN_KEYS.WETH]: VOLATILE_VOLATILE_LOAN_CONFIGURATION,
+  },
+  [TOKEN_KEYS.USDCe]: {
+    [TOKEN_KEYS.USDC]: STABLE_STABLE_LOAN_CONFIGURATION,
+    [TOKEN_KEYS.WETH]: STABLE_VOLATILE_LOAN_CONFIGURATION,
+  },
+  [TOKEN_KEYS.USDC]: {
+    [TOKEN_KEYS.WETH]: STABLE_VOLATILE_LOAN_CONFIGURATION,
+  },
+  [TOKEN_KEYS.USDT]: {
+    [TOKEN_KEYS.USDC]: STABLE_STABLE_LOAN_CONFIGURATION,
+    [TOKEN_KEYS.WETH]: STABLE_VOLATILE_LOAN_CONFIGURATION,
+  },
+  [TOKEN_KEYS.DAI]: {
+    [TOKEN_KEYS.USDC]: STABLE_STABLE_LOAN_CONFIGURATION,
+    [TOKEN_KEYS.WETH]: STABLE_VOLATILE_LOAN_CONFIGURATION,
+  },
 }
-
-const LOAN_CONFIGURATION: { [collateral: string]: { [debt: string]: LoanConfiguration } } = {}
 
 export const getLoanConfiguration = (collateral: string, debt: string): LoanConfiguration => {
   if (!Object.values(TOKEN_KEYS).includes(collateral) && !Object.values(TOKEN_KEYS).includes(debt)) {
     throw new Error('Invalid collateral or debt')
   }
-  if (collateral === debt) {
-    return STABLE_LOAN_CONFIGURATION
+  const result = LOAN_CONFIGURATION[collateral][debt]
+  if (!result) {
+    throw new Error('Invalid pair')
   }
-  if (STABLES.includes(debt) && STABLES.includes(collateral)) {
-    return STABLE_LOAN_CONFIGURATION
-  }
-  return LOAN_CONFIGURATION[collateral]?.[debt] ?? DEFAULT_LOAN_CONFIGURATION
+  return result
 }
