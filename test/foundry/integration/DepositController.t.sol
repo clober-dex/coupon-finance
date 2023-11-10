@@ -347,7 +347,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         assertEq(bondPositionManager.ownerOf(tokenId), user, "POSITION_OWNER_0");
         assertLt(usdc.balanceOf(user), beforeBalance + amount, "USDC_BALANCE_0");
         assertEq(afterPosition.asset, address(wausdc), "POSITION_ASSET_0");
-        assertEq(afterPosition.amount, beforePosition.amount - amount / 2, "POSITION_AMOUNT_0");
+        assertEq(afterPosition.amount, 1, "POSITION_AMOUNT_0");
         assertEq(afterPosition.expiredWith, beforePosition.expiredWith, "POSITION_EXPIRED_WITH_0");
         assertEq(afterPosition.nonce, beforePosition.nonce + 1, "POSITION_NONCE_0");
 

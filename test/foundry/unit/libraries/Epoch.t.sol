@@ -17,45 +17,42 @@ contract EpochUnitTest is Test {
         assertEq(Epoch.unwrap(EpochLibrary.current()), 0);
 
         vm.warp(1689578537);
-        assertEq(Epoch.unwrap(EpochLibrary.current()), 2 * (2023 - 1970) + 1); // 17 Jul 2023 07:22:17 GMT
+        assertEq(Epoch.unwrap(EpochLibrary.current()), 12 * (2023 - 1970) + 6); // 17 Jul 2023 07:22:17 GMT
 
         vm.warp(1961625600);
-        assertEq(Epoch.unwrap(EpochLibrary.current()), 2 * (2032 - 1970)); // 29 Feb 2032 00:00:00 GMT
+        assertEq(Epoch.unwrap(EpochLibrary.current()), 12 * (2032 - 1970) + 1); // 29 Feb 2032 00:00:00 GMT
 
         vm.warp(1961711999);
-        assertEq(Epoch.unwrap(EpochLibrary.current()), 2 * (2032 - 1970)); // 29 Feb 2032 23:59:59 GMT
+        assertEq(Epoch.unwrap(EpochLibrary.current()), 12 * (2032 - 1970) + 1); // 29 Feb 2032 23:59:59 GMT
 
         vm.warp(1961712000);
-        assertEq(Epoch.unwrap(EpochLibrary.current()), 2 * (2032 - 1970)); // 1 Mar 2032 00:00:00 GMT
-
-        vm.warp(1961712000);
-        assertEq(Epoch.unwrap(EpochLibrary.current()), 2 * (2032 - 1970)); // 1  Mar 2032 00:00:00 GMT
+        assertEq(Epoch.unwrap(EpochLibrary.current()), 12 * (2032 - 1970) + 2); // 1 Mar 2032 00:00:00 GMT
     }
 
     function testStartTime() public {
         assertEq(Epoch.wrap(0).startTime(), 0);
-        assertEq(Epoch.wrap(1).startTime(), 15638400); // 31 days
-        assertEq(Epoch.wrap(12).startTime(), 189302400); // 365 days
-        assertEq(Epoch.wrap(13).startTime(), 205027200); // 396 days
-        assertEq(Epoch.wrap(24).startTime(), 378691200); // 730 days
-        assertEq(Epoch.wrap(25).startTime(), 394329600); // 761 days
+        assertEq(Epoch.wrap(1).startTime(), 2678400); // 31 days
+        assertEq(Epoch.wrap(12).startTime(), 31536000); // 365 days
+        assertEq(Epoch.wrap(13).startTime(), 34214400); // 396 days
+        assertEq(Epoch.wrap(24).startTime(), 63072000); // 730 days
+        assertEq(Epoch.wrap(25).startTime(), 65750400); // 761 days
         // 1 Mar 2032 00:00:00 GMT
-        assertEq(Epoch.wrap(2 * (2032 - 1970)).startTime(), 1956528000);
+        assertEq(Epoch.wrap(12 * (2032 - 1970)).startTime(), 1956528000);
     }
 
     function testEndTime() public {
-        assertEq(Epoch.wrap(0).endTime(), 15638400 - 1); // 6 months
-        assertEq(Epoch.wrap(1).endTime(), 31536000 - 1); // 12 months
-        assertEq(Epoch.wrap(2).endTime(), 47174400 - 1); // 18 months
-        assertEq(Epoch.wrap(3).endTime(), 63072000 - 1); // 24 months
-        assertEq(Epoch.wrap(5).endTime(), 94694400 - 1); // 36 months
-        assertEq(Epoch.wrap(8).endTime(), 141868800 - 1); // 54 months
-        assertEq(Epoch.wrap(13).endTime(), 220924800 - 1); // 84 months
-        assertEq(Epoch.wrap(21).endTime(), 347155200 - 1); // 132 months
-        assertEq(Epoch.wrap(34).endTime(), 552096000 - 1); // 210 months
-        assertEq(Epoch.wrap(55).endTime(), 883612800 - 1); // 336 months
-        assertEq(Epoch.wrap(89).endTime(), 1420070400 - 1); // 540 months
-        assertEq(Epoch.wrap(144).endTime(), 2287785600 - 1); // 870 months
+        assertEq(Epoch.wrap(0).endTime(), 2678400 - 1); // 1 months
+        assertEq(Epoch.wrap(1).endTime(), 5097600 - 1); // 2 months
+        assertEq(Epoch.wrap(2).endTime(), 7776000 - 1); // 3 months
+        assertEq(Epoch.wrap(3).endTime(), 10368000 - 1); // 4 months
+        assertEq(Epoch.wrap(5).endTime(), 15638400 - 1); // 6 months
+        assertEq(Epoch.wrap(8).endTime(), 23587200 - 1); // 9 months
+        assertEq(Epoch.wrap(13).endTime(), 36633600 - 1); // 14 months
+        assertEq(Epoch.wrap(21).endTime(), 57801600 - 1); // 22 months
+        assertEq(Epoch.wrap(34).endTime(), 92016000 - 1); // 35 months
+        assertEq(Epoch.wrap(55).endTime(), 147225600 - 1); // 56 months
+        assertEq(Epoch.wrap(89).endTime(), 236563200 - 1); // 90 months
+        assertEq(Epoch.wrap(144).endTime(), 381369600 - 1); // 145 months
     }
 
     function testAdd() public {
@@ -88,7 +85,7 @@ contract EpochUnitTest is Test {
 
     function testMaxEpoch() public {
         uint256 endTime = Epoch.wrap(type(uint16).max).endTime();
-        assertEq(endTime, 4039372800 - 1);
+        assertEq(endTime, 172342857600 - 1);
         vm.warp(endTime);
         Epoch a = EpochLibrary.current();
         assertEq(Epoch.unwrap(a), type(uint16).max);
