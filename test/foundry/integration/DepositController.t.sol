@@ -320,7 +320,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
         vm.stopPrank();
     }
 
-    function testWithdrawMax() public {
+    function testWithdrawMaxMinusOne() public {
         vm.startPrank(user);
         uint256 amount = usdc.amount(10);
         uint256 tokenId = bondPositionManager.nextId();
