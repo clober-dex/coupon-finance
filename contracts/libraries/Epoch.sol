@@ -35,7 +35,7 @@ library EpochLibrary {
 
     error EpochOverflow();
 
-    uint256 internal constant MONTHS_PER_EPOCH = 6;
+    uint256 internal constant MONTHS_PER_EPOCH = 1;
     uint256 constant SECONDS_PER_DAY = 24 * 60 * 60;
     int256 constant OFFSET19700101 = 2440588;
 
