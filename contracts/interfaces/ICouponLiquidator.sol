@@ -9,7 +9,6 @@ interface ICouponLiquidator {
         uint256 positionId,
         uint256 swapAmount,
         bytes memory swapData,
-        uint256 maxRepayAmount,
         address feeRecipient
     ) external;
 }
