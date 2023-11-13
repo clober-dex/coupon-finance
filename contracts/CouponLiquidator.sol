@@ -30,20 +30,28 @@ contract CouponLiquidator is ICouponLiquidator, IPositionLocker {
         (uint256 positionId, uint256 swapAmount, bytes memory swapData) = abi.decode(data, (uint256, uint256, bytes));
 
         LoanPosition memory position = _loanPositionManager.getPosition(positionId);
-        (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount) =
-            _loanPositionManager.liquidate(positionId, swapAmount);
-
-        uint256 collateralAmount = liquidationAmount - protocolFeeAmount;
-        _loanPositionManager.withdrawToken(position.collateralToken, address(this), collateralAmount);
-        _burnAllSubstitute(position.collateralToken, address(this));
-
         address inToken = ISubstitute(position.collateralToken).underlyingToken();
         address outToken = ISubstitute(position.debtToken).underlyingToken();
+        _loanPositionManager.withdrawToken(position.collateralToken, address(this), swapAmount);
+        _burnAllSubstitute(position.collateralToken, address(this));
         if (inToken == address(_weth)) {
-            _weth.deposit{value: collateralAmount}();
+            _weth.deposit{value: swapAmount}();
+        }
+        _swap(inToken, swapAmount, swapData);
+
+        (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount) =
+            _loanPositionManager.liquidate(positionId, IERC20(outToken).balanceOf(address(this)));
+
+        uint256 collateralAmount = liquidationAmount - protocolFeeAmount - swapAmount;
+
+        if (collateralAmount > 0) {
+            _loanPositionManager.withdrawToken(position.collateralToken, address(this), collateralAmount);
+            _burnAllSubstitute(position.collateralToken, address(this));
+            if (inToken == address(_weth)) {
+                _weth.deposit{value: collateralAmount}();
+            }
         }
 
-        _swap(inToken, swapAmount, swapData);
         IERC20(outToken).approve(position.debtToken, repayAmount);
         ISubstitute(position.debtToken).mint(repayAmount, address(this));
         IERC20(position.debtToken).approve(address(_loanPositionManager), repayAmount);
