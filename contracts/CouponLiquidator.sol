@@ -40,7 +40,7 @@ contract CouponLiquidator is ICouponLiquidator, IPositionLocker {
         _swap(inToken, swapAmount, swapData);
 
         (uint256 liquidationAmount, uint256 repayAmount, uint256 protocolFeeAmount) =
-                            _loanPositionManager.liquidate(positionId, IERC20(outToken).balanceOf(address (this)));
+            _loanPositionManager.liquidate(positionId, IERC20(outToken).balanceOf(address(this)));
 
         uint256 collateralAmount = liquidationAmount - protocolFeeAmount - swapAmount;
         _loanPositionManager.withdrawToken(position.collateralToken, address(this), collateralAmount);
@@ -60,7 +60,7 @@ contract CouponLiquidator is ICouponLiquidator, IPositionLocker {
     function liquidate(uint256 positionId, uint256 swapAmount, bytes memory swapData, address feeRecipient) external {
         bytes memory lockData = abi.encode(positionId, swapAmount, swapData);
         (address collateralToken, address debtToken) =
-                            abi.decode(_loanPositionManager.lock(lockData), (address, address));
+            abi.decode(_loanPositionManager.lock(lockData), (address, address));
 
         uint256 collateralAmount = IERC20(collateralToken).balanceOf(address(this));
         if (collateralAmount > 0) {
