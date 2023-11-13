@@ -43,10 +43,13 @@ contract CouponLiquidator is ICouponLiquidator, IPositionLocker {
             _loanPositionManager.liquidate(positionId, IERC20(outToken).balanceOf(address(this)));
 
         uint256 collateralAmount = liquidationAmount - protocolFeeAmount - swapAmount;
-        _loanPositionManager.withdrawToken(position.collateralToken, address(this), collateralAmount);
-        _burnAllSubstitute(position.collateralToken, address(this));
-        if (inToken == address(_weth)) {
-            _weth.deposit{value: collateralAmount}();
+
+        if (collateralAmount > 0) {
+            _loanPositionManager.withdrawToken(position.collateralToken, address(this), collateralAmount);
+            _burnAllSubstitute(position.collateralToken, address(this));
+            if (inToken == address(_weth)) {
+                _weth.deposit{value: collateralAmount}();
+            }
         }
 
         IERC20(outToken).approve(position.debtToken, repayAmount);
