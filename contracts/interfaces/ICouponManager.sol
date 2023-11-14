@@ -20,6 +20,8 @@ interface ICouponManager is IERC1155MetadataURI {
 
     function baseURI() external view returns (string memory);
 
+    function contractURI() external view returns (string memory);
+
     function totalSupply(uint256 id) external view returns (uint256);
 
     function exists(uint256 id) external view returns (bool);

@@ -22,8 +22,8 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 
   const chainId = network.config.chainId || hardhat.id
 
-  const baseURI = `https://coupon.finance/api/nft/loan/${chainId}/`
-  const contractURI = 'LOAN_CONTRACT_URI'
+  const baseURI = `https://coupon.finance/api/nft/chains/${chainId}/loans/`
+  const contractURI = `https://coupon.finance/api/nft/chains/${chainId}/loans`
   const minDebtValueInEth = BigNumber.from('10000000000000000')
 
   await deploy('LoanPositionManager', {

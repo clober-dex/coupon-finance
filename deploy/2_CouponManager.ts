@@ -22,13 +22,14 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
     throw new Error('nonce not matched')
   }
 
-  const baseURI = `https://coupon.finance/api/multi-token/${chainId}/`
+  const baseURI = `https://coupon.finance/api/multi-token/chains/${chainId}/coupons/`
+  const contractURI = `https://coupon.finance/api/multi-token/chains/${chainId}/coupons`
 
   const computedBondPositionManager = computeCreate1Address(deployer.address, BigNumber.from(nonce + 1))
   const computedLoanPositionManager = computeCreate1Address(deployer.address, BigNumber.from(nonce + 2))
   await deploy('CouponManager', {
     from: deployer.address,
-    args: [[computedBondPositionManager, computedLoanPositionManager], baseURI],
+    args: [[computedBondPositionManager, computedLoanPositionManager], baseURI, contractURI],
     log: true,
   })
 }

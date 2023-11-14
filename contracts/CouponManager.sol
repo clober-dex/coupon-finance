@@ -23,12 +23,14 @@ contract CouponManager is ERC1155Permit, ERC1155Supply, ICouponManager {
 
     mapping(address => bool) public override isMinter;
     string public override baseURI;
+    string public override contractURI;
 
-    constructor(address[] memory minters, string memory uri_) ERC1155Permit(uri_, "Coupon", "1") {
+    constructor(address[] memory minters, string memory uri_, string memory contractURI_) ERC1155Permit(uri_, "Coupon", "1") {
         for (uint256 i = 0; i < minters.length; ++i) {
             isMinter[minters[i]] = true;
         }
         baseURI = uri_;
+        contractURI = contractURI_;
     }
 
     modifier onlyMinter() {

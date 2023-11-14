@@ -19,8 +19,8 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 
   const chainId = network.config.chainId || hardhat.id
 
-  const baseURI = `https://coupon.finance/api/nft/bond/${chainId}/`
-  const contractURI = 'BOND_CONTRACT_URI'
+  const baseURI = `https://coupon.finance/api/nft/chains/${chainId}/bonds/`
+  const contractURI = `https://coupon.finance/api/nft/chains/${chainId}/bonds`
 
   await deploy('BondPositionManager', {
     from: deployer,
