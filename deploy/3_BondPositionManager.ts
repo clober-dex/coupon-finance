@@ -2,9 +2,10 @@ import { DeployFunction } from 'hardhat-deploy/types'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { getDeployedContract } from '../utils/contract'
 import { AssetPool, CouponManager } from '../typechain'
+import { hardhat } from '@wagmi/chains'
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployments, getNamedAccounts } = hre
+  const { deployments, getNamedAccounts, network } = hre
   const { deploy } = deployments
 
   const { deployer } = await getNamedAccounts()
@@ -16,8 +17,9 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   const couponManager = await getDeployedContract<CouponManager>('CouponManager')
   const assetPool = await getDeployedContract<AssetPool>('AssetPool')
 
-  // TODO
-  const baseURI = 'BOND_BASE_URI'
+  const chainId = network.config.chainId || hardhat.id
+
+  const baseURI = `https://coupon.finance/api/nft/bond/${chainId}/`
   const contractURI = 'BOND_CONTRACT_URI'
 
   await deploy('BondPositionManager', {
