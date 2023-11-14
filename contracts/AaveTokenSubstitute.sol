@@ -154,5 +154,15 @@ contract AaveTokenSubstitute is IAaveTokenSubstitute, ERC20Permit, Ownable2Step 
         }
     }
 
+    function withdrawLostToken(address token, address recipient) external onlyOwner {
+        if (token == aToken || token == underlyingToken) {
+            revert InvalidToken();
+        }
+        uint256 balance = IERC20(token).balanceOf(address(this));
+        if (balance > 0) {
+            IERC20(token).safeTransfer(recipient, balance);
+        }
+    }
+
     receive() external payable {}
 }
