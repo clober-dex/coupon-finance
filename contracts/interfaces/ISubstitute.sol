@@ -25,5 +25,5 @@ interface ISubstitute {
 
     function setTreasury(address newTreasury) external;
 
-    function withdrawLostERC20(address erc20, address recipient) external;
+    function withdrawLostToken(address token, address recipient) external;
 }

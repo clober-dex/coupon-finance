@@ -24,3 +24,5 @@ types/
 #Foundry files
 out/
 forge-cache
+
+deployer-key.json
