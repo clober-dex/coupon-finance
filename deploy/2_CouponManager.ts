@@ -20,7 +20,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
     throw new Error('nonce not matched')
   }
 
-  const baseURI = 'COUPON_BASE_URI'
+  const baseURI = 'COUPON_BASE_URI' // TODO
 
   const computedBondPositionManager = computeCreate1Address(deployer.address, BigNumber.from(nonce + 1))
   const computedLoanPositionManager = computeCreate1Address(deployer.address, BigNumber.from(nonce + 2))

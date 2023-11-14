@@ -3,6 +3,12 @@
 pragma solidity ^0.8.0;
 
 interface ISubstitute {
+    event SetTreasury(address indexed newTreasury);
+    event Claim(address indexed treasury, uint256 adminYield);
+
+    error InvalidToken();
+    error ValueTransferFailed();
+
     function treasury() external view returns (address);
 
     function underlyingToken() external view returns (address);
@@ -18,4 +24,6 @@ interface ISubstitute {
     function burnableAmount() external view returns (uint256);
 
     function setTreasury(address newTreasury) external;
+
+    function withdrawLostERC20(address erc20, address recipient) external;
 }

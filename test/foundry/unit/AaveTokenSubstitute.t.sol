@@ -10,6 +10,7 @@ import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IER
 
 import {IWETH9} from "../../../contracts/external/weth/IWETH9.sol";
 import {IPool} from "../../../contracts/external/aave-v3/IPool.sol";
+import {ISubstitute} from "../../../contracts/interfaces/ISubstitute.sol";
 import {IAaveTokenSubstitute} from "../../../contracts/interfaces/IAaveTokenSubstitute.sol";
 import {ICouponManager} from "../../../contracts/interfaces/ICouponManager.sol";
 import {CouponKey, CouponKeyLibrary} from "../../../contracts/libraries/CouponKey.sol";
@@ -155,7 +156,7 @@ contract AaveTokenSubstituteUnitTest is Test, ERC1155Holder {
         IWETH9(Constants.WETH).approve(address(aaveTokenSubstitute), amount);
         aaveTokenSubstitute.mint(amount, address(this));
 
-        vm.expectRevert(abi.encodeWithSelector(IAaveTokenSubstitute.ValueTransferFailed.selector));
+        vm.expectRevert(abi.encodeWithSelector(ISubstitute.ValueTransferFailed.selector));
         aaveTokenSubstitute.burn(amount, address(this));
 
         uint256 beforeTokenBalance = Constants.USER1.balance;
