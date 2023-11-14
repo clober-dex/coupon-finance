@@ -28,7 +28,7 @@ contract Wrapped1155MetadataBuilderUnitTest is Test, ERC1155Holder {
         ForkUtils.fork(vm, Constants.FORK_BLOCK_NUMBER);
 
         wrapped1155Factory = IWrapped1155Factory(Constants.WRAPPED1155_FACTORY);
-        couponManager = new CouponManager(Utils.toArr(address(this)), "URI/");
+        couponManager = new CouponManager(Utils.toArr(address(this)), "URI/", "URI");
     }
 
     function testBuildWrapped1155Metadata() public {

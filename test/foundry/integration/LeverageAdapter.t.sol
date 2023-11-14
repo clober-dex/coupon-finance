@@ -121,7 +121,7 @@ contract LeverageAdapterIntegrationTest is Test, CloberMarketSwapCallbackReceive
         );
 
         couponManager =
-            new CouponManager(Utils.toArr(Create1.computeAddress(address(this), thisNonce + 2), address(this)), "URI/");
+        new CouponManager(Utils.toArr(Create1.computeAddress(address(this), thisNonce + 2), address(this)), "URI/", "URI");
         loanPositionManager = new LoanPositionManager(
             address(couponManager),
             address(assetPool),
