@@ -15,7 +15,7 @@ import 'hardhat-contract-sizer'
 import 'hardhat-abi-exporter'
 import '@nomicfoundation/hardhat-verify'
 
-import { TESTNET_ID } from './utils/constants'
+import { TESTNET_ID } from './utils'
 
 dotenv.config()
 

@@ -1,7 +1,6 @@
 import { task } from 'hardhat/config'
-import { AAVE_SUBSTITUTES, getLoanConfiguration } from '../utils/constants'
 import { hardhat } from '@wagmi/chains'
-import { getDeployedContract, waitForTx } from '../utils/contract'
+import { ASSETS, getLoanConfiguration, getDeployedContract, waitForTx } from '../utils'
 import { LoanPositionManager } from '../typechain'
 
 task('loan:set-configuration')
@@ -10,8 +9,8 @@ task('loan:set-configuration')
   .setAction(async ({ collateral, debt }, hre) => {
     const manager = await getDeployedContract<LoanPositionManager>('LoanPositionManager')
     const chainId = hre.network.config.chainId ?? hardhat.id
-    const collateralToken = AAVE_SUBSTITUTES[chainId][collateral]
-    const debtToken = AAVE_SUBSTITUTES[chainId][debt]
+    const collateralToken = ASSETS[chainId][collateral]
+    const debtToken = ASSETS[chainId][debt]
     const configuration = getLoanConfiguration(collateral, debt)
     if (await manager.isPairRegistered(collateralToken, debtToken)) {
       console.log('Pair already registered')
@@ -37,8 +36,8 @@ task('loan:get-configuration')
   .setAction(async ({ collateral, debt }, hre) => {
     const manager = await getDeployedContract<LoanPositionManager>('LoanPositionManager')
     const chainId = hre.network.config.chainId ?? hardhat.id
-    const collateralToken = AAVE_SUBSTITUTES[chainId][collateral]
-    const debtToken = AAVE_SUBSTITUTES[chainId][debt]
+    const collateralToken = ASSETS[chainId][collateral]
+    const debtToken = ASSETS[chainId][debt]
     const configuration = await manager.getLoanConfiguration(collateralToken, debtToken)
     console.log('liquidationThreshold', configuration.liquidationThreshold / 10 ** 6)
     console.log('liquidationFee', configuration.liquidationFee / 10 ** 6)
