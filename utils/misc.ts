@@ -1,7 +1,6 @@
 import { BigNumber, utils } from 'ethers'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { hardhat } from '@wagmi/chains'
-import {getDeployedContract} from "./contract";
 
 let HRE: HardhatRuntimeEnvironment | undefined
 export const getHRE = (): HardhatRuntimeEnvironment => {
@@ -109,14 +108,14 @@ export const computeCreate1Address = (origin: string, nonce: BigNumber): string 
 
 export const deployWithVerify = async (hre: HardhatRuntimeEnvironment, name: string, args?: any[]) => {
   const { deployer } = await hre.getNamedAccounts()
-  await hre.deployments.deploy(name, {
+  const deployedAddress = (await hre.deployments.deploy(name, {
     from: deployer,
     args: args,
     log: true,
-  })
+  })).address
 
   await hre.run("verify:verify", {
-    address: (await getDeployedContract(name)).address,
+    address: deployedAddress,
     constructorArguments: args,
   })
 }
