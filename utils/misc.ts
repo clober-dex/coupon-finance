@@ -105,3 +105,19 @@ export const computeCreate1Address = (origin: string, nonce: BigNumber): string 
   }
   return '0x' + utils.keccak256(packedData).slice(-40)
 }
+
+export const deployWithVerify = async (hre: HardhatRuntimeEnvironment, name: string, args?: any[]) => {
+  const { deployer } = await hre.getNamedAccounts()
+  const deployedAddress = (
+    await hre.deployments.deploy(name, {
+      from: deployer,
+      args: args,
+      log: true,
+    })
+  ).address
+
+  await hre.run('verify:verify', {
+    address: deployedAddress,
+    constructorArguments: args,
+  })
+}

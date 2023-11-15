@@ -5,6 +5,12 @@ export const TESTNET_ID = 7777
 
 export const SINGLETON_FACTORY = '0xce0042B868300000d44A59004Da54A005ffdcf9f'
 
+export const OWNER: { [chainId: number]: string } = {
+  [arbitrum.id]: '0x1689FD73FfC888d47D201b72B0ae7A83c20fA274',
+  [arbitrumGoerli.id]: '0xa0E3174f4D222C5CBf705A138C6a9369935EeD81',
+  [TESTNET_ID]: '0xa0E3174f4D222C5CBf705A138C6a9369935EeD81',
+}
+
 export const CLOBER_FACTORY: { [chainId: number]: string } = {
   [arbitrum.id]: '0x24aC0938C010Fb520F1068e96d78E0458855111D',
   [arbitrumGoerli.id]: '0x110f5cBC51576fDa2E8024155F772c494f421E11',
@@ -53,7 +59,7 @@ export const CHAINLINK_SEQUENCER_ORACLE: { [chainId: number]: string } = {
 }
 
 export const ORACLE_TIMEOUT: { [chainId: number]: number } = {
-  [arbitrum.id]: 3600,
+  [arbitrum.id]: 24 * 3600,
   [TESTNET_ID]: 24 * 3600,
 }
 
@@ -126,7 +132,15 @@ export const CHAINLINK_FEEDS: { [chainId: number]: { [name: string]: string[] } 
 }
 
 export const AAVE_SUBSTITUTES: { [chainId: number]: { [name: string]: string } } = {
-  [arbitrum.id]: {},
+  [arbitrum.id]: {
+    [TOKEN_KEYS.WETH]: '0xAb6c37355D6C06fcF73Ab0E049d9Cf922f297573',
+    [TOKEN_KEYS.USDC]: '0x7Ed1145045c8B754506d375Cdf90734550d1077e',
+    [TOKEN_KEYS.wstETH]: '0x4e0e151940ad5790ac087DA335F1104A5C4f6f71',
+    [TOKEN_KEYS.DAI]: '0x43FE2BE829a00ba065FAF5B1170c3b0f1328eb37',
+    [TOKEN_KEYS.USDCe]: '0x322d24b60795e3D4f0DD85F54FAbcd63A85dFF82',
+    [TOKEN_KEYS.USDT]: '0x26185cC53695240f9298e1e81Fd95612aA19D68b',
+    [TOKEN_KEYS.WBTC]: '0xCf94152a31BBC050603Ae3186b394269E4f0A8Fe',
+  },
   [arbitrumGoerli.id]: {
     [TOKEN_KEYS.WETH]: '0x37FD1b14Ba333889bC6683D7ADec9c1aE11F3227',
     [TOKEN_KEYS.USDC]: '0x6E11A012910819E0855a2505B48A5C1562BE9981',

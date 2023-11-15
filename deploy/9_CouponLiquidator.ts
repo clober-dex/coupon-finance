@@ -4,12 +4,10 @@ import { hardhat } from '@wagmi/chains'
 import { LIQUIDATOR_ROUTER, TOKENS } from '../utils/constants'
 import { getDeployedContract } from '../utils/contract'
 import { LoanPositionManager } from '../typechain'
+import { deployWithVerify } from '../utils/misc'
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployments, getNamedAccounts, network } = hre
-  const { deploy } = deployments
-
-  const { deployer } = await getNamedAccounts()
+  const { deployments, network } = hre
 
   if (await deployments.getOrNull('CouponLiquidator')) {
     return
@@ -19,11 +17,8 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 
   const chainId = network.config.chainId || hardhat.id
 
-  await deploy('CouponLiquidator', {
-    from: deployer,
-    args: [loanManager.address, LIQUIDATOR_ROUTER[chainId], TOKENS[chainId].WETH],
-    log: true,
-  })
+  const args = [loanManager.address, LIQUIDATOR_ROUTER[chainId], TOKENS[chainId].WETH]
+  await deployWithVerify(hre, 'CouponLiquidator', args)
 }
 
 deployFunction.tags = ['9']

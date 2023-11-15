@@ -40,7 +40,8 @@ library TestInitializer {
         p.initialAmount = p.usdc.amount(100);
         uint64 thisNonce = vm.getNonce(address(this));
         p.assetPool = new AssetPool(Utils.toArr(Create1.computeAddress(address(this), thisNonce + 2)));
-        p.couponManager = new CouponManager(Utils.toArr(Create1.computeAddress(address(this), thisNonce + 2)), "URI/");
+        p.couponManager =
+            new CouponManager(Utils.toArr(Create1.computeAddress(address(this), thisNonce + 2)), "URI/", "URI");
         p.bondPositionManager = new BondPositionManager(
             address(p.couponManager),
             address(p.assetPool),

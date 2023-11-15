@@ -24,7 +24,7 @@ contract CouponManagerUnitTest is Test, ERC1155Holder {
     Epoch public startEpoch;
 
     function setUp() public {
-        couponManager = new CouponManager(Utils.toArr(address(this)), "URI/");
+        couponManager = new CouponManager(Utils.toArr(address(this)), "URI/", "URI");
         startEpoch = EpochLibrary.current();
     }
 

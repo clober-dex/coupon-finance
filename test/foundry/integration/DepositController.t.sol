@@ -96,7 +96,7 @@ contract DepositControllerIntegrationTest is Test, CloberMarketSwapCallbackRecei
             Utils.toArr(Create1.computeAddress(address(this), thisNonce + 2))
         );
         couponManager =
-            new CouponManager(Utils.toArr(Create1.computeAddress(address(this), thisNonce + 2), address(this)), "URI/");
+        new CouponManager(Utils.toArr(Create1.computeAddress(address(this), thisNonce + 2), address(this)), "URI/", "URI");
         bondPositionManager = new BondPositionManager(
             address(couponManager),
             address(assetPool),

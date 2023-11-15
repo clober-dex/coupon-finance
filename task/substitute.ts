@@ -1,5 +1,13 @@
 import { task } from 'hardhat/config'
-import { AAVE_SUBSTITUTES, AAVE_V3_POOL, SINGLETON_FACTORY, TOKEN_KEYS, TOKENS, TREASURY } from '../utils/constants'
+import {
+  AAVE_SUBSTITUTES,
+  AAVE_V3_POOL,
+  OWNER,
+  SINGLETON_FACTORY,
+  TOKEN_KEYS,
+  TOKENS,
+  TREASURY,
+} from '../utils/constants'
 import { hardhat } from '@wagmi/chains'
 import { waitForTx } from '../utils/contract'
 import { verify } from '../utils/misc'
@@ -7,20 +15,20 @@ import { verify } from '../utils/misc'
 task('substitute:aave:deploy')
   .addParam('asset', 'name of the asset')
   .setAction(async ({ asset }, hre) => {
-    const [signer] = await hre.ethers.getSigners()
     const singletonFactory = await hre.ethers.getContractAt('ISingletonFactory', SINGLETON_FACTORY)
+    const chainId = hre.network.config.chainId ?? hardhat.id
     const aaveTokenSubstituteFactory = await hre.ethers.getContractFactory('AaveTokenSubstitute')
-    const aaveV3Pool = AAVE_V3_POOL[hre.network.config.chainId ?? hardhat.id]
-    const treasury = TREASURY[hre.network.config.chainId ?? hardhat.id]
+    const aaveV3Pool = AAVE_V3_POOL[chainId]
+    const treasury = TREASURY[chainId]
     if (!aaveV3Pool || !treasury) {
       throw new Error('missing aaveV3Pool or treasury')
     }
     const constructorArgs = [
-      TOKENS[hre.network.config.chainId ?? hardhat.id][TOKEN_KEYS.WETH],
-      TOKENS[hre.network.config.chainId ?? hardhat.id][asset],
+      TOKENS[chainId][TOKEN_KEYS.WETH],
+      TOKENS[chainId][asset],
       aaveV3Pool,
       treasury,
-      signer.address,
+      OWNER[chainId],
     ]
     const constructorArguments = aaveTokenSubstituteFactory.interface.encodeDeploy(constructorArgs)
     const initCode = hre.ethers.utils.solidityPack(
@@ -35,9 +43,7 @@ task('substitute:aave:deploy')
     if ((await hre.ethers.provider.getCode(computedAddress)) !== '0x') {
       console.log(`${asset} Substitute Contract already deployed:`, computedAddress)
     } else {
-      const receipt = await waitForTx(
-        singletonFactory.deploy(initCode, hre.ethers.constants.HashZero, { gasLimit: 5000000 }),
-      )
+      const receipt = await waitForTx(singletonFactory.deploy(initCode, hre.ethers.constants.HashZero))
       console.log(`Deployed ${asset} AaveTokenSubstitute(${computedAddress}) at tx`, receipt.transactionHash)
     }
     await verify(computedAddress, constructorArgs)

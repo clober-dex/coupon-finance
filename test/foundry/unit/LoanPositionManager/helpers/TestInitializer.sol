@@ -45,7 +45,7 @@ library TestInitializer {
         uint64 thisNonce = vm.getNonce(address(this));
         p.assetPool = new AssetPool(Utils.toArr(address(this), Create1.computeAddress(address(this), thisNonce + 2)));
         p.couponManager =
-            new CouponManager(Utils.toArr(address(this), Create1.computeAddress(address(this), thisNonce + 2)), "URI/");
+        new CouponManager(Utils.toArr(address(this), Create1.computeAddress(address(this), thisNonce + 2)), "URI/", "URI");
         p.loanPositionManager = new LoanPositionManager(
             address(p.couponManager),
             address(p.assetPool),
