@@ -1,7 +1,6 @@
 import { task } from 'hardhat/config'
-import { ASSETS, getLoanConfiguration } from '../utils/constants'
 import { hardhat } from '@wagmi/chains'
-import { getDeployedContract, waitForTx } from '../utils/contract'
+import { ASSETS, getLoanConfiguration, getDeployedContract, waitForTx } from '../utils'
 import { LoanPositionManager } from '../typechain'
 
 task('loan:set-configuration')

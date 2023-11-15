@@ -1,9 +1,7 @@
 import { task } from 'hardhat/config'
-import { ASSETS, CHAINLINK_FEEDS, TOKENS } from '../utils/constants'
 import { hardhat } from '@wagmi/chains'
-import { getDeployedContract, waitForTx } from '../utils/contract'
+import { ASSETS, CHAINLINK_FEEDS, TOKENS, getDeployedContract, waitForTx, bn2StrWithPrecision } from '../utils'
 import { CouponOracle } from '../typechain'
-import { bn2StrWithPrecision } from '../utils/misc'
 
 task('oracle:set-feed')
   .addParam('asset', 'the name of the asset')

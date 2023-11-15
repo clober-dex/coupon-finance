@@ -1,7 +1,6 @@
 import { task } from 'hardhat/config'
-import { ASSETS } from '../utils/constants'
 import { hardhat } from '@wagmi/chains'
-import { getDeployedContract, waitForTx } from '../utils/contract'
+import { ASSETS, getDeployedContract, waitForTx } from '../utils'
 import { BondPositionManager } from '../typechain'
 
 task('bond:register-asset')

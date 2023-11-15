@@ -1,5 +1,5 @@
 import { task } from 'hardhat/config'
-import { getDeployedContract } from '../utils/contract'
+import { getDeployedContract } from '../utils'
 import { CouponManager } from '../typechain'
 
 task('coupon:current-epoch').setAction(async () => {
