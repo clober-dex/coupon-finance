@@ -136,25 +136,25 @@ contract LoanPositionManager is ILoanPositionManager, PositionManager, Ownable2S
         super.settlePosition(positionId);
         LoanPosition memory position = _positionMap[positionId];
 
-        if (position.debtAmount > 0 && position.expiredWith <= EpochLibrary.lastExpiredEpoch()) {
-            revert FullRepaymentRequired();
+        if (position.debtAmount > 0) {
+            if (position.expiredWith <= EpochLibrary.lastExpiredEpoch()) {
+                revert FullRepaymentRequired();
+            }
+            LoanConfiguration memory loanConfig =
+                _loanConfiguration[_buildLoanPairId(position.collateralToken, position.debtToken)];
+            (
+                uint256 collateralPriceWithPrecisionComplement,
+                uint256 debtPriceWithPrecisionComplement,
+                uint256 minDebtAmount
+            ) = _calculatePricesAndMinDebtAmount(position.collateralToken, position.debtToken, loanConfig);
+            if (minDebtAmount > position.debtAmount) revert TooSmallDebtLeft();
+            if (
+                (position.collateralAmount * collateralPriceWithPrecisionComplement) * loanConfig.liquidationThreshold
+                    < position.debtAmount * debtPriceWithPrecisionComplement * _RATE_PRECISION
+            ) revert LiquidationThreshold();
+        } else if (position.collateralAmount == 0) {
+            _burn(positionId);
         }
-
-        LoanConfiguration memory loanConfig =
-            _loanConfiguration[_buildLoanPairId(position.collateralToken, position.debtToken)];
-        (
-            uint256 collateralPriceWithPrecisionComplement,
-            uint256 debtPriceWithPrecisionComplement,
-            uint256 minDebtAmount
-        ) = _calculatePricesAndMinDebtAmount(position.collateralToken, position.debtToken, loanConfig);
-
-        if (position.debtAmount > 0 && minDebtAmount > position.debtAmount) revert TooSmallDebtLeft();
-        if (
-            (position.collateralAmount * collateralPriceWithPrecisionComplement) * loanConfig.liquidationThreshold
-                < position.debtAmount * debtPriceWithPrecisionComplement * _RATE_PRECISION
-        ) revert LiquidationThreshold();
-
-        if (position.debtAmount == 0 && position.collateralAmount == 0) _burn(positionId);
 
         emit UpdatePosition(positionId, position.collateralAmount, position.debtAmount, position.expiredWith);
     }
