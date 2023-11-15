@@ -45,7 +45,6 @@ contract CouponOracle is ICouponOracle, Ownable2Step {
             try AggregatorV3Interface(feeds[i]).latestRoundData() returns (
                 uint80 roundId, int256 answer, uint256, /* startedAt */ uint256 updatedAt, uint80 /* answeredInRound */
             ) {
-                // Check Sanity, Staleness and the Sequencer
                 if (
                     roundId != 0 && answer >= 0 && updatedAt <= block.timestamp
                         && block.timestamp <= updatedAt + timeout && _isSequencerValid()
