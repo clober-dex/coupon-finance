@@ -4,12 +4,10 @@ import { hardhat } from '@wagmi/chains'
 import { CLOBER_FACTORY, LEVERAGE_ROUTER, TOKENS, WRAPPED1155_FACTORY } from '../utils/constants'
 import { getDeployedContract } from '../utils/contract'
 import { CouponManager, LoanPositionManager } from '../typechain'
+import {deployWithVerify} from "../utils/misc";
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployments, getNamedAccounts, network } = hre
-  const { deploy } = deployments
-
-  const { deployer } = await getNamedAccounts()
+  const { deployments, network } = hre
 
   if (await deployments.getOrNull('LeverageAdapter')) {
     return
@@ -20,18 +18,15 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 
   const chainId = network.config.chainId || hardhat.id
 
-  await deploy('LeverageAdapter', {
-    from: deployer,
-    args: [
-      WRAPPED1155_FACTORY[chainId],
-      CLOBER_FACTORY[chainId],
-      couponManager.address,
-      TOKENS[chainId].WETH,
-      loanManager.address,
-      LEVERAGE_ROUTER[chainId],
-    ],
-    log: true,
-  })
+  const args = [
+    WRAPPED1155_FACTORY[chainId],
+    CLOBER_FACTORY[chainId],
+    couponManager.address,
+    TOKENS[chainId].WETH,
+    loanManager.address,
+    LEVERAGE_ROUTER[chainId],
+  ]
+  await deployWithVerify(hre, 'LeverageAdapter', args)
 }
 
 deployFunction.tags = ['8']

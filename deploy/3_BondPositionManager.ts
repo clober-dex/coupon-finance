@@ -3,12 +3,10 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { getDeployedContract } from '../utils/contract'
 import { AssetPool, CouponManager } from '../typechain'
 import { hardhat } from '@wagmi/chains'
+import {deployWithVerify} from "../utils/misc";
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployments, getNamedAccounts, network } = hre
-  const { deploy } = deployments
-
-  const { deployer } = await getNamedAccounts()
+  const { deployments, network } = hre
 
   if (await deployments.getOrNull('BondPositionManager')) {
     return
@@ -22,11 +20,8 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   const baseURI = `https://coupon.finance/api/nft/chains/${chainId}/bonds/`
   const contractURI = `https://coupon.finance/api/nft/chains/${chainId}/bonds`
 
-  await deploy('BondPositionManager', {
-    from: deployer,
-    args: [couponManager.address, assetPool.address, baseURI, contractURI],
-    log: true,
-  })
+  const args = [couponManager.address, assetPool.address, baseURI, contractURI]
+  await deployWithVerify(hre, 'BondPositionManager', args)
 }
 
 deployFunction.tags = ['3']

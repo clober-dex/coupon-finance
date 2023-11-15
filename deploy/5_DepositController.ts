@@ -4,12 +4,10 @@ import { hardhat } from '@wagmi/chains'
 import { CLOBER_FACTORY, TOKENS, WRAPPED1155_FACTORY } from '../utils/constants'
 import { getDeployedContract } from '../utils/contract'
 import { BondPositionManager, CouponManager } from '../typechain'
+import {deployWithVerify} from "../utils/misc";
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployments, getNamedAccounts, network } = hre
-  const { deploy } = deployments
-
-  const { deployer } = await getNamedAccounts()
+  const { deployments, network } = hre
 
   if (await deployments.getOrNull('DepositController')) {
     return
@@ -20,17 +18,14 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 
   const chainId = network.config.chainId || hardhat.id
 
-  await deploy('DepositController', {
-    from: deployer,
-    args: [
-      WRAPPED1155_FACTORY[chainId],
-      CLOBER_FACTORY[chainId],
-      couponManager.address,
-      TOKENS[chainId].WETH,
-      bondManager.address,
-    ],
-    log: true,
-  })
+  const args = [
+    WRAPPED1155_FACTORY[chainId],
+    CLOBER_FACTORY[chainId],
+    couponManager.address,
+    TOKENS[chainId].WETH,
+    bondManager.address,
+  ]
+  await deployWithVerify(hre, 'DepositController', args)
 }
 
 deployFunction.tags = ['5']

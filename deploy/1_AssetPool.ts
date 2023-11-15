@@ -1,11 +1,10 @@
 import { DeployFunction } from 'hardhat-deploy/types'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import { computeCreate1Address } from '../utils/misc'
+import {computeCreate1Address, deployWithVerify} from '../utils/misc'
 import { BigNumber } from 'ethers'
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments } = hre
-  const { deploy } = deployments
 
   const [deployer] = await hre.ethers.getSigners()
 
@@ -22,11 +21,9 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 
   const computedBondPositionManager = computeCreate1Address(deployer.address, BigNumber.from(nonce + 2))
   const computedLoanPositionManager = computeCreate1Address(deployer.address, BigNumber.from(nonce + 3))
-  await deploy('AssetPool', {
-    from: deployer.address,
-    args: [[computedBondPositionManager, computedLoanPositionManager]],
-    log: true,
-  })
+
+  const args = [[computedBondPositionManager, computedLoanPositionManager]]
+  await deployWithVerify(hre, 'AssetPool', args)
 }
 
 deployFunction.tags = ['1']

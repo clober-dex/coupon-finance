@@ -1,12 +1,11 @@
 import { DeployFunction } from 'hardhat-deploy/types'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import { computeCreate1Address } from '../utils/misc'
+import {computeCreate1Address, deployWithVerify} from '../utils/misc'
 import { BigNumber } from 'ethers'
 import { hardhat } from '@wagmi/chains'
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, network } = hre
-  const { deploy } = deployments
 
   const [deployer] = await hre.ethers.getSigners()
 
@@ -27,11 +26,9 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 
   const computedBondPositionManager = computeCreate1Address(deployer.address, BigNumber.from(nonce + 1))
   const computedLoanPositionManager = computeCreate1Address(deployer.address, BigNumber.from(nonce + 2))
-  await deploy('CouponManager', {
-    from: deployer.address,
-    args: [[computedBondPositionManager, computedLoanPositionManager], baseURI, contractURI],
-    log: true,
-  })
+
+  const args = [[computedBondPositionManager, computedLoanPositionManager], baseURI, contractURI]
+  await deployWithVerify(hre, 'CouponManager', args)
 }
 
 deployFunction.tags = ['2']
