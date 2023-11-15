@@ -55,7 +55,7 @@ const getMainnetPrivateKey = () => {
     }
   }
 
-  const prodNetworks = new Set<number>([mainnet.id])
+  const prodNetworks = new Set<number>([mainnet.id, arbitrum.id])
   if (network && prodNetworks.has(network)) {
     if (privateKey) {
       return privateKey
@@ -99,18 +99,18 @@ const config: HardhatConfig = {
   },
   etherscan: {
     apiKey: {
-      arbitrum: process.env.ARBISCAN_API_KEY,
+      arbitrumOne: process.env.ARBISCAN_API_KEY,
       arbitrumGoerli: process.env.ARBISCAN_API_KEY,
     },
   },
   defaultNetwork: 'hardhat',
   networks: {
     [arbitrum.id]: {
-      url: arbitrum.rpcUrls.default.http[0],
+      url: process.env.ARBITRUM_NODE_URL ?? arbitrum.rpcUrls.default.http[0],
       chainId: arbitrum.id,
       accounts: [getMainnetPrivateKey()],
       gas: 'auto',
-      gasPrice: 'auto',
+      gasPrice: 100000000,
       gasMultiplier: 1,
       timeout: 3000000,
       httpHeaders: {},
