@@ -1,5 +1,5 @@
 import { task } from 'hardhat/config'
-import { AAVE_SUBSTITUTES } from '../utils/constants'
+import { ASSETS } from '../utils/constants'
 import { hardhat } from '@wagmi/chains'
 import { getDeployedContract, waitForTx } from '../utils/contract'
 import { BondPositionManager } from '../typechain'
@@ -9,7 +9,7 @@ task('bond:register-asset')
   .setAction(async ({ asset }, hre) => {
     const manager = await getDeployedContract<BondPositionManager>('BondPositionManager')
     const chainId = hre.network.config.chainId ?? hardhat.id
-    const token = AAVE_SUBSTITUTES[chainId][asset]
+    const token = ASSETS[chainId][asset]
     if (await manager.isAssetRegistered(token)) {
       console.log('Asset already registered')
     } else {

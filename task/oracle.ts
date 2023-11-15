@@ -1,5 +1,5 @@
 import { task } from 'hardhat/config'
-import { AAVE_SUBSTITUTES, CHAINLINK_FEEDS, TOKENS } from '../utils/constants'
+import { ASSETS, CHAINLINK_FEEDS, TOKENS } from '../utils/constants'
 import { hardhat } from '@wagmi/chains'
 import { getDeployedContract, waitForTx } from '../utils/contract'
 import { CouponOracle } from '../typechain'
@@ -10,7 +10,7 @@ task('oracle:set-feed')
   .setAction(async ({ asset }, hre) => {
     const oracle = await getDeployedContract<CouponOracle>('CouponOracle')
     const chainId = hre.network.config.chainId ?? hardhat.id
-    const token = AAVE_SUBSTITUTES[chainId][asset]
+    const token = ASSETS[chainId][asset]
     const feeds = CHAINLINK_FEEDS[chainId][asset]
     const receipt = await waitForTx(oracle.setFeeds([token], [feeds]))
     console.log('Set feed at tx', receipt.transactionHash)
@@ -21,11 +21,11 @@ task('oracle:set-feeds').setAction(async (taskArgs, hre) => {
   const chainId = hre.network.config.chainId ?? hardhat.id
   const tokens: string[] = []
   const feeds: string[][] = []
-  const keys = Object.keys(AAVE_SUBSTITUTES[chainId])
+  const keys = Object.keys(ASSETS[chainId])
   keys.forEach((key) => {
     tokens.push(TOKENS[chainId][key])
     feeds.push(CHAINLINK_FEEDS[chainId][key])
-    tokens.push(AAVE_SUBSTITUTES[chainId][key])
+    tokens.push(ASSETS[chainId][key])
     feeds.push(CHAINLINK_FEEDS[chainId][key])
   })
   tokens.push(hre.ethers.constants.AddressZero)
@@ -37,8 +37,8 @@ task('oracle:set-feeds').setAction(async (taskArgs, hre) => {
 task('oracle:list-feeds').setAction(async (taskArgs, hre) => {
   const oracle = await getDeployedContract<CouponOracle>('CouponOracle')
   const chainId = hre.network.config.chainId ?? hardhat.id
-  const tokens = Object.values(AAVE_SUBSTITUTES[chainId])
-  const tokenNames = Object.keys(AAVE_SUBSTITUTES[chainId])
+  const tokens = Object.values(ASSETS[chainId])
+  const tokenNames = Object.keys(ASSETS[chainId])
   const feeds = await Promise.all(tokens.map((token) => oracle.getFeeds(token)))
   for (let i = 0; i < tokens.length; i++) {
     console.log(`${tokenNames[i]}(${tokens[i]}): ${feeds[i]}`)
@@ -48,8 +48,8 @@ task('oracle:list-feeds').setAction(async (taskArgs, hre) => {
 task('oracle:list-prices').setAction(async (taskArgs, hre) => {
   const oracle = await getDeployedContract<CouponOracle>('CouponOracle')
   const chainId = hre.network.config.chainId ?? hardhat.id
-  const tokens = Object.values(AAVE_SUBSTITUTES[chainId])
-  const tokenNames = Object.keys(AAVE_SUBSTITUTES[chainId])
+  const tokens = Object.values(ASSETS[chainId])
+  const tokenNames = Object.keys(ASSETS[chainId])
   const prices = await Promise.all(tokens.map((token) => oracle.getAssetPrice(token)))
   for (let i = 0; i < tokens.length; i++) {
     console.log(`${tokenNames[i]}(${tokens[i]}): ${bn2StrWithPrecision(prices[i], 8)}`)
