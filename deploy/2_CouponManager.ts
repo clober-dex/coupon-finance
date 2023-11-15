@@ -1,6 +1,6 @@
 import { DeployFunction } from 'hardhat-deploy/types'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import {computeCreate1Address, deployWithVerify} from '../utils/misc'
+import { computeCreate1Address, deployWithVerify } from '../utils/misc'
 import { BigNumber } from 'ethers'
 import { hardhat } from '@wagmi/chains'
 

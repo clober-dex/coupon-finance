@@ -3,7 +3,7 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { getDeployedContract } from '../utils/contract'
 import { AssetPool, CouponManager } from '../typechain'
 import { hardhat } from '@wagmi/chains'
-import {deployWithVerify} from "../utils/misc";
+import { deployWithVerify } from '../utils/misc'
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, network } = hre

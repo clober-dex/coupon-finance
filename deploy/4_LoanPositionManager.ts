@@ -5,7 +5,7 @@ import { TREASURY } from '../utils/constants'
 import { BigNumber } from 'ethers'
 import { getDeployedContract } from '../utils/contract'
 import { AssetPool, CouponManager, CouponOracle } from '../typechain'
-import {deployWithVerify} from "../utils/misc";
+import { deployWithVerify } from '../utils/misc'
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, network } = hre

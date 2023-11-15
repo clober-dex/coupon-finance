@@ -4,7 +4,7 @@ import { hardhat } from '@wagmi/chains'
 import { CLOBER_FACTORY, TOKENS, WRAPPED1155_FACTORY } from '../utils/constants'
 import { getDeployedContract } from '../utils/contract'
 import { BondPositionManager, CouponManager } from '../typechain'
-import {deployWithVerify} from "../utils/misc";
+import { deployWithVerify } from '../utils/misc'
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, network } = hre
