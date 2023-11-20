@@ -3,54 +3,16 @@ import { constants } from 'ethers'
 
 export const TESTNET_ID = 7777
 
-export const SINGLETON_FACTORY = '0xce0042B868300000d44A59004Da54A005ffdcf9f'
-
 export const OWNER: { [chainId: number]: string } = {
   [arbitrum.id]: '0x1689FD73FfC888d47D201b72B0ae7A83c20fA274',
   [arbitrumGoerli.id]: '0xa0E3174f4D222C5CBf705A138C6a9369935EeD81',
   [TESTNET_ID]: '0xa0E3174f4D222C5CBf705A138C6a9369935EeD81',
 }
 
-export const CLOBER_FACTORY: { [chainId: number]: string } = {
-  [arbitrum.id]: '0x24aC0938C010Fb520F1068e96d78E0458855111D',
-  [arbitrumGoerli.id]: '0x110f5cBC51576fDa2E8024155F772c494f421E11',
-  [TESTNET_ID]: '0x24aC0938C010Fb520F1068e96d78E0458855111D',
-}
-
-export const AAVE_V3_POOL: { [chainId: number]: string } = {
-  [arbitrum.id]: '0x794a61358D6845594F94dc1DB02A252b5b4814aD',
-  [arbitrumGoerli.id]: '0x20fa38a4f8Af2E36f1Cc14caad2E603fbA5C535c',
-  [TESTNET_ID]: '0x794a61358D6845594F94dc1DB02A252b5b4814aD',
-}
-
-export const WRAPPED1155_FACTORY: { [chainId: number]: string } = {
-  [arbitrum.id]: '0xfcBE16BfD991E4949244E59d9b524e6964b8BB75',
-  [arbitrumGoerli.id]: '0x194B27c5bb294319DE2B2DA40c10bd13484D7349',
-  [TESTNET_ID]: '0xfcBE16BfD991E4949244E59d9b524e6964b8BB75',
-}
-
 export const TREASURY: { [chainId: number]: string } = {
   [arbitrum.id]: '0x2f1707aed1fb24d07b9b42e4b0bc885f546b4f43',
   [arbitrumGoerli.id]: '0x000000000000000000000000000000000000dEaD',
   [TESTNET_ID]: '0x000000000000000000000000000000000000dEaD',
-}
-
-export const REPAY_ROUTER: { [chainId: number]: string } = {
-  [arbitrum.id]: '0xa669e7A0d4b3e4Fa48af2dE86BD4CD7126Be4e13',
-  [arbitrumGoerli.id]: '0xbe83C53499C676dAB038db0E2CAd3E69a3d5CdFC',
-  [TESTNET_ID]: '0xBe4343BBb42347036321d8b1608311E7ed5Ea014',
-}
-
-export const LEVERAGE_ROUTER: { [chainId: number]: string } = {
-  [arbitrum.id]: '0xa669e7A0d4b3e4Fa48af2dE86BD4CD7126Be4e13',
-  [arbitrumGoerli.id]: '0xbe83C53499C676dAB038db0E2CAd3E69a3d5CdFC',
-  [TESTNET_ID]: '0xBe4343BBb42347036321d8b1608311E7ed5Ea014',
-}
-
-export const LIQUIDATOR_ROUTER: { [chainId: number]: string } = {
-  [arbitrum.id]: '0xa669e7A0d4b3e4Fa48af2dE86BD4CD7126Be4e13',
-  [arbitrumGoerli.id]: '0xbe83C53499C676dAB038db0E2CAd3E69a3d5CdFC',
-  [TESTNET_ID]: '0xBe4343BBb42347036321d8b1608311E7ed5Ea014',
 }
 
 export const CHAINLINK_SEQUENCER_ORACLE: { [chainId: number]: string } = {
@@ -134,7 +96,7 @@ export const CHAINLINK_FEEDS: { [chainId: number]: { [name: string]: string[] } 
   },
 }
 
-export const AAVE_SUBSTITUTES: { [chainId: number]: { [name: string]: string } } = {
+export const ASSETS: { [chainId: number]: { [name: string]: string } } = {
   [arbitrum.id]: {
     [TOKEN_KEYS.WETH]: '0xAb6c37355D6C06fcF73Ab0E049d9Cf922f297573',
     [TOKEN_KEYS.USDC]: '0x7Ed1145045c8B754506d375Cdf90734550d1077e',
