@@ -12,7 +12,7 @@ task('bond:register-asset')
     if (await manager.isAssetRegistered(token)) {
       console.log('Asset already registered')
     } else {
-      console.log('Registering asset')
+      console.log('Registering asset', asset)
       const receipt = await waitForTx(manager.registerAsset(token))
       console.log('Registered asset at tx', receipt.transactionHash)
     }

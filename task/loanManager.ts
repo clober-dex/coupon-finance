@@ -26,7 +26,7 @@ task('loan:set-configuration')
           configuration.hook,
         ),
       )
-      console.log('Registered pair at tx', receipt.transactionHash)
+      console.log(`Registered pair(${collateral}-${debt}) at tx`, receipt.transactionHash)
     }
   })
 
@@ -39,6 +39,7 @@ task('loan:get-configuration')
     const collateralToken = ASSETS[chainId][collateral]
     const debtToken = ASSETS[chainId][debt]
     const configuration = await manager.getLoanConfiguration(collateralToken, debtToken)
+    console.log(`${collateral}-${debt}`)
     console.log('liquidationThreshold', configuration.liquidationThreshold / 10 ** 6)
     console.log('liquidationFee', configuration.liquidationFee / 10 ** 6)
     console.log('liquidationProtocolFee', configuration.liquidationProtocolFee / 10 ** 6)
