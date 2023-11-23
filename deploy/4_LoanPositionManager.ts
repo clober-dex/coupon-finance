@@ -1,11 +1,8 @@
 import { DeployFunction } from 'hardhat-deploy/types'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import { hardhat } from '@wagmi/chains'
-import { TREASURY } from '../utils/constants'
+import { hardhat } from 'viem/chains'
+import { TREASURY, deployWithVerify, getDeployedAddress } from '../utils'
 import { BigNumber } from 'ethers'
-import { getDeployedContract } from '../utils/contract'
-import { AssetPool, CouponManager, CouponOracle } from '../typechain'
-import { deployWithVerify } from '../utils/misc'
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, network } = hre
@@ -14,10 +11,6 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
     return
   }
 
-  const couponManager = await getDeployedContract<CouponManager>('CouponManager')
-  const assetPool = await getDeployedContract<AssetPool>('AssetPool')
-  const oracle = await getDeployedContract<CouponOracle>('CouponOracle')
-
   const chainId = network.config.chainId || hardhat.id
 
   const baseURI = `https://coupon.finance/api/nft/chains/${chainId}/loans/`
@@ -25,9 +18,9 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   const minDebtValueInEth = BigNumber.from('10000000000000000')
 
   const args = [
-    couponManager.address,
-    assetPool.address,
-    oracle.address,
+    await getDeployedAddress('CouponManager'),
+    await getDeployedAddress('AssetPool'),
+    await getDeployedAddress('CouponOracle'),
     TREASURY[chainId],
     minDebtValueInEth,
     baseURI,

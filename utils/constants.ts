@@ -1,21 +1,21 @@
-import { arbitrum, arbitrumGoerli } from '@wagmi/chains'
-import { constants } from 'ethers'
+import { arbitrum, arbitrumGoerli } from 'viem/chains'
+import { Address, zeroAddress } from 'viem'
 
 export const TESTNET_ID = 7777
 
-export const OWNER: { [chainId: number]: string } = {
+export const OWNER: { [chainId: number]: Address } = {
   [arbitrum.id]: '0x1689FD73FfC888d47D201b72B0ae7A83c20fA274',
   [arbitrumGoerli.id]: '0xa0E3174f4D222C5CBf705A138C6a9369935EeD81',
   [TESTNET_ID]: '0xa0E3174f4D222C5CBf705A138C6a9369935EeD81',
 }
 
-export const TREASURY: { [chainId: number]: string } = {
+export const TREASURY: { [chainId: number]: Address } = {
   [arbitrum.id]: '0x2f1707aed1fb24d07b9b42e4b0bc885f546b4f43',
   [arbitrumGoerli.id]: '0x000000000000000000000000000000000000dEaD',
   [TESTNET_ID]: '0x000000000000000000000000000000000000dEaD',
 }
 
-export const CHAINLINK_SEQUENCER_ORACLE: { [chainId: number]: string } = {
+export const CHAINLINK_SEQUENCER_ORACLE: { [chainId: number]: Address } = {
   [arbitrum.id]: '0xFdB631F5EE196F0ed6FAa767959853A9F217697D',
   [arbitrumGoerli.id]: '0x4da69F028a5790fCCAfe81a75C0D24f46ceCDd69',
   [TESTNET_ID]: '0xFdB631F5EE196F0ed6FAa767959853A9F217697D',
@@ -43,7 +43,9 @@ export const TOKEN_KEYS = {
   WBTC: 'WBTC',
 }
 
-export const TOKENS: { [chainId: number]: { [name: string]: string } } = {
+export type TokenKeys = (typeof TOKEN_KEYS)[keyof typeof TOKEN_KEYS]
+
+export const TOKENS: { [chainId: number]: { [name: TokenKeys]: Address } } = {
   [arbitrum.id]: {
     [TOKEN_KEYS.WETH]: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
     [TOKEN_KEYS.wstETH]: '0x5979D7b546E38E414F7E9822514be443A4800529',
@@ -70,7 +72,7 @@ export const TOKENS: { [chainId: number]: { [name: string]: string } } = {
   },
 }
 
-export const CHAINLINK_FEEDS: { [chainId: number]: { [name: string]: string[] } } = {
+export const CHAINLINK_FEEDS: { [chainId: number]: { [name: TokenKeys]: Address[] } } = {
   [arbitrum.id]: {
     [TOKEN_KEYS.WETH]: ['0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612'],
     [TOKEN_KEYS.wstETH]: ['0xb523ae262d20a936bc152e6023996e46fdc2a95d', '0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612'],
@@ -96,7 +98,7 @@ export const CHAINLINK_FEEDS: { [chainId: number]: { [name: string]: string[] } 
   },
 }
 
-export const ASSETS: { [chainId: number]: { [name: string]: string } } = {
+export const ASSETS: { [chainId: number]: { [name: TokenKeys]: Address } } = {
   [arbitrum.id]: {
     [TOKEN_KEYS.WETH]: '0xAb6c37355D6C06fcF73Ab0E049d9Cf922f297573',
     [TOKEN_KEYS.USDC]: '0x7Ed1145045c8B754506d375Cdf90734550d1077e',
@@ -127,7 +129,7 @@ export type LoanConfiguration = {
   liquidationFee: number
   liquidationProtocolFee: number
   liquidationTargetLtv: number
-  hook: string
+  hook: Address
 }
 
 const STABLE_STABLE_LOAN_CONFIGURATION: LoanConfiguration = {
@@ -135,7 +137,7 @@ const STABLE_STABLE_LOAN_CONFIGURATION: LoanConfiguration = {
   liquidationFee: 10000,
   liquidationProtocolFee: 3000,
   liquidationTargetLtv: 950000,
-  hook: constants.AddressZero,
+  hook: zeroAddress,
 }
 
 const STABLE_VOLATILE_LOAN_CONFIGURATION: LoanConfiguration = {
@@ -143,7 +145,7 @@ const STABLE_VOLATILE_LOAN_CONFIGURATION: LoanConfiguration = {
   liquidationFee: 30000,
   liquidationProtocolFee: 10000,
   liquidationTargetLtv: 750000,
-  hook: constants.AddressZero,
+  hook: zeroAddress,
 }
 
 const VOLATILE_VOLATILE_LOAN_CONFIGURATION: LoanConfiguration = {
@@ -151,10 +153,10 @@ const VOLATILE_VOLATILE_LOAN_CONFIGURATION: LoanConfiguration = {
   liquidationFee: 30000,
   liquidationProtocolFee: 10000,
   liquidationTargetLtv: 700000,
-  hook: constants.AddressZero,
+  hook: zeroAddress,
 }
 
-const LOAN_CONFIGURATION: { [collateral: string]: { [debt: string]: LoanConfiguration } } = {
+const LOAN_CONFIGURATION: { [collateral: TokenKeys]: { [debt: TokenKeys]: LoanConfiguration } } = {
   [TOKEN_KEYS.wstETH]: {
     [TOKEN_KEYS.USDC]: STABLE_VOLATILE_LOAN_CONFIGURATION,
     [TOKEN_KEYS.WETH]: {
@@ -162,7 +164,7 @@ const LOAN_CONFIGURATION: { [collateral: string]: { [debt: string]: LoanConfigur
       liquidationFee: 15000,
       liquidationProtocolFee: 5000,
       liquidationTargetLtv: 850000,
-      hook: constants.AddressZero,
+      hook: zeroAddress,
     },
   },
   [TOKEN_KEYS.WETH]: {
@@ -189,7 +191,7 @@ const LOAN_CONFIGURATION: { [collateral: string]: { [debt: string]: LoanConfigur
   },
 }
 
-export const getLoanConfiguration = (collateral: string, debt: string): LoanConfiguration => {
+export const getLoanConfiguration = (collateral: TokenKeys, debt: TokenKeys): LoanConfiguration => {
   if (!Object.values(TOKEN_KEYS).includes(collateral) && !Object.values(TOKEN_KEYS).includes(debt)) {
     throw new Error('Invalid collateral or debt')
   }

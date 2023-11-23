@@ -1,8 +1,7 @@
 import { task } from 'hardhat/config'
-import { getDeployedContract } from '../utils'
-import { CouponManager } from '../typechain'
+import { getDeployedAddress, liveLog } from '../utils'
 
-task('coupon:current-epoch').setAction(async () => {
-  const couponManager = await getDeployedContract<CouponManager>('CouponManager')
-  console.log(await couponManager.currentEpoch())
+task('coupon:current-epoch').setAction(async (taskArgs, hre) => {
+  const couponManager = await hre.viem.getContractAt('CouponManager', await getDeployedAddress('CouponManager'))
+  liveLog(await couponManager.read.currentEpoch())
 })
