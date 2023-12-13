@@ -4,12 +4,10 @@ import fs from 'fs'
 import * as dotenv from 'dotenv'
 import readlineSync from 'readline-sync'
 import { HardhatConfig } from 'hardhat/types'
-import { arbitrum, arbitrumGoerli, hardhat, mainnet } from '@wagmi/chains'
+import * as networkInfos from 'viem/chains'
 
-import '@nomiclabs/hardhat-waffle'
-import '@typechain/hardhat'
 import 'hardhat-deploy'
-import '@nomiclabs/hardhat-ethers'
+import '@nomicfoundation/hardhat-viem'
 import 'hardhat-gas-reporter'
 import 'hardhat-contract-sizer'
 import 'hardhat-abi-exporter'
@@ -19,7 +17,6 @@ import { TESTNET_ID } from './utils'
 
 dotenv.config()
 
-const networkInfos = require('@wagmi/chains')
 const chainIdMap: { [key: string]: string } = {}
 for (const [networkName, networkInfo] of Object.entries(networkInfos)) {
   // @ts-ignore
@@ -28,7 +25,6 @@ for (const [networkName, networkInfo] of Object.entries(networkInfos)) {
 
 const SKIP_LOAD = process.env.SKIP_LOAD === 'true'
 
-// Prevent to load scripts before compilation and typechain
 if (!SKIP_LOAD) {
   const tasksPath = path.join(__dirname, 'task')
   fs.readdirSync(tasksPath)
@@ -55,7 +51,7 @@ const getMainnetPrivateKey = () => {
     }
   }
 
-  const prodNetworks = new Set<number>([mainnet.id, arbitrum.id])
+  const prodNetworks = new Set<number>([networkInfos.mainnet.id, networkInfos.arbitrum.id])
   if (network && prodNetworks.has(network)) {
     if (privateKey) {
       return privateKey
@@ -99,15 +95,16 @@ const config: HardhatConfig = {
   },
   etherscan: {
     apiKey: {
-      arbitrumOne: process.env.ARBISCAN_API_KEY,
-      arbitrumGoerli: process.env.ARBISCAN_API_KEY,
+      arbitrumOne: process.env.ARBISCAN_API_KEY ?? '',
+      arbitrumGoerli: process.env.ARBISCAN_API_KEY ?? '',
     },
+    customChains: [],
   },
   defaultNetwork: 'hardhat',
   networks: {
-    [arbitrum.id]: {
-      url: process.env.ARBITRUM_NODE_URL ?? arbitrum.rpcUrls.default.http[0],
-      chainId: arbitrum.id,
+    [networkInfos.arbitrum.id]: {
+      url: process.env.ARBITRUM_NODE_URL ?? networkInfos.arbitrum.rpcUrls.default.http[0],
+      chainId: networkInfos.arbitrum.id,
       accounts: [getMainnetPrivateKey()],
       gas: 'auto',
       gasPrice: 100000000,
@@ -125,9 +122,9 @@ const config: HardhatConfig = {
         },
       },
     },
-    [arbitrumGoerli.id]: {
-      url: arbitrumGoerli.rpcUrls.default.http[0],
-      chainId: arbitrumGoerli.id,
+    [networkInfos.arbitrumGoerli.id]: {
+      url: networkInfos.arbitrumGoerli.rpcUrls.default.http[0],
+      chainId: networkInfos.arbitrumGoerli.id,
       accounts: process.env.TEST_NET_PRIVATE_KEY ? [process.env.TEST_NET_PRIVATE_KEY] : [],
       gas: 'auto',
       gasPrice: 'auto',
@@ -159,8 +156,8 @@ const config: HardhatConfig = {
       tags: ['testnet', 'test'],
       companionNetworks: {},
     },
-    [hardhat.network]: {
-      chainId: hardhat.id,
+    [networkInfos.hardhat.network]: {
+      chainId: networkInfos.hardhat.id,
       gas: 20000000,
       gasPrice: 250000000000,
       gasMultiplier: 1,
