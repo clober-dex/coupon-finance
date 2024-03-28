@@ -69,7 +69,7 @@ export const computeCreate1Address = (origin: `0x${string}`, nonce: bigint | num
   } else if (nonce <= BigInt('0x7f')) {
     packedData = encodePacked(
       ['bytes1', 'bytes1', 'address', 'bytes1'],
-      ['0xd6', '0x94', origin, `0x${Number(nonce).toString(16)}`],
+      ['0xd6', '0x94', origin, `0x${Number(nonce).toString(16).padStart(2, '0')}`],
     )
   } else if (nonce <= BigInt('0xff')) {
     packedData = encodePacked(
