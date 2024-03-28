@@ -42,12 +42,8 @@ library TestInitializer {
         p.assetPool = new AssetPool(Utils.toArr(Create1.computeAddress(address(this), thisNonce + 2)));
         p.couponManager =
             new CouponManager(Utils.toArr(Create1.computeAddress(address(this), thisNonce + 2)), "URI/", "URI");
-        p.bondPositionManager = new BondPositionManager(
-            address(p.couponManager),
-            address(p.assetPool),
-            "bond/position/uri/",
-            "URI"
-        );
+        p.bondPositionManager =
+            new BondPositionManager(address(p.couponManager), address(p.assetPool), "bond/position/uri/", "URI");
         p.bondPositionManager.registerAsset(address(p.usdc));
 
         p.usdc.approve(address(p.bondPositionManager), type(uint256).max);

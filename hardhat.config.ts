@@ -91,9 +91,10 @@ const config: HardhatConfig = {
   etherscan: {
     apiKey: {
       arbitrumOne: process.env.ARBISCAN_API_KEY ?? '',
-      arbitrumGoerli: process.env.ARBISCAN_API_KEY ?? '',
+      arbitrumSepolia: process.env.ARBISCAN_API_KEY ?? '',
     },
     customChains: [],
+    enabled: true,
   },
   defaultNetwork: 'hardhat',
   networks: {

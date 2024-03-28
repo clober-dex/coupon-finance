@@ -44,16 +44,11 @@ library TestInitializer {
         p.oracle = new MockOracle(address(p.weth));
         uint64 thisNonce = vm.getNonce(address(this));
         p.assetPool = new AssetPool(Utils.toArr(address(this), Create1.computeAddress(address(this), thisNonce + 2)));
-        p.couponManager =
-        new CouponManager(Utils.toArr(address(this), Create1.computeAddress(address(this), thisNonce + 2)), "URI/", "URI");
+        p.couponManager = new CouponManager(
+            Utils.toArr(address(this), Create1.computeAddress(address(this), thisNonce + 2)), "URI/", "URI"
+        );
         p.loanPositionManager = new LoanPositionManager(
-            address(p.couponManager),
-            address(p.assetPool),
-            address(p.oracle),
-            Constants.TREASURY,
-            10 ** 16,
-            "",
-            "URI"
+            address(p.couponManager), address(p.assetPool), address(p.oracle), Constants.TREASURY, 10 ** 16, "", "URI"
         );
         p.loanPositionManager.setLoanConfiguration(
             address(p.usdc), address(p.weth), 800000, 20000, 5000, 700000, address(0)
