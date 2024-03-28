@@ -152,12 +152,11 @@ const config: HardhatConfig = {
       tags: ['testnet', 'test'],
       companionNetworks: {},
     },
-    [networkInfos.hardhat.network]: {
+    hardhat: {
       chainId: networkInfos.hardhat.id,
       gas: 20000000,
       gasPrice: 250000000000,
       gasMultiplier: 1,
-      hardfork: 'shanghai',
       // @ts-ignore
       // forking: {
       //   enabled: true,
