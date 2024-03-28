@@ -88,11 +88,6 @@ const config: HardhatConfig = {
     ],
     overrides: {},
   },
-  // @ts-ignore
-  typechain: {
-    outDir: 'typechain',
-    target: 'ethers-v5',
-  },
   etherscan: {
     apiKey: {
       arbitrumOne: process.env.ARBISCAN_API_KEY ?? '',
@@ -122,9 +117,9 @@ const config: HardhatConfig = {
         },
       },
     },
-    [networkInfos.arbitrumGoerli.id]: {
-      url: networkInfos.arbitrumGoerli.rpcUrls.default.http[0],
-      chainId: networkInfos.arbitrumGoerli.id,
+    [networkInfos.arbitrumSepolia.id]: {
+      url: networkInfos.arbitrumSepolia.rpcUrls.default.http[0],
+      chainId: networkInfos.arbitrumSepolia.id,
       accounts: process.env.TEST_NET_PRIVATE_KEY ? [process.env.TEST_NET_PRIVATE_KEY] : [],
       gas: 'auto',
       gasPrice: 'auto',
@@ -138,7 +133,7 @@ const config: HardhatConfig = {
       verify: {
         etherscan: {
           apiKey: process.env.ARBISCAN_API_KEY,
-          apiUrl: 'https://api-goerli.arbiscan.io',
+          apiUrl: 'https://api-sepolia.arbiscan.io',
         },
       },
     },
